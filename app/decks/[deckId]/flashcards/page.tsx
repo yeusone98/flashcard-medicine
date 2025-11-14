@@ -321,7 +321,7 @@ export default function FlashcardStudyPage() {
 
                 {hasCards && current && (
                     <>
-                        {/* CARD + FLIP: xoay từng mặt, không xoay parent → chữ không bao giờ ngược */}
+                        {/* CARD + FLIP */}
                         <div className="flex justify-center mt-4">
                             <div className="w-full max-w-2xl h-[360px] md:h-[380px] [perspective:1200px]">
                                 <AnimatePresence mode="wait" initial={false}>
@@ -336,7 +336,7 @@ export default function FlashcardStudyPage() {
                                         {/* FRONT FACE */}
                                         <motion.div
                                             onClick={() => setShowBack(s => !s)}
-                                            className="absolute inset-0 px-8 py-7 md:px-10 md:py-9 cursor-pointer flex flex-col justify-center items-center text-center"
+                                            className="absolute inset-0 px-8 py-7 md:px-10 md:py-9 cursor-pointer flex flex-col items-center text-center"
                                             style={{
                                                 backfaceVisibility: 'hidden',
                                                 transformStyle: 'preserve-3d',
@@ -345,19 +345,30 @@ export default function FlashcardStudyPage() {
                                             animate={{ rotateY: showBack ? 180 : 0 }}
                                             transition={{ duration: 0.4, ease: 'easeInOut' }}
                                         >
-                                            <div className="flex justify-between w-full mb-4 text-[11px] text-slate-500">
-                                                <span>Mặt trước</span>
-                                                <span className="italic">Bấm vào thẻ để lật</span>
+                                            {/* header */}
+                                            <div className="w-full mb-4 text-[11px] text-slate-400 text-center">
+                                                <span className="font-semibold text-slate-200">
+                                                    Mặt trước · câu hỏi
+                                                </span>
                                             </div>
-                                            <p className="text-xl md:text-2xl whitespace-pre-wrap leading-relaxed">
-                                                {current.front}
+
+                                            {/* nội dung */}
+                                            <div className="flex-1 flex items-center justify-center">
+                                                <p className="text-xl md:text-2xl whitespace-pre-wrap leading-relaxed">
+                                                    {current.front}
+                                                </p>
+                                            </div>
+
+                                            {/* hint */}
+                                            <p className="mt-4 text-[11px] text-slate-500 italic">
+                                                Bấm vào thẻ để lật
                                             </p>
                                         </motion.div>
 
                                         {/* BACK FACE */}
                                         <motion.div
                                             onClick={() => setShowBack(s => !s)}
-                                            className="absolute inset-0 px-8 py-7 md:px-10 md:py-9 cursor-pointer flex flex-col justify-center items-center text-center"
+                                            className="absolute inset-0 px-8 py-7 md:px-10 md:py-9 cursor-pointer flex flex-col items-center text-center"
                                             style={{
                                                 backfaceVisibility: 'hidden',
                                                 transformStyle: 'preserve-3d',
@@ -366,18 +377,30 @@ export default function FlashcardStudyPage() {
                                             animate={{ rotateY: showBack ? 0 : -180 }}
                                             transition={{ duration: 0.4, ease: 'easeInOut' }}
                                         >
-                                            <div className="flex justify-between w-full mb-4 text-[11px] text-slate-500">
-                                                <span>Mặt sau</span>
-                                                <span className="italic">Bấm vào thẻ để lật lại</span>
+                                            {/* header */}
+                                            <div className="w-full mb-4 text-[11px] text-slate-400 text-center">
+                                                <span className="font-semibold text-slate-200">
+                                                    Mặt sau · đáp án
+                                                </span>
                                             </div>
-                                            <p className="text-xl md:text-2xl whitespace-pre-wrap leading-relaxed">
-                                                {current.back}
+
+                                            {/* nội dung */}
+                                            <div className="flex-1 flex items-center justify-center">
+                                                <p className="text-xl md:text-2xl whitespace-pre-wrap leading-relaxed">
+                                                    {current.back}
+                                                </p>
+                                            </div>
+
+                                            {/* hint */}
+                                            <p className="mt-4 text-[11px] text-slate-500 italic">
+                                                Bấm vào thẻ để lật lại
                                             </p>
                                         </motion.div>
                                     </motion.div>
                                 </AnimatePresence>
                             </div>
                         </div>
+
 
                         {/* Counter */}
                         <div className="flex justify-center mt-3">
