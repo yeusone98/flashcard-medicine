@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/mongodb'
 import Deck from '@/models/Deck'
 import Question from '@/models/Question'
+import Flashcard from '@/models/Flashcard'   // ⬅️ thêm Flashcard
 import mammoth from 'mammoth'
 import { parseMCFromText } from '@/lib/parsers'
 
@@ -34,10 +35,12 @@ export async function POST(req: NextRequest) {
         )
     }
 
+    // Tạo deck dùng chung cho cả MCQ + Flashcard
     const deck = await Deck.create({
         name: deckName || file.name.replace('.docx', ''),
     })
 
+    // Lưu câu hỏi trắc nghiệm
     await Question.insertMany(
         questions.map(q => ({
             deckId: deck._id,
@@ -47,6 +50,24 @@ export async function POST(req: NextRequest) {
         }))
     )
 
+    // Lưu flashcard tương ứng
+    // front = câu hỏi
+    // back = đáp án đúng (+ giải thích nếu có)
+    await Flashcard.insertMany(
+        questions.map(q => {
+            const correctChoice = q.choices.find(c => c.isCorrect)?.text ?? ''
+            let back = `Đáp án đúng: ${correctChoice}`
+            if (q.explanation) {
+                back += `\n\nGiải thích: ${q.explanation}`
+            }
+
+            return {
+                deckId: deck._id,
+                front: q.question,
+                back,
+            }
+        })
+    )
 
     return NextResponse.json({
         deckId: deck._id,
