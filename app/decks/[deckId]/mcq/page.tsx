@@ -1,641 +1,439 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import * as React from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { FileQuestion, ChevronLeft, ChevronRight, Check, X, ListOrdered } from "lucide-react"
 
-interface Choice {
-    text: string
-    isCorrect: boolean
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
+
+type PageProps = { params: { deckId: string } }
+
+type Choice = { text: string; isCorrect: boolean }
+type Question = {
+  _id: string
+  question: string
+  choices: Choice[]
+  explanation?: string
 }
 
-interface Question {
-    _id: string
-    question: string
-    choices: Choice[]
-    explanation?: string
+type AnswerState = {
+  selectedIndex: number | null
+  isCorrect: boolean | null
 }
 
-interface AnswerState {
-    selectedIndex: number | null
-    isCorrect: boolean | null
-}
+type ReviewMode = "all" | "wrong"
 
-export default function MCQPage() {
-    const params = useParams<{ deckId: string }>()
-    const router = useRouter()
-    const deckId = params.deckId
+export default function McqPage({ params }: PageProps) {
+  const { deckId } = params
+  const router = useRouter()
 
-    const [questions, setQuestions] = useState<Question[]>([])
-    const [index, setIndex] = useState(0)
-    const [answers, setAnswers] = useState<AnswerState[]>([])
-    const [loading, setLoading] = useState(true)
-    const [deckName, setDeckName] = useState('')
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [answers, setAnswers] = useState<AnswerState[]>([])
+  const [index, setIndex] = useState(0)
+  const [loading, setLoading] = useState(true)
 
-    const [isSubmitted, setIsSubmitted] = useState(false)
-    const [showSubmitModal, setShowSubmitModal] = useState(false)
-    const [reviewMode, setReviewMode] = useState<'all' | 'wrong'>('all')
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [submitOpen, setSubmitOpen] = useState(false)
+  const [reviewMode, setReviewMode] = useState<ReviewMode>("all")
 
-    // Lấy deck name + câu hỏi
-    useEffect(() => {
-        const fetchAll = async () => {
-            setLoading(true)
-
-            // Deck name (để hiện tiêu đề)
-            const deckRes = await fetch('/api/decks')
-            const deckList = await deckRes.json()
-            const deck = deckList.find((d: any) => d._id === deckId)
-            setDeckName(deck?.name || '')
-
-            // Questions
-            const res = await fetch(`/api/questions?deckId=${deckId}`)
-            const data: Question[] = await res.json()
-            setQuestions(data)
-            setIndex(0)
-            setAnswers(
-                data.map(() => ({
-                    selectedIndex: null,
-                    isCorrect: null,
-                }))
-            )
-            setLoading(false)
-            setIsSubmitted(false)
-            setShowSubmitModal(false)
-            setReviewMode('all')
-        }
-
-        if (deckId) fetchAll()
-    }, [deckId])
-
-    const hasQuestions = questions.length > 0
-    const current = hasQuestions ? questions[index] : null
-    const total = questions.length
-
-    const unansweredCount = answers.filter(a => a.selectedIndex === null).length
-    const correctCount = answers.filter(a => a.isCorrect === true).length
-    const wrongCount = answers.filter(a => a.isCorrect === false).length
-    const answeredCount = total - unansweredCount
-    const percent = total ? Math.round((correctCount / total) * 100) : 0
-    const score10 = total ? (correctCount / total) * 10 : 0
-
-    const progress = hasQuestions ? ((index + 1) / questions.length) * 100 : 0
-
-    // Lọc index câu theo chế độ xem (tất cả / chỉ câu sai sau khi nộp)
-    const getFilteredIndices = () => {
-        if (!isSubmitted || reviewMode === 'all') {
-            return questions.map((_, i) => i)
-        }
-        const wrongIndices: number[] = []
-        answers.forEach((a, i) => {
-            if (a?.isCorrect === false) wrongIndices.push(i)
-        })
-        return wrongIndices
-    }
-
-    const filteredIndices = getFilteredIndices()
-    const currentFilteredPos = filteredIndices.indexOf(index)
-    const isFirstInView =
-        filteredIndices.length === 0
-            ? true
-            : currentFilteredPos <= 0
-    const isLastInView =
-        filteredIndices.length === 0
-            ? true
-            : currentFilteredPos === filteredIndices.length - 1
-
-    // Chọn đáp án (trước khi nộp chỉ lưu lại, không show đúng/sai)
-    const handleSelect = (i: number) => {
-        if (!current || isSubmitted) return
-
-        setAnswers(prev => {
-            const copy = [...prev]
-            const isCorrect = current.choices[i].isCorrect
-            copy[index] = { selectedIndex: i, isCorrect }
-            return copy
-        })
-    }
-
-    const goToQuestion = (i: number) => {
-        setIndex(i)
-    }
-
-    const nextQuestion = () => {
-        if (!hasQuestions) return
-
-        const filtered = getFilteredIndices()
-        if (filtered.length === 0) return
-
-        const pos = filtered.indexOf(index)
-        // Nếu đang không ở trong list filter (edge case) -> nhảy về câu đầu trong list
-        if (pos === -1) {
-            setIndex(filtered[0])
-            return
-        }
-
-        const nextPos = Math.min(pos + 1, filtered.length - 1)
-        setIndex(filtered[nextPos])
-    }
-
-    const prevQuestion = () => {
-        if (!hasQuestions) return
-
-        const filtered = getFilteredIndices()
-        if (filtered.length === 0) return
-
-        const pos = filtered.indexOf(index)
-        if (pos === -1) {
-            setIndex(filtered[0])
-            return
-        }
-
-        const prevPos = Math.max(pos - 1, 0)
-        setIndex(filtered[prevPos])
-    }
-
-    const handleMainButton = () => {
-        if (!hasQuestions) return
-        if (index < questions.length - 1) {
-            // Khi chưa nộp thì next đi theo index full
-            setIndex(prev => Math.min(prev + 1, questions.length - 1))
-        } else {
-            // Câu cuối -> mở popup nộp bài
-            setShowSubmitModal(true)
-        }
-    }
-
-    const confirmSubmit = () => {
-        setIsSubmitted(true)
-        setShowSubmitModal(false)
-        setReviewMode('all')
-    }
-
-    const cancelSubmit = () => {
-        setShowSubmitModal(false)
-    }
-
-    const resetQuiz = () => {
-        if (!hasQuestions) return
-        setAnswers(
-            questions.map(() => ({
-                selectedIndex: null,
-                isCorrect: null,
-            }))
-        )
-        setIsSubmitted(false)
+  // TODO: chỉnh lại URL API nếu khác
+  useEffect(() => {
+    async function fetchQuestions() {
+      try {
+        setLoading(true)
+        const res = await fetch(`/api/questions?deckId=${deckId}`)
+        const data = await res.json()
+        const qs: Question[] = data.questions ?? data
+        setQuestions(qs)
+        setAnswers(qs.map(() => ({ selectedIndex: null, isCorrect: null })))
         setIndex(0)
-        setReviewMode('all')
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
     }
+    fetchQuestions()
+  }, [deckId])
 
-    const handleChangeReviewMode = (mode: 'all' | 'wrong') => {
-        setReviewMode(mode)
-        if (mode === 'wrong' && isSubmitted) {
-            const firstWrongIndex = answers.findIndex(a => a?.isCorrect === false)
-            if (firstWrongIndex !== -1) {
-                setIndex(firstWrongIndex)
-            }
-        }
+  const filteredIndices = useMemo(() => {
+    if (!isSubmitted || reviewMode === "all") {
+      return questions.map((_, i) => i)
     }
+    // chỉ câu sai
+    return questions
+      .map((_, i) => i)
+      .filter((i) => answers[i]?.isCorrect === false || answers[i]?.selectedIndex === null)
+  }, [questions, answers, isSubmitted, reviewMode])
 
-    // disable nút theo mode
-    const isPrevDisabled = !hasQuestions || (!isSubmitted && index === 0) || (isSubmitted && isFirstInView)
-    const isNextDisabled = !hasQuestions || (isSubmitted && isLastInView)
+  // đảm bảo index hợp lệ trong filteredIndices
+  useEffect(() => {
+    if (!filteredIndices.length) return
+    const pos = filteredIndices.indexOf(index)
+    if (pos === -1) {
+      setIndex(filteredIndices[0])
+    }
+  }, [filteredIndices, index])
 
-    // List index dùng để render danh sách câu hỏi
-    const questionIndicesForList =
-        !isSubmitted || reviewMode === 'all'
-            ? questions.map((_, i) => i)
-            : filteredIndices
+  const current = questions[index]
+  const currentAnswer = answers[index]
 
+  const unansweredCount = answers.filter((a) => a.selectedIndex === null).length
+  const answeredCount = questions.length - unansweredCount
+  const correctCount = answers.filter((a) => a.isCorrect === true).length
+  const wrongCount = answers.filter((a) => a.isCorrect === false).length
+
+  const percent = questions.length ? (correctCount / questions.length) * 100 : 0
+  const score10 = questions.length ? (correctCount / questions.length) * 10 : 0
+
+  const progressPercent = questions.length ? ((index + 1) / questions.length) * 100 : 0
+
+  function handleSelectChoice(choiceIndex: number) {
+    if (isSubmitted) return
+    if (!current) return
+
+    const choice = current.choices[choiceIndex]
+    setAnswers((prev) => {
+      const draft = [...prev]
+      draft[index] = {
+        selectedIndex: choiceIndex,
+        isCorrect: choice.isCorrect,
+      }
+      return draft
+    })
+  }
+
+  function goNext() {
+    if (!filteredIndices.length) return
+    const pos = filteredIndices.indexOf(index)
+    if (pos === -1 || pos === filteredIndices.length - 1) return
+    setIndex(filteredIndices[pos + 1])
+  }
+
+  function goPrev() {
+    if (!filteredIndices.length) return
+    const pos = filteredIndices.indexOf(index)
+    if (pos <= 0) return
+    setIndex(filteredIndices[pos - 1])
+  }
+
+  const isLastVisible = useMemo(() => {
+    if (!filteredIndices.length) return false
+    const pos = filteredIndices.indexOf(index)
+    return pos === filteredIndices.length - 1
+  }, [filteredIndices, index])
+
+  function handleMainButton() {
+    if (!isLastVisible || !questions.length) {
+      goNext()
+      return
+    }
+    // đang ở câu cuối → mở popup nộp
+    setSubmitOpen(true)
+  }
+
+  function confirmSubmit() {
+    setIsSubmitted(true)
+    setSubmitOpen(false)
+    setReviewMode("all")
+  }
+
+  function resetQuiz() {
+    setAnswers(questions.map(() => ({ selectedIndex: null, isCorrect: null })))
+    setIsSubmitted(false)
+    setIndex(0)
+    setReviewMode("all")
+  }
+
+  if (loading) {
     return (
-        <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-slate-100 flex items-center justify-center py-6">
-            <div className="w-full max-w-5xl px-4 md:px-6">
-                <div className="relative rounded-3xl border border-slate-800/80 bg-slate-900/70 shadow-2xl shadow-sky-950/50 backdrop-blur-xl px-5 md:px-8 py-6 md:py-8 space-y-6">
-                    {/* Header */}
-                    <div className="flex items-center justify-between gap-4">
-                        <button
-                            onClick={() => router.push('/decks')}
-                            className="text-xs md:text-sm inline-flex items-center gap-1 text-slate-400 hover:text-slate-100 hover:-translate-x-0.5 transition-transform"
-                        >
-                            <span>←</span>
-                            <span>Deck của bạn</span>
-                        </button>
-
-                        <div className="text-right space-y-1">
-                            <p className="text-[11px] uppercase text-sky-400 tracking-[0.2em]">
-                                Trắc nghiệm
-                            </p>
-                            <p className="text-sm md:text-base font-semibold">
-                                {deckName || 'Deck không tên'}
-                            </p>
-                            <p className="mt-1 text-[11px] inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-sky-300">
-                                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                {isSubmitted ? 'Đã nộp bài · Đang xem lại' : 'Đang làm bài'}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Progress */}
-                    {hasQuestions && (
-                        <div className="w-full">
-                            <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                                <span>Tiến độ</span>
-                                <span>
-                                    {index + 1}/{questions.length} câu
-                                </span>
-                            </div>
-                            <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                                <div
-                                    className="h-full rounded-full bg-gradient-to-r from-sky-400 via-emerald-400 to-blue-500 transition-all"
-                                    style={{ width: `${progress}%` }}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {loading && (
-                        <p className="text-slate-400 text-sm">
-                            Đang tải câu hỏi...
-                        </p>
-                    )}
-
-                    {!loading && !hasQuestions && (
-                        <p className="text-slate-400 text-sm">
-                            Deck này chưa có câu hỏi trắc nghiệm. Hãy import từ{' '}
-                            <span className="font-mono text-sky-300">/import/mcq</span>.
-                        </p>
-                    )}
-
-                    {/* Câu hỏi hiện tại */}
-                    {hasQuestions && current && (
-                        <AnimatePresence mode="wait" initial={false}>
-                            <motion.div
-                                key={current._id + index}
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -15 }}
-                                transition={{ duration: 0.2 }}
-                                className="space-y-4 md:space-y-5 rounded-2xl border border-slate-800 bg-slate-950/60 px-4 md:px-6 py-4 md:py-5 shadow-inner shadow-slate-950/60"
-                            >
-                                <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                        <h1 className="text-lg md:text-xl font-semibold tracking-tight">
-                                            Câu hỏi
-                                        </h1>
-                                        <p className="text-xs text-slate-400 mt-0.5">
-                                            {isSubmitted
-                                                ? 'Đang xem lại kết quả'
-                                                : 'Chọn đáp án và làm đến hết để nộp bài'}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-xs text-slate-400">
-                                            Câu hiện tại
-                                        </span>
-                                        <span className="text-sm font-semibold text-sky-300">
-                                            {index + 1}/{questions.length}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="rounded-xl bg-slate-900/70 border border-slate-800 px-4 py-3">
-                                    <h2 className="text-base md:text-lg font-semibold leading-relaxed">
-                                        {current.question}
-                                    </h2>
-                                </div>
-
-                                <div className="space-y-2">
-                                    {current.choices.map((choice, i) => {
-                                        const isCorrect = choice.isCorrect
-                                        const state = answers[index]
-                                        const isSelected = state?.selectedIndex === i
-
-                                        let base =
-                                            'w-full text-left px-4 py-2.5 rounded-lg border text-sm md:text-[15px] transition-all flex items-center gap-2'
-                                        let color =
-                                            'bg-slate-950/60 border-slate-800 hover:bg-slate-900/80 hover:border-slate-700'
-
-                                        if (!isSubmitted) {
-                                            // Chưa nộp: chỉ tô màu đáp án đã chọn
-                                            if (isSelected) {
-                                                color =
-                                                    'bg-slate-900 border-slate-600 text-slate-50 shadow-sm shadow-slate-900'
-                                            }
-                                        } else {
-                                            // Đã nộp: hiện xanh/đỏ theo đúng sai
-                                            if (isCorrect) {
-                                                color =
-                                                    'bg-emerald-900/40 border-emerald-500/70 text-emerald-100 shadow-sm shadow-emerald-900/60'
-                                            } else if (isSelected && !isCorrect) {
-                                                color =
-                                                    'bg-rose-900/40 border-rose-500/70 text-rose-100 shadow-sm shadow-rose-900/60'
-                                            } else {
-                                                color =
-                                                    'bg-slate-950/40 border-slate-800 text-slate-500'
-                                            }
-                                        }
-
-                                        return (
-                                            <button
-                                                key={i}
-                                                className={`${base} ${color}`}
-                                                onClick={() => handleSelect(i)}
-                                                disabled={isSubmitted}
-                                            >
-                                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-slate-600 text-[11px]">
-                                                    {String.fromCharCode(65 + i)}
-                                                </span>
-                                                <span className="flex-1 text-left">
-                                                    {choice.text}
-                                                </span>
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-
-                                {/* Sau NỘP BÀI mới show đáp án + giải thích */}
-                                {isSubmitted && (
-                                    <div className="mt-3 text-sm space-y-1 rounded-xl bg-slate-900/70 border border-slate-800 px-4 py-3">
-                                        <p>
-                                            <span className="font-semibold text-emerald-400">
-                                                Đáp án đúng:{' '}
-                                            </span>
-                                            {
-                                                current.choices.find(c => c.isCorrect)?.text ??
-                                                'Chưa đánh dấu isCorrect trong dữ liệu'
-                                            }
-                                        </p>
-                                        {current.explanation && (
-                                            <p className="text-slate-300">
-                                                <span className="font-semibold">
-                                                    Giải thích:{' '}
-                                                </span>
-                                                {current.explanation}
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Điều hướng câu hỏi */}
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mt-4">
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={prevQuestion}
-                                            disabled={isPrevDisabled}
-                                            className="px-4 py-2 rounded-lg bg-slate-950/70 border border-slate-700 text-xs md:text-sm hover:bg-slate-900 hover:border-slate-500 disabled:opacity-40 disabled:cursor-not-allowed"
-                                        >
-                                            ← Câu trước
-                                        </button>
-
-                                        <button
-                                            onClick={isSubmitted ? nextQuestion : handleMainButton}
-                                            disabled={isSubmitted && isNextDisabled}
-                                            className="px-4 py-2 rounded-lg bg-sky-600/90 border border-sky-400 text-xs md:text-sm font-medium text-slate-950 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed"
-                                        >
-                                            {isSubmitted
-                                                ? isLastInView
-                                                    ? 'Hết câu để xem'
-                                                    : 'Câu tiếp →'
-                                                : index < questions.length - 1
-                                                    ? 'Câu tiếp →'
-                                                    : 'Nộp bài'}
-                                        </button>
-                                    </div>
-
-                                    {isSubmitted && (
-                                        <button
-                                            onClick={resetQuiz}
-                                            className="self-start md:self-auto px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-600 text-[11px] md:text-xs text-slate-200 hover:bg-slate-800"
-                                        >
-                                            Làm lại bài
-                                        </button>
-                                    )}
-                                </div>
-                            </motion.div>
-                        </AnimatePresence>
-                    )}
-
-                    {/* Kết quả + list câu hỏi */}
-                    {hasQuestions && (
-                        <div className="mt-4 border-t border-slate-800/80 pt-4 flex flex-col md:flex-row gap-5">
-                            {/* Kết quả */}
-                            <div className="md:w-1/3 space-y-3 text-sm">
-                                <div className="rounded-2xl bg-slate-950/60 border border-slate-800 px-4 py-3">
-                                    <p className="font-semibold mb-1.5">Kết quả</p>
-
-                                    {!isSubmitted && (
-                                        <>
-                                            <p className="text-sm">
-                                                Đã chọn:{' '}
-                                                <span className="font-semibold">
-                                                    {answeredCount}/{total}
-                                                </span>
-                                            </p>
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                Hoàn thành tất cả câu rồi nhấn{' '}
-                                                <span className="font-semibold">
-                                                    Nộp bài
-                                                </span>{' '}
-                                                để xem điểm và đáp án đúng/sai.
-                                            </p>
-                                        </>
-                                    )}
-
-                                    {isSubmitted && (
-                                        <>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-2xl font-semibold text-emerald-400">
-                                                    {score10.toFixed(1)}
-                                                </span>
-                                                <span className="text-xs text-slate-400">
-                                                    / 10 điểm · {percent}%
-                                                </span>
-                                            </div>
-                                            <p className="mt-1.5">
-                                                Đã làm:{' '}
-                                                <span className="font-semibold">
-                                                    {answeredCount}/{total}
-                                                </span>
-                                            </p>
-                                            <p>
-                                                Đúng:{' '}
-                                                <span className="font-semibold text-emerald-400">
-                                                    {correctCount}
-                                                </span>{' '}
-                                                – Sai:{' '}
-                                                <span className="font-semibold text-rose-400">
-                                                    {answeredCount - correctCount}
-                                                </span>
-                                            </p>
-
-                                            {/* Chế độ xem: tất cả / chỉ câu sai */}
-                                            <div className="mt-3 space-y-1.5">
-                                                <p className="text-[11px] text-slate-400">
-                                                    Chế độ xem câu hỏi:
-                                                </p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            handleChangeReviewMode('all')
-                                                        }
-                                                        className={`px-3 py-1.5 rounded-full text-[11px] border ${reviewMode === 'all'
-                                                                ? 'bg-sky-500/20 border-sky-400 text-sky-100'
-                                                                : 'bg-slate-950/60 border-slate-700 text-slate-300 hover:bg-slate-900'
-                                                            }`}
-                                                    >
-                                                        Tất cả câu
-                                                    </button>
-                                                    <button
-                                                        onClick={() =>
-                                                            handleChangeReviewMode('wrong')
-                                                        }
-                                                        disabled={wrongCount === 0}
-                                                        className={`px-3 py-1.5 rounded-full text-[11px] border flex items-center gap-1.5 ${reviewMode === 'wrong'
-                                                                ? 'bg-rose-500/20 border-rose-400 text-rose-100'
-                                                                : 'bg-slate-950/60 border-slate-700 text-slate-300 hover:bg-slate-900'
-                                                            } disabled:opacity-40 disabled:cursor-not-allowed`}
-                                                    >
-                                                        Chỉ câu sai
-                                                        {wrongCount > 0 && (
-                                                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500/80 text-[10px] text-slate-950">
-                                                                {wrongCount}
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Nút làm lại bài (thêm ở đây cho dễ thấy) */}
-                                            <button
-                                                onClick={resetQuiz}
-                                                className="mt-3 px-3 py-1.5 rounded-lg bg-slate-950/70 border border-slate-700 text-[11px] text-slate-200 hover:bg-slate-900"
-                                            >
-                                                Làm lại bài từ đầu
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* List câu hỏi */}
-                            <div className="md:flex-1">
-                                <p className="text-sm font-semibold mb-2 flex items-center justify-between">
-                                    <span>Danh sách câu hỏi</span>
-                                    {isSubmitted && reviewMode === 'wrong' && (
-                                        <span className="text-[11px] text-rose-300">
-                                            Đang hiển thị các câu trả lời sai
-                                        </span>
-                                    )}
-                                </p>
-                                <div className="rounded-2xl bg-slate-950/60 border border-slate-800 px-3 py-3">
-                                    {questionIndicesForList.length === 0 && isSubmitted && reviewMode === 'wrong' ? (
-                                        <p className="text-xs text-slate-400">
-                                            Bạn không có câu nào sai 🎉
-                                        </p>
-                                    ) : (
-                                        <div className="flex flex-wrap gap-2">
-                                            {questionIndicesForList.map(i => {
-                                                const state = answers[i]
-                                                const isCurrent = i === index
-
-                                                let color =
-                                                    'bg-slate-800 text-slate-200 border border-slate-700' // mặc định
-
-                                                if (!isSubmitted) {
-                                                    // Chưa nộp: câu đã làm -> màu xanh dương, chưa làm -> xám
-                                                    if (state?.selectedIndex !== null) {
-                                                        color =
-                                                            'bg-sky-600 text-slate-950 border border-sky-400'
-                                                    } else {
-                                                        color =
-                                                            'bg-slate-900 text-slate-400 border border-slate-700'
-                                                    }
-                                                } else {
-                                                    // Đã nộp: dùng xanh/đỏ theo đúng sai
-                                                    if (state?.isCorrect === true) {
-                                                        color =
-                                                            'bg-emerald-500 text-slate-950 border border-emerald-300'
-                                                    } else if (state?.isCorrect === false) {
-                                                        color =
-                                                            'bg-rose-500 text-slate-950 border border-rose-300'
-                                                    } else {
-                                                        color =
-                                                            'bg-slate-900 text-slate-400 border border-slate-700'
-                                                    }
-                                                }
-
-                                                let ring = ''
-                                                if (isCurrent) {
-                                                    ring =
-                                                        ' ring-2 ring-offset-2 ring-offset-slate-950 ring-sky-300'
-                                                }
-
-                                                return (
-                                                    <button
-                                                        key={i}
-                                                        className={`w-9 h-9 rounded-full text-xs md:text-sm flex items-center justify-center ${color}${ring}`}
-                                                        onClick={() => goToQuestion(i)}
-                                                    >
-                                                        {i + 1}
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Popup nộp bài */}
-                    {showSubmitModal && (
-                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="bg-slate-950 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl shadow-black/70"
-                            >
-                                <h2 className="text-lg font-semibold">
-                                    Nộp bài kiểm tra?
-                                </h2>
-
-                                {unansweredCount > 0 ? (
-                                    <p className="text-sm text-slate-300">
-                                        Bạn còn{' '}
-                                        <span className="font-semibold text-amber-300">
-                                            {unansweredCount}/{total}
-                                        </span>{' '}
-                                        câu chưa làm. Bạn có chắc chắn muốn nộp bài không?
-                                    </p>
-                                ) : (
-                                    <p className="text-sm text-slate-300">
-                                        Bạn đã làm đầy đủ{' '}
-                                        <span className="font-semibold text-emerald-300">
-                                            {total}/{total}
-                                        </span>{' '}
-                                        câu. Xác nhận nộp bài để xem điểm và đáp án chi tiết.
-                                    </p>
-                                )}
-
-                                <div className="flex justify-end gap-2 pt-2">
-                                    <button
-                                        onClick={cancelSubmit}
-                                        className="px-4 py-2 rounded-lg bg-slate-900 border border-slate-600 text-sm hover:bg-slate-800"
-                                    >
-                                        Kiểm tra lại
-                                    </button>
-                                    <button
-                                        onClick={confirmSubmit}
-                                        className="px-4 py-2 rounded-lg bg-emerald-500 text-slate-950 text-sm font-semibold hover:bg-emerald-400"
-                                    >
-                                        Nộp bài
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </main>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="text-sm text-muted-foreground">Đang tải câu hỏi trắc nghiệm...</div>
+      </div>
     )
+  }
+
+  if (!questions.length) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+        <p className="text-sm text-muted-foreground">Hiện chưa có câu hỏi nào cho bộ thẻ này.</p>
+        <Button variant="outline" onClick={() => router.push(`/decks/${deckId}`)}>
+          Quay lại Deck
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col gap-5 px-4 py-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => router.push(`/decks/${deckId}`)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+              <FileQuestion className="h-4 w-4 text-primary" />
+              Trắc nghiệm · Deck #{deckId}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Chọn đáp án, tới câu cuối nút sẽ thành Nộp bài. Nộp xong mới hiện điểm & đáp án.
+            </p>
+          </div>
+        </div>
+
+        {isSubmitted && (
+          <div className="flex flex-col items-end text-right gap-1">
+            <div className="text-xs text-muted-foreground">Kết quả</div>
+            <div className="text-sm font-semibold">
+              {score10.toFixed(1)}/10 điểm · {percent.toFixed(0)}%
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Đúng{" "}
+              <span className="font-semibold text-emerald-600">{correctCount}</span> · Sai{" "}
+              <span className="font-semibold text-rose-600">{wrongCount}</span> · Đã làm{" "}
+              <span className="font-semibold">{answeredCount}</span>/{questions.length}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      <Card className="border-dashed">
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span className="font-medium text-muted-foreground">
+              Câu {index + 1}/{questions.length}
+            </span>
+            <span className="text-muted-foreground">{progressPercent.toFixed(0)}%</span>
+          </div>
+          <Progress value={progressPercent} className="h-2" />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)]">
+        {/* Question + choices */}
+        <Card className="flex flex-col">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between text-sm">
+              <span>Câu hỏi</span>
+              <Badge variant="outline" className="text-[11px]">
+                {index + 1}/{questions.length}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <Separator />
+          <CardContent className="space-y-4 pt-4">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+              {current.question}
+            </p>
+
+            <div className="space-y-2">
+              {current.choices.map((choice, i) => {
+                const selected = currentAnswer?.selectedIndex === i
+                const isCorrectChoice = choice.isCorrect
+                const showAsCorrect = isSubmitted && isCorrectChoice
+                const showAsWrongSelected = isSubmitted && selected && !isCorrectChoice
+
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSelectChoice(i)}
+                    className={cn(
+                      "w-full rounded-xl border text-left text-sm px-3 py-2.5 transition-all",
+                      "flex items-center justify-between gap-2",
+                      "hover:bg-muted",
+                      selected && !isSubmitted && "border-primary/60 bg-primary/5",
+                      showAsCorrect &&
+                        "border-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+                      showAsWrongSelected &&
+                        "border-rose-500 bg-rose-500/10 text-rose-800 dark:text-rose-200"
+                    )}
+                  >
+                    <span className="flex-1">{choice.text}</span>
+                    <span className="flex items-center gap-1 text-xs">
+                      {showAsCorrect && <Check className="h-3.5 w-3.5" />}
+                      {showAsWrongSelected && <X className="h-3.5 w-3.5" />}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {isSubmitted && (
+              <div className="mt-4 space-y-2 rounded-lg border bg-muted/40 px-3 py-2.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-muted-foreground">Đáp án đúng</span>
+                  <Badge variant="outline" className="text-[11px]">
+                    {current.choices.findIndex((c) => c.isCorrect) !== -1
+                      ? `Lựa chọn ${
+                          current.choices.findIndex((c) => c.isCorrect) + 1
+                        }`
+                      : "Không có đáp án đúng đánh dấu"}
+                  </Badge>
+                </div>
+                {current.explanation && (
+                  <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
+                    {current.explanation}
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="mt-auto flex items-center justify-between gap-3 pt-3">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={goPrev} disabled={filteredIndices.indexOf(index) <= 0}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={isLastVisible ? "default" : "outline"}
+                size="sm"
+                onClick={handleMainButton}
+              >
+                {isLastVisible ? "Nộp bài" : "Tiếp theo"}
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {isSubmitted && (
+                <Button variant="outline" size="sm" onClick={resetQuiz}>
+                  Làm lại từ đầu
+                </Button>
+              )}
+            </div>
+          </CardFooter>
+        </Card>
+
+        {/* Sidebar: list câu hỏi + bộ lọc */}
+        <Card className="flex flex-col">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <ListOrdered className="h-4 w-4 text-primary" />
+              Danh sách câu hỏi
+            </CardTitle>
+          </CardHeader>
+          <Separator />
+          <CardContent className="flex-1 pt-3">
+            <div className="mb-3 flex flex-col gap-2 text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  Đã làm:{" "}
+                  <span className="font-semibold text-foreground">
+                    {answeredCount}/{questions.length}
+                  </span>
+                </span>
+                <span className="text-muted-foreground">
+                  Chưa làm:{" "}
+                  <span className="font-semibold text-amber-600">
+                    {unansweredCount}
+                  </span>
+                </span>
+              </div>
+
+              <Tabs
+                value={reviewMode}
+                onValueChange={(v) => setReviewMode(v as ReviewMode)}
+                className="w-full"
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="all">Tất cả</TabsTrigger>
+                  <TabsTrigger value="wrong" disabled={!isSubmitted || wrongCount === 0}>
+                    Chỉ câu sai ({wrongCount})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            <ScrollArea className="h-[320px] pr-2">
+              <div className="grid grid-cols-5 gap-2">
+                {questions.map((q, i) => {
+                  const a = answers[i]
+                  const isCurrent = i === index
+
+                  let bgClass = ""
+                  if (!isSubmitted) {
+                    if (a?.selectedIndex !== null) {
+                      bgClass = "bg-blue-500/10 text-blue-700 dark:text-blue-200 border-blue-500/60"
+                    } else {
+                      bgClass = "bg-muted text-muted-foreground"
+                    }
+                  } else {
+                    if (a?.isCorrect === true) {
+                      bgClass = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 border-emerald-500/60"
+                    } else if (a?.selectedIndex !== null) {
+                      bgClass = "bg-rose-500/10 text-rose-700 dark:text-rose-200 border-rose-500/60"
+                    } else {
+                      bgClass = "bg-muted text-muted-foreground"
+                    }
+                  }
+
+                  // Ẩn những câu không thuộc filteredIndices sau khi nộp + chọn chế độ "chỉ sai"
+                  if (isSubmitted && reviewMode === "wrong" && !filteredIndices.includes(i)) {
+                    return null
+                  }
+
+                  return (
+                    <button
+                      key={q._id}
+                      type="button"
+                      onClick={() => setIndex(i)}
+                      className={cn(
+                        "flex h-9 items-center justify-center rounded-full border text-xs font-medium transition-all",
+                        "hover:brightness-110",
+                        bgClass,
+                        isCurrent && "ring-2 ring-offset-1 ring-primary"
+                      )}
+                    >
+                      {i + 1}
+                    </button>
+                  )
+                })}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Submit dialog */}
+      <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận nộp bài</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            {unansweredCount > 0 ? (
+              <p>
+                Bạn còn{" "}
+                <span className="font-semibold text-amber-600">{unansweredCount}</span>/
+                {questions.length} câu chưa làm. Bạn có chắc chắn muốn nộp bài không?
+              </p>
+            ) : (
+              <p>
+                Bạn đã trả lời đủ{" "}
+                <span className="font-semibold">{questions.length}</span>/
+                {questions.length} câu. Nộp bài để xem điểm và đáp án chi tiết.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => setSubmitOpen(false)}>
+              Kiểm tra lại
+            </Button>
+            <Button onClick={confirmSubmit}>Nộp bài</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }
