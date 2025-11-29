@@ -23,8 +23,10 @@ export async function POST(req: NextRequest) {
   await connectDB()
 
   const formData = await req.formData()
-  const file = formData.get('file') as File | null
-  const deckName = formData.get('deckName')?.toString() || ''
+  const file = formData.get("file") as File | null
+  const deckName = formData.get("deckName")?.toString() || ""
+  const deckDescription = formData.get("deckDescription")?.toString() || ""
+
 
   if (!file) {
     return NextResponse.json({ error: 'Missing file' }, { status: 400 })
@@ -47,8 +49,10 @@ export async function POST(req: NextRequest) {
 
   // Tạo deck dùng chung
   const deck = await Deck.create({
-    name: deckName || file.name.replace('.docx', ''),
+    name: deckName || file.name.replace(".docx", ""),
+    description: deckDescription || undefined,
   })
+
 
   // Lưu flashcard Q/A
   await Flashcard.insertMany(
