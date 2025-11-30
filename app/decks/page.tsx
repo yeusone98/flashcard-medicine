@@ -4,7 +4,14 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Layers, BookOpenCheck, ListChecks } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import {
+    Layers,
+    BookOpenCheck,
+    ListChecks,
+    Trash2,
+    Loader2,
+} from "lucide-react"
 
 import {
     Card,
@@ -16,6 +23,19 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
+
 
 interface Deck {
     _id: string
@@ -27,6 +47,8 @@ interface Deck {
 export default function DeckListPage() {
     const [decks, setDecks] = useState<Deck[]>([])
     const [loading, setLoading] = useState(true)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+    const { toast } = useToast()
 
     useEffect(() => {
         const fetchDecks = async () => {
@@ -44,6 +66,40 @@ export default function DeckListPage() {
 
         fetchDecks()
     }, [])
+
+    const handleDeleteDeck = async (deck: Deck) => {
+        try {
+            setDeletingId(deck._id)
+
+            const res = await fetch(`/api/decks/${deck._id}`, {
+                method: "DELETE",
+            })
+
+            const body = await res.json().catch(() => null)
+
+            if (!res.ok) {
+                throw new Error(body?.error || "Xoá deck thất bại")
+            }
+
+            setDecks((prev) => prev.filter((d) => d._id !== deck._id))
+
+            toast({
+                title: "Đã xoá bộ thẻ",
+                description: `Bộ thẻ "${deck.name}" đã được xoá thành công.`,
+            })
+        } catch (error: any) {
+            console.error(error)
+            toast({
+                variant: "destructive",
+                title: "Xoá deck thất bại",
+                description: error.message || "Vui lòng thử lại sau.",
+            })
+        } finally {
+            setDeletingId(null)
+        }
+    }
+
+
 
     return (
         <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6 md:py-8">
@@ -133,25 +189,72 @@ export default function DeckListPage() {
                                         </ul>
                                     </CardContent>
 
-                                    <CardFooter className="mt-auto flex flex-col gap-2 border-t border-border/70 pt-3 text-xs">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <Button asChild size="sm" className="flex-1 gap-1">
+                                    <CardFooter className="mt-auto border-t border-border/70 pt-4">
+                                        <div className="flex items-center gap-3">
+                                            {/* Nút học flashcard – rộng, căn giữa */}
+                                            <Button
+                                                asChild
+                                                size="default"
+                                                className="flex-1 justify-center gap-2"
+                                            >
                                                 <Link href={`/decks/${deck._id}/flashcards`}>
                                                     <BookOpenCheck className="h-4 w-4" />
                                                     Học flashcard
                                                 </Link>
                                             </Button>
+
+                                            {/* Nút làm trắc nghiệm – rộng, căn giữa */}
                                             <Button
                                                 asChild
-                                                size="sm"
+                                                size="default"
                                                 variant="outline"
-                                                className="flex-1 gap-1"
+                                                className="flex-1 justify-center gap-2"
                                             >
                                                 <Link href={`/decks/${deck._id}/mcq`}>
                                                     <ListChecks className="h-4 w-4" />
                                                     Làm trắc nghiệm
                                                 </Link>
                                             </Button>
+
+                                            {/* Popup xác nhận xoá */}
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="ml-1 shrink-0"
+                                                        disabled={deletingId === deck._id}
+                                                        aria-label={`Xoá deck ${deck.name}`}
+                                                    >
+                                                        {deletingId === deck._id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin text-destructive dark:text-white" />
+                                                        ) : (
+                                                            <Trash2 className="h-4 w-4 text-destructive dark:text-white" />
+                                                        )}
+                                                    </Button>
+                                                </AlertDialogTrigger>
+
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>
+                                                            Xoá bộ thẻ "{deck.name}"?
+                                                        </AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Tất cả flashcard và câu hỏi trắc nghiệm liên quan cũng sẽ bị xoá.
+                                                            Hành động này không thể hoàn tác.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Huỷ</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                            onClick={() => handleDeleteDeck(deck)}
+                                                        >
+                                                            Xoá
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </div>
                                     </CardFooter>
                                 </Card>

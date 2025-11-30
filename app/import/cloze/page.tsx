@@ -3,6 +3,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,33 +21,61 @@ export default function ImportClozePage() {
   const [deckDescription, setDeckDescription] = useState("")
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!file) return
 
-    setLoading(true)
-    setMessage("")
-
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("deckName", deckName)
-    formData.append("deckDescription", deckDescription)
-
-    const res = await fetch("/api/import/cloze", {
-      method: "POST",
-      body: formData,
-    })
-    const data = await res.json()
-    setLoading(false)
-
-    if (!res.ok) {
-      setMessage(`Lỗi: ${data.error || "Import thất bại"}`)
+    if (!file || !deckName.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Thiếu thông tin",
+        description: "Vui lòng nhập tên deck và chọn file.",
+      })
       return
     }
 
-    setMessage(`Import thành công ${data.importedCount} thẻ!`)
+    try {
+      setLoading(true)
+
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("deckName", deckName.trim())
+
+      const res = await fetch("/api/import/cloze", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Import thất bại")
+      }
+
+      // Reset form
+      setDeckName("")
+      setFile(null)
+
+      // ✅ Popup import thành công
+      toast({
+        title: "Import thành công",
+        description: `Deck "${deckName}" đã được tạo/import thành công.`,
+      })
+    } catch (error: any) {
+      console.error(error)
+
+      // ❌ Popup lỗi
+      toast({
+        variant: "destructive",
+        title: "Import thất bại",
+        description: error.message || "Vui lòng thử lại sau.",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
+
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-2xl flex-col px-4 py-8">

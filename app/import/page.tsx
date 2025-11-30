@@ -28,6 +28,21 @@ export default function ImportHubPage() {
                 </p>
             </section>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>Import từ JSON (tự tạo)</CardTitle>
+                    <CardDescription>
+                        Dán JSON flashcard + câu hỏi (do bạn hoặc ChatGPT tạo) để sinh deck mới.
+                    </CardDescription>
+                </CardHeader>
+                <CardFooter>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/import/manual-json">Mở form JSON</Link>
+                    </Button>
+                </CardFooter>
+            </Card>
+
+
             <section className="grid gap-4 md:grid-cols-3">
                 {/* Cloze */}
                 <Card className="flex h-full flex-col">
@@ -85,6 +100,20 @@ export default function ImportHubPage() {
                                 Import Q/A
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Generate từ ghi chú (AI)</CardTitle>
+                        <CardDescription>
+                            Dán nội dung Markdown/Notion, hệ thống tự tạo flashcard và câu hỏi trắc nghiệm.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardFooter>
+                        <Button asChild variant="outline" size="sm">
+                            <Link href="/import/notes-ai">Mở trình tạo từ notes</Link>
                         </Button>
                     </CardFooter>
                 </Card>

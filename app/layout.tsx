@@ -2,7 +2,8 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { ModeToggle } from "@/components/mode-toggle"
+import { MainNav } from "@/components/main-nav"
+import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
     title: "Flashcard Medicine",
@@ -16,17 +17,13 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <body>
-                {/* ThemeProvider mình tự cố định attribute/defaultTheme bên trong rồi */}
+            <body className="min-h-screen bg-background text-foreground antialiased">
                 <ThemeProvider>
-                    <div className="min-h-screen">
-                        {/* Nếu chưa có ModeToggle thì comment block này lại */}
-                        <div className="fixed right-4 top-4 z-50">
-                            <ModeToggle />
-                        </div>
-
-                        {children}
+                    <div className="flex min-h-screen flex-col">
+                        <MainNav />
+                        <main className="flex-1">{children}</main>
                     </div>
+                    <Toaster />
                 </ThemeProvider>
             </body>
         </html>

@@ -1,9 +1,9 @@
-// app/import/qa/page.tsx
+// app/import/notes-ai/page.tsx
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     Card,
@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 
-export default function ImportQAPage() {
+export default function ImportNotesAIPage() {
     const [deckName, setDeckName] = useState("")
-    const [file, setFile] = useState<File | null>(null)
+    const [notes, setNotes] = useState("")
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<string | null>(null)
 
@@ -26,8 +26,8 @@ export default function ImportQAPage() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
 
-        if (!file || !deckName.trim()) {
-            const desc = "Vui lòng nhập tên deck và chọn file."
+        if (!deckName.trim() || !notes.trim()) {
+            const desc = "Vui lòng nhập tên deck và dán nội dung ghi chú."
             setMessage(desc)
             toast({
                 variant: "destructive",
@@ -41,30 +41,30 @@ export default function ImportQAPage() {
             setLoading(true)
             setMessage(null)
 
-            const formData = new FormData()
-            formData.append("file", file)
-            formData.append("deckName", deckName.trim())
-
-            const res = await fetch("/api/import/qa", {
+            const res = await fetch("/api/import/notes-ai", {
                 method: "POST",
-                body: formData,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    deckName: deckName.trim(),
+                    notes: notes.trim(),
+                }),
             })
 
             const data = await res.json().catch(() => null)
 
             if (!res.ok) {
-                throw new Error(data?.error || "Import Q/A thất bại")
+                throw new Error(data?.error || "Generate thất bại")
             }
 
-            const name = deckName.trim()
-            setDeckName("")
-            setFile(null)
+            const desc = `Đã tạo deck mới với ${data.flashcardCount ?? 0} flashcard và ${data.questionCount ?? 0} câu trắc nghiệm.`
 
-            setMessage("Import Q/A thành công.")
+            setDeckName("")
+            setNotes("")
+            setMessage(desc)
 
             toast({
-                title: "Import Q/A thành công",
-                description: `Deck "${name}" đã được tạo/import thành công.`,
+                title: "Tạo bộ thẻ từ notes thành công",
+                description: desc,
             })
         } catch (error: any) {
             console.error(error)
@@ -73,7 +73,7 @@ export default function ImportQAPage() {
 
             toast({
                 variant: "destructive",
-                title: "Import Q/A thất bại",
+                title: "Generate thất bại",
                 description: desc,
             })
         } finally {
@@ -82,7 +82,7 @@ export default function ImportQAPage() {
     }
 
     return (
-        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col gap-4 px-4 py-6">
+        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col gap-4 px-4 py-6">
             <div className="flex items-center gap-2">
                 <Button asChild variant="ghost" size="icon" className="-ml-2">
                     <Link href="/import">
@@ -90,15 +90,20 @@ export default function ImportQAPage() {
                     </Link>
                 </Button>
                 <h1 className="text-lg font-semibold tracking-tight">
-                    Import câu hỏi Hỏi – Đáp (Q/A)
+                    Tạo bộ thẻ từ ghi chú (Notion / Markdown)
                 </h1>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Import Q/A từ file .docx</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-yellow-400" />
+                        Generate flashcard + trắc nghiệm tự động
+                    </CardTitle>
                     <CardDescription>
-                        File Word phải đúng format Hỏi – Đáp mà bạn đã thiết kế.
+                        Export Notion &rarr; Markdown &amp; CSV, mở file <code>.md</code>,
+                        copy nội dung và dán vào đây. Hệ thống sẽ tạo bộ flashcard và câu hỏi
+                        trắc nghiệm giúp bạn.
                     </CardDescription>
                 </CardHeader>
 
@@ -109,12 +114,12 @@ export default function ImportQAPage() {
                                 htmlFor="deckName"
                                 className="text-sm font-medium leading-none"
                             >
-                                Tên bộ câu hỏi
+                                Tên bộ thẻ
                             </label>
                             <input
                                 id="deckName"
                                 className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none ring-0 focus-visible:border-primary"
-                                placeholder="VD: Nhi – Hỏi đáp lâm sàng"
+                                placeholder="VD: Theo dõi kiểm báo trong mổ – Nhiệt độ & SpO₂"
                                 value={deckName}
                                 onChange={(e) => setDeckName(e.target.value)}
                                 disabled={loading}
@@ -123,26 +128,23 @@ export default function ImportQAPage() {
 
                         <div className="space-y-1">
                             <label
-                                htmlFor="file"
+                                htmlFor="notes"
                                 className="text-sm font-medium leading-none"
                             >
-                                File .docx
+                                Nội dung ghi chú (dán từ file .md của Notion)
                             </label>
-                            <input
-                                id="file"
-                                type="file"
-                                accept=".docx"
-                                className="mt-1 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-primary hover:file:bg-primary/20"
+                            <textarea
+                                id="notes"
+                                className="mt-1 h-72 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none ring-0 focus-visible:border-primary"
+                                placeholder={`# 1. Nhiệt độ\nTheo dõi nhiệt độ trung tâm là có giá trị nhất...\n\n## Các vị trí đo nhiệt độ trung tâm\n- Động mạch phổi...\n- Đầu xa thực quản...\n...`}
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
                                 disabled={loading}
-                                onChange={(e) => {
-                                    const f = e.target.files?.[0] ?? null
-                                    setFile(f)
-                                }}
                             />
                         </div>
 
-                        <Button type="submit" disabled={loading || !file}>
-                            {loading ? "Đang import..." : "Import Q/A"}
+                        <Button type="submit" disabled={loading}>
+                            {loading ? "Đang phân tích & tạo câu hỏi..." : "Generate bộ thẻ từ notes"}
                         </Button>
                     </form>
                 </CardContent>
