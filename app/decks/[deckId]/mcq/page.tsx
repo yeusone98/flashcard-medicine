@@ -43,6 +43,7 @@ interface AnswerState {
 
 type ReviewMode = "all" | "wrong"
 
+
 export default function MCQPage() {
   const params = useParams<{ deckId: string }>()
   const router = useRouter()
@@ -387,7 +388,7 @@ export default function MCQPage() {
                       </div>
 
                       {isSubmitted && (
-                        <span className="text-xs font-medium">
+                        <span className="text-xs font-medium whitespace-nowrap">
                           {isCorrectChoice
                             ? "Đáp án đúng"
                             : isSelected
@@ -538,8 +539,8 @@ export default function MCQPage() {
                 </p>
                 <div className="rounded-2xl border bg-muted/40 px-3 py-3">
                   {questionIndicesForList.length === 0 &&
-                  isSubmitted &&
-                  reviewMode === "wrong" ? (
+                    isSubmitted &&
+                    reviewMode === "wrong" ? (
                     <p className="text-[11px] text-muted-foreground">
                       Bạn không có câu nào sai 🎉
                     </p>

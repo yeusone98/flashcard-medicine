@@ -1,13 +1,14 @@
 // app/api/import/qa/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { connectDB } from '@/lib/mongodb'
-import Deck from '@/models/Deck'
-import Flashcard from '@/models/Flashcard'
-import Question from '@/models/Question'      // ⬅️ thêm
-import mammoth from 'mammoth'
-import { parseQAPairs } from '@/lib/parsers'
+import { NextRequest, NextResponse } from "next/server"
+import mammoth from "mammoth"
+import { parseQAPairs } from "@/lib/parsers"
+import {
+  getDecksCollection,
+  getFlashcardsCollection,
+  getQuestionsCollection,
+} from "@/lib/mongodb"
 
-export const runtime = 'nodejs'
+export const runtime = "nodejs"
 
 // helper shuffle đơn giản
 function shuffle<T>(array: T[]): T[] {
@@ -20,77 +21,103 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 export async function POST(req: NextRequest) {
-  await connectDB()
+  try {
+    const formData = await req.formData()
+    const file = formData.get("file") as File | null
+    const deckName = formData.get("deckName")?.toString().trim() || ""
+    const deckDescription =
+      formData.get("deckDescription")?.toString().trim() || ""
 
-  const formData = await req.formData()
-  const file = formData.get("file") as File | null
-  const deckName = formData.get("deckName")?.toString() || ""
-  const deckDescription = formData.get("deckDescription")?.toString() || ""
+    if (!file) {
+      return NextResponse.json({ error: "Missing file" }, { status: 400 })
+    }
 
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
 
-  if (!file) {
-    return NextResponse.json({ error: 'Missing file' }, { status: 400 })
-  }
+    const result = await mammoth.extractRawText({ buffer })
+    const text = result.value || ""
 
-  const arrayBuffer = await file.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
+    const cards = parseQAPairs(text) // [{ front: question, back: answer }]
 
-  const result = await mammoth.extractRawText({ buffer })
-  const text = result.value
+    if (!cards.length) {
+      return NextResponse.json(
+        { error: "Không tìm thấy cặp Q/A nào (Q: / A:)" },
+        { status: 400 },
+      )
+    }
 
-  const cards = parseQAPairs(text) // [{ front: question, back: answer }]
+    const [decksCol, flashcardsCol, questionsCol] = await Promise.all([
+      getDecksCollection(),
+      getFlashcardsCollection(),
+      getQuestionsCollection(),
+    ])
 
-  if (!cards.length) {
-    return NextResponse.json(
-      { error: 'Không tìm thấy cặp Q/A nào (Q: / A:)' },
-      { status: 400 }
-    )
-  }
+    const now = new Date()
 
-  // Tạo deck dùng chung
-  const deck = await Deck.create({
-    name: deckName || file.name.replace(".docx", ""),
-    description: deckDescription || undefined,
-  })
+    // Tạo deck
+    const deckInsert = await decksCol.insertOne({
+      name: deckName || file.name.replace(/\.docx$/i, ""),
+      description: deckDescription || undefined,
+      createdAt: now,
+      updatedAt: now,
+    })
+    const deckId = deckInsert.insertedId
 
-
-  // Lưu flashcard Q/A
-  await Flashcard.insertMany(
-    cards.map(c => ({
-      deckId: deck._id,
+    // Lưu flashcards Q/A
+    const fcDocs = cards.map((c) => ({
+      deckId,
       front: c.front,
       back: c.back,
+      level: 0,
+      createdAt: now,
+      updatedAt: now,
     }))
-  )
 
-  // Tạo MCQ từ Q/A
-  const questionsForMCQ = cards.map((c, idx) => {
-    const wrongCandidates = cards
-      .filter((_, j) => j !== idx)
-      .map(card => card.back)
-
-    const wrongShuffled = shuffle(wrongCandidates).slice(0, 3)
-    const choiceTexts = [...wrongShuffled, c.back]
-
-    const choices = shuffle(
-      choiceTexts.map(text => ({
-        text,
-        isCorrect: text === c.back,
-      }))
-    )
-
-    return {
-      deckId: deck._id,
-      question: c.front,  // câu hỏi = Q
-      choices,
-      explanation: c.back, // dùng A làm giải thích ngắn
+    if (fcDocs.length) {
+      await flashcardsCol.insertMany(fcDocs)
     }
-  })
 
-  await Question.insertMany(questionsForMCQ)
+    // Tạo MCQ từ Q/A
+    const questionsForMCQ = cards.map((c, idx) => {
+      const wrongCandidates = cards
+        .filter((_, j) => j !== idx)
+        .map((card) => card.back)
 
-  return NextResponse.json({
-    deckId: deck._id,
-    importedCount: cards.length,
-  })
+      const wrongShuffled = shuffle(wrongCandidates).slice(0, 3)
+      const choiceTexts = [...wrongShuffled, c.back]
+
+      const choices = shuffle(
+        choiceTexts.map((text) => ({
+          text,
+          isCorrect: text === c.back,
+        })),
+      )
+
+      return {
+        deckId,
+        question: c.front, // câu hỏi = Q
+        choices,
+        explanation: c.back, // A làm giải thích ngắn
+        level: 0,
+        createdAt: now,
+        updatedAt: now,
+      }
+    })
+
+    if (questionsForMCQ.length) {
+      await questionsCol.insertMany(questionsForMCQ)
+    }
+
+    return NextResponse.json({
+      deckId: deckId.toString(),
+      importedCount: cards.length,
+    })
+  } catch (error) {
+    console.error("Error in /api/import/qa", error)
+    return NextResponse.json(
+      { error: "Không thể import file Q/A" },
+      { status: 500 },
+    )
+  }
 }

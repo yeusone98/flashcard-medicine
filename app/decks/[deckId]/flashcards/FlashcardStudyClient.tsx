@@ -79,6 +79,7 @@ export default function FlashcardStudyClient({
     const handleRating = async (rating: ReviewRating) => {
         if (!current) return
         const grade = RATING_TO_GRADE[rating]
+        const isLastCard = index === total - 1
 
         try {
             setIsReviewing(true)
@@ -95,6 +96,12 @@ export default function FlashcardStudyClient({
                 throw new Error(data?.error || "Không cập nhật được lịch ôn")
             }
 
+            // 👉 NỘI DUNG STATUS (xem mục 3 bên dưới)
+            const sm2 = data?.sm2
+            const baseDescription = sm2
+                ? `Lần tới ôn sau ${sm2.interval} ngày (EF ${sm2.easiness?.toFixed?.(2) ?? "?"}, reps ${sm2.repetitions ?? "?"}).`
+                : "Đã cập nhật lịch ôn cho thẻ này."
+
             toast({
                 title:
                     rating === "again"
@@ -104,10 +111,21 @@ export default function FlashcardStudyClient({
                             : rating === "good"
                                 ? "Đánh dấu: Good"
                                 : "Đánh dấu: Easy",
-                description: "Đã cập nhật lịch ôn cho thẻ này.",
+                description: baseDescription,
             })
 
-            goNext()
+            if (isLastCard) {
+                // ✅ Thẻ cuối: báo hoàn thành
+                toast({
+                    title: "Hoàn thành bộ thẻ 🎉",
+                    description:
+                        "Bạn đã chấm hết tất cả flashcard trong bộ này. Bấm nút xoay để học lại từ đầu nếu muốn.",
+                })
+                // KHÔNG goNext nữa, giữ user ở thẻ cuối
+            } else {
+                // Các thẻ khác: sang thẻ tiếp theo
+                goNext()
+            }
         } catch (err: any) {
             console.error(err)
             toast({

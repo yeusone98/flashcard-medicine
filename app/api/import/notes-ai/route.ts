@@ -1,10 +1,11 @@
 // app/api/import/notes-ai/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
-import { connectDB } from "@/lib/mongodb"
-import Deck from "@/models/Deck"
-import Flashcard from "@/models/Flashcard"
-import Question from "@/models/Question"
+import {
+    getDecksCollection,
+    getFlashcardsCollection,
+    getQuestionsCollection,
+} from "@/lib/mongodb"
 
 export const runtime = "nodejs"
 
@@ -45,13 +46,29 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        await connectDB()
+        if (!process.env.OPENAI_API_KEY) {
+            return NextResponse.json(
+                { error: "Thiếu OPENAI_API_KEY trong môi trường" },
+                { status: 500 },
+            )
+        }
+
+        const [decksCol, flashcardsCol, questionsCol] = await Promise.all([
+            getDecksCollection(),
+            getFlashcardsCollection(),
+            getQuestionsCollection(),
+        ])
+
+        const now = new Date()
 
         // 1. Tạo deck
-        const deck = await Deck.create({
+        const deckInsert = await decksCol.insertOne({
             name: String(deckName).trim(),
             description: "Sinh tự động từ ghi chú (Notion / Markdown)",
+            createdAt: now,
+            updatedAt: now,
         })
+        const deckId = deckInsert.insertedId
 
         // 2. Gọi AI
         const completion = await openai.chat.completions.create({
@@ -129,17 +146,18 @@ YÊU CẦU:
                     const front = fc.front ? String(fc.front).trim() : ""
                     const back = fc.back ? String(fc.back).trim() : ""
                     return {
-                        deckId: deck._id,
+                        deckId,
                         front,
                         back,
+                        level: 0,
+                        createdAt: now,
+                        updatedAt: now,
                     }
                 })
-                .filter(
-                    (d: { front: string; back: string }) => d.front && d.back,
-                )
+                .filter((d) => d.front && d.back)
 
             if (docs.length) {
-                await Flashcard.insertMany(docs)
+                await flashcardsCol.insertMany(docs)
             }
         }
 
@@ -161,30 +179,30 @@ YÊU CẦU:
                         : undefined
 
                     return {
-                        deckId: deck._id,
+                        deckId,
                         question,
                         choices,
                         explanation,
+                        level: 0,
+                        createdAt: now,
+                        updatedAt: now,
                     }
                 })
                 .filter(
-                    (q: {
-                        question: string
-                        choices: { text: string; isCorrect: boolean }[]
-                    }) =>
+                    (q) =>
                         q.question &&
                         q.choices.length >= 2 &&
                         q.choices.some((c) => c.isCorrect),
                 )
 
             if (qDocs.length) {
-                await Question.insertMany(qDocs)
+                await questionsCol.insertMany(qDocs)
             }
         }
 
         return NextResponse.json({
             success: true,
-            deckId: deck._id,
+            deckId: deckId.toString(),
             flashcardCount: flashcards.length,
             questionCount: questions.length,
         })

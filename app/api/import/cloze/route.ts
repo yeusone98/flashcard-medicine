@@ -1,13 +1,14 @@
 // app/api/import/cloze/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { connectDB } from '@/lib/mongodb'
-import Deck from '@/models/Deck'
-import Flashcard from '@/models/Flashcard'
-import Question from '@/models/Question'        // ⬅️ thêm
-import mammoth from 'mammoth'
-import { parseClozeFlashcards } from '@/lib/parsers'
+import { NextRequest, NextResponse } from "next/server"
+import mammoth from "mammoth"
+import { parseClozeFlashcards } from "@/lib/parsers"
+import {
+  getDecksCollection,
+  getFlashcardsCollection,
+  getQuestionsCollection,
+} from "@/lib/mongodb"
 
-export const runtime = 'nodejs' // để dùng Buffer/mammoth
+export const runtime = "nodejs" // để dùng Buffer/mammoth
 
 // helper shuffle đơn giản
 function shuffle<T>(array: T[]): T[] {
@@ -20,79 +21,106 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 export async function POST(req: NextRequest) {
-  await connectDB()
+  try {
+    const formData = await req.formData()
+    const file = formData.get("file") as File | null
+    const deckName = formData.get("deckName")?.toString().trim() || ""
+    const deckDescription =
+      formData.get("deckDescription")?.toString().trim() || ""
 
-  const formData = await req.formData()
-  const file = formData.get('file') as File | null
-  const deckName = formData.get('deckName')?.toString() || ''
-  const deckDescription = formData.get('deckDescription')?.toString() || ''
+    if (!file) {
+      return NextResponse.json({ error: "Missing file" }, { status: 400 })
+    }
 
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
 
-  if (!file) {
-    return NextResponse.json({ error: 'Missing file' }, { status: 400 })
-  }
+    const result = await mammoth.extractRawText({ buffer })
+    const text = result.value || ""
 
-  const arrayBuffer = await file.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
+    const cards = parseClozeFlashcards(text) // [{ front, back }]
 
-  const result = await mammoth.extractRawText({ buffer })
-  const text = result.value
+    if (!cards.length) {
+      return NextResponse.json(
+        { error: "Không tìm thấy flashcard Cloze nào ({{}})" },
+        { status: 400 },
+      )
+    }
 
-  const cards = parseClozeFlashcards(text) // [{ front, back }]
+    // Lấy collection
+    const [decksCol, flashcardsCol, questionsCol] = await Promise.all([
+      getDecksCollection(),
+      getFlashcardsCollection(),
+      getQuestionsCollection(),
+    ])
 
-  if (!cards.length) {
-    return NextResponse.json(
-      { error: 'Không tìm thấy flashcard Cloze nào ({{}})' },
-      { status: 400 }
-    )
-  }
+    const now = new Date()
 
-  // Tạo deck dùng chung cho flashcard + MCQ
-  // Tạo deck dùng chung cho flashcard + MCQ
-  const deck = await Deck.create({
-    name: deckName || file.name.replace(".docx", ""),
-    description: deckDescription || undefined,
-  })
+    // Tạo deck
+    const deckInsert = await decksCol.insertOne({
+      name: deckName || file.name.replace(/\.docx$/i, ""),
+      description: deckDescription || undefined,
+      createdAt: now,
+      updatedAt: now,
+    })
 
+    const deckId = deckInsert.insertedId
 
-  // Lưu flashcard
-  await Flashcard.insertMany(
-    cards.map(c => ({
-      deckId: deck._id,
+    // Lưu flashcard
+    const fcDocs = cards.map((c) => ({
+      deckId,
       front: c.front,
       back: c.back,
+      level: 0,
+      createdAt: now,
+      updatedAt: now,
     }))
-  )
 
-  // Tạo câu hỏi trắc nghiệm từ các card
-  const questionsForMCQ = cards.map((c, idx) => {
-    // lấy các đáp án sai từ back của card khác
-    const wrongCandidates = cards
-      .filter((_, j) => j !== idx)
-      .map(card => card.back)
-
-    const wrongShuffled = shuffle(wrongCandidates).slice(0, 3)
-    const choiceTexts = [...wrongShuffled, c.back]
-
-    const choices = shuffle(
-      choiceTexts.map(text => ({
-        text,
-        isCorrect: text === c.back,
-      }))
-    )
-
-    return {
-      deckId: deck._id,
-      question: c.front,   // câu hỏi = phần Cloze đã che
-      choices,
-      explanation: c.back, // có thể dùng back làm “giải thích ngắn”
+    if (fcDocs.length) {
+      await flashcardsCol.insertMany(fcDocs)
     }
-  })
 
-  await Question.insertMany(questionsForMCQ)
+    // Tạo câu hỏi trắc nghiệm từ các card
+    const questionsForMCQ = cards.map((c, idx) => {
+      // lấy các đáp án sai từ back của card khác
+      const wrongCandidates = cards
+        .filter((_, j) => j !== idx)
+        .map((card) => card.back)
 
-  return NextResponse.json({
-    deckId: deck._id,
-    importedCount: cards.length,
-  })
+      const wrongShuffled = shuffle(wrongCandidates).slice(0, 3)
+      const choiceTexts = [...wrongShuffled, c.back]
+
+      const choices = shuffle(
+        choiceTexts.map((text) => ({
+          text,
+          isCorrect: text === c.back,
+        })),
+      )
+
+      return {
+        deckId,
+        question: c.front, // câu hỏi = phần Cloze đã che
+        choices,
+        explanation: c.back, // dùng back làm “giải thích ngắn”
+        level: 0,
+        createdAt: now,
+        updatedAt: now,
+      }
+    })
+
+    if (questionsForMCQ.length) {
+      await questionsCol.insertMany(questionsForMCQ)
+    }
+
+    return NextResponse.json({
+      deckId: deckId.toString(),
+      importedCount: cards.length,
+    })
+  } catch (error) {
+    console.error("Error in /api/import/cloze", error)
+    return NextResponse.json(
+      { error: "Không thể import file Cloze" },
+      { status: 500 },
+    )
+  }
 }

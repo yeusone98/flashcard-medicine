@@ -1,16 +1,23 @@
 // app/api/flashcards/[id]/review/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { connectDB } from "@/lib/mongodb"
-import Flashcard from "@/models/Flashcard"
+import {
+    getFlashcardsCollection,
+    ObjectId,
+} from "@/lib/mongodb"
 import { applySm2, Sm2Grade } from "@/lib/srs"
 
 export async function POST(
     req: NextRequest,
-    props: { params: Promise<{ id: string }> } // 👈 params là Promise
+    props: { params: Promise<{ id: string }> },
 ) {
     try {
-        // 🔥 Quan trọng: phải await props.params
         const { id } = await props.params
+        if (!ObjectId.isValid(id)) {
+            return NextResponse.json(
+                { error: "flashcardId không hợp lệ" },
+                { status: 400 },
+            )
+        }
 
         const body = await req.json().catch(() => ({}))
         const grade = Number(body.grade) as Sm2Grade
@@ -18,17 +25,18 @@ export async function POST(
         if (Number.isNaN(grade) || grade < 0 || grade > 5) {
             return NextResponse.json(
                 { error: "grade phải trong khoảng 0–5" },
-                { status: 400 }
+                { status: 400 },
             )
         }
 
-        await connectDB()
+        const flashcardsCol = await getFlashcardsCollection()
+        const _id = new ObjectId(id)
 
-        const card = await Flashcard.findById(id)
+        const card = await flashcardsCol.findOne({ _id })
         if (!card) {
             return NextResponse.json(
                 { error: "Flashcard không tồn tại" },
-                { status: 404 }
+                { status: 404 },
             )
         }
 
@@ -42,27 +50,32 @@ export async function POST(
                 dueAt: card.dueAt ?? now,
             },
             grade,
-            now
+            now,
         )
 
-        card.sm2Repetitions = next.repetitions
-        card.sm2Interval = next.interval
-        card.sm2Easiness = next.easiness
-        card.dueAt = next.dueAt
-        card.lastReviewedAt = now
-
-        await card.save()
+        await flashcardsCol.updateOne(
+            { _id },
+            {
+                $set: {
+                    sm2Repetitions: next.repetitions,
+                    sm2Interval: next.interval,
+                    sm2Easiness: next.easiness,
+                    dueAt: next.dueAt,
+                    lastReviewedAt: now,
+                },
+            },
+        )
 
         return NextResponse.json({
             success: true,
-            cardId: card._id,
+            cardId: id,
             sm2: next,
         })
     } catch (err) {
         console.error("Review error", err)
         return NextResponse.json(
             { error: "Không cập nhật được lịch ôn" },
-            { status: 500 }
+            { status: 500 },
         )
     }
 }

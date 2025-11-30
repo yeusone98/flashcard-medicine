@@ -1,35 +1,44 @@
 import { notFound } from "next/navigation"
-import { connectDB } from "@/lib/mongodb"
-import Deck from "@/models/Deck"
-import Flashcard from "@/models/Flashcard"
+import {
+    getDecksCollection,
+    getFlashcardsCollection,
+    ObjectId,
+} from "@/lib/mongodb"
 import FlashcardStudyClient from "./FlashcardStudyClient"
 
-// KHÔNG dùng PageProps nữa, để Next tự lo cho props
-
 export default async function DeckFlashcardsPage(
-    props: { params: Promise<{ deckId: string }> }
+    props: { params: Promise<{ deckId: string }> },
 ) {
-    // 🔥 Quan trọng: params là Promise → phải await
     const { deckId } = await props.params
 
-    await connectDB()
+    if (!ObjectId.isValid(deckId)) {
+        return notFound()
+    }
 
-    const deck = await Deck.findById(deckId).lean()
+    const [decksCol, flashcardsCol] = await Promise.all([
+        getDecksCollection(),
+        getFlashcardsCollection(),
+    ])
+
+    const _id = new ObjectId(deckId)
+
+    const deck = await decksCol.findOne({ _id })
     if (!deck) {
         return notFound()
     }
 
-    const flashcards = await Flashcard.find({ deckId })
+    const flashcards = await flashcardsCol
+        .find({ deckId: _id })
         .sort({ createdAt: 1 })
-        .lean()
+        .toArray()
 
-    const cards = flashcards.map((c: any) => ({
+    const cards = flashcards.map((c) => ({
         _id: c._id.toString(),
         front: String(c.front ?? ""),
         back: String(c.back ?? ""),
     }))
 
-    const deckName = String((deck as any).name ?? "Deck")
+    const deckName = String(deck.name ?? "Deck")
 
     return (
         <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-5xl px-4 py-6">

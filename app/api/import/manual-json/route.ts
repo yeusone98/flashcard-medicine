@@ -1,9 +1,10 @@
 // app/api/import/manual-json/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { connectDB } from "@/lib/mongodb"
-import Deck from "@/models/Deck"
-import Flashcard from "@/models/Flashcard"
-import Question from "@/models/Question"
+import {
+    getDecksCollection,
+    getFlashcardsCollection,
+    getQuestionsCollection,
+} from "@/lib/mongodb"
 
 export const runtime = "nodejs"
 
@@ -46,9 +47,7 @@ export async function POST(req: NextRequest) {
         const flashcards = Array.isArray(body.flashcards)
             ? body.flashcards
             : []
-        const questions = Array.isArray(body.questions)
-            ? body.questions
-            : []
+        const questions = Array.isArray(body.questions) ? body.questions : []
 
         if (flashcards.length === 0 && questions.length === 0) {
             return NextResponse.json(
@@ -60,28 +59,40 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        await connectDB()
+        const [decksCol, flashcardsCol, questionsCol] = await Promise.all([
+            getDecksCollection(),
+            getFlashcardsCollection(),
+            getQuestionsCollection(),
+        ])
+
+        const now = new Date()
 
         // 1. Tạo deck
-        const deck = await Deck.create({
+        const deckInsert = await decksCol.insertOne({
             name: deckName,
-            description: body.description?.trim(),
+            description: body.description?.trim() || undefined,
+            createdAt: now,
+            updatedAt: now,
         })
+        const deckId = deckInsert.insertedId
 
         // 2. Lưu flashcards (nếu có)
         if (flashcards.length > 0) {
             const fcDocs = flashcards
                 .map((fc: ManualFlashcard) => ({
-                    deckId: deck._id,
+                    deckId,
                     front: fc.front?.toString().trim(),
                     back: fc.back?.toString().trim(),
+                    level: 0,
+                    createdAt: now,
+                    updatedAt: now,
                 }))
                 .filter(
                     (f: { front: string; back: string }) => f.front && f.back,
                 )
 
             if (fcDocs.length) {
-                await Flashcard.insertMany(fcDocs)
+                await flashcardsCol.insertMany(fcDocs)
             }
         }
 
@@ -102,12 +113,15 @@ export async function POST(req: NextRequest) {
                         .filter((c) => c.text)
 
                     return {
-                        deckId: deck._id,
+                        deckId,
                         question,
                         choices: normalizedChoices,
                         explanation: q.explanation
                             ? q.explanation.toString().trim()
                             : undefined,
+                        level: 0,
+                        createdAt: now,
+                        updatedAt: now,
                     }
                 })
                 .filter(
@@ -118,13 +132,13 @@ export async function POST(req: NextRequest) {
                 )
 
             if (qDocs.length) {
-                await Question.insertMany(qDocs)
+                await questionsCol.insertMany(qDocs)
             }
         }
 
         return NextResponse.json({
             success: true,
-            deckId: deck._id,
+            deckId: deckId.toString(),
             flashcardCount: flashcards.length,
             questionCount: questions.length,
         })

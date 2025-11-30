@@ -1,15 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { connectDB } from '@/lib/mongodb'
-import Question from '@/models/Question'
+import { NextRequest, NextResponse } from "next/server"
+import { getQuestionsCollection, ObjectId } from "@/lib/mongodb"
 
 export async function GET(req: NextRequest) {
-    await connectDB()
-
-    const deckId = req.nextUrl.searchParams.get('deckId')
-    if (!deckId) {
-        return NextResponse.json({ error: 'Missing deckId' }, { status: 400 })
+    const deckId = req.nextUrl.searchParams.get("deckId")
+    if (!deckId || !ObjectId.isValid(deckId)) {
+        return NextResponse.json({ error: "Missing or invalid deckId" }, { status: 400 })
     }
 
-    const questions = await Question.find({ deckId }).sort({ createdAt: 1 })
-    return NextResponse.json(questions)
+    const deckObjectId = new ObjectId(deckId)
+    const questionsCol = await getQuestionsCollection()
+
+    const questions = await questionsCol
+        .find({ deckId: deckObjectId })
+        .sort({ createdAt: 1 })
+        .toArray()
+
+    const data = questions.map((q) => ({
+        ...q,
+        _id: q._id.toString(),
+        deckId: q.deckId.toString(),
+        flashcardId: q.flashcardId?.toString(),
+    }))
+
+    return NextResponse.json(data)
 }

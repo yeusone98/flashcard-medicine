@@ -11,8 +11,10 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { requireSession } from "@/lib/require-user"
 
-export default function ImportHubPage() {
+export default async function ImportHubPage() {
+    await requireSession()
     return (
         <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-8">
             <section className="space-y-2">

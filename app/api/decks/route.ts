@@ -1,9 +1,16 @@
-import { NextResponse } from 'next/server'
-import { connectDB } from '@/lib/mongodb'
-import Deck from '@/models/Deck'
+// app/api/decks/route.ts
+import { NextResponse } from "next/server"
+import { getDecksCollection } from "@/lib/mongodb"
 
 export async function GET() {
-    await connectDB()
-    const decks = await Deck.find().sort({ createdAt: -1 })
-    return NextResponse.json(decks)
+    const decksCol = await getDecksCollection()
+    const decks = await decksCol.find({}).sort({ createdAt: -1 }).toArray()
+
+    // Chuyển ObjectId → string cho FE (giống Mongoose)
+    const data = decks.map((d) => ({
+        ...d,
+        _id: d._id?.toString(),
+    }))
+
+    return NextResponse.json(data)
 }
