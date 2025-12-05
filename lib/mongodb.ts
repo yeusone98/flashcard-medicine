@@ -62,7 +62,14 @@ export interface FlashcardDoc {
   sm2Easiness?: number
   dueAt?: Date
   lastReviewedAt?: Date
+
+  // mới thêm
+  reviewRating?: "hard" | "medium" | "easy"
+  reviewIntervalMinutes?: number
+  note?: string
 }
+
+
 
 export interface QuestionDoc {
   _id?: ObjectId

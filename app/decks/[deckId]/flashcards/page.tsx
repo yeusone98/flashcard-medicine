@@ -36,7 +36,9 @@ export default async function DeckFlashcardsPage(
         _id: c._id.toString(),
         front: String(c.front ?? ""),
         back: String(c.back ?? ""),
+        note: typeof c.note === "string" ? c.note : "",
     }))
+
 
     const deckName = String(deck.name ?? "Deck")
 

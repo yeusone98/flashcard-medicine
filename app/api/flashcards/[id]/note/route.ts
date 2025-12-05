@@ -1,14 +1,6 @@
-// app/api/flashcards/[id]/review/route.ts
+// app/api/flashcards/[id]/note/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { getFlashcardsCollection, ObjectId } from "@/lib/mongodb"
-
-type SimpleRating = "hard" | "medium" | "easy"
-
-const RATING_INTERVAL_MINUTES: Record<SimpleRating, number> = {
-    hard: 5,
-    medium: 15,
-    easy: 30,
-}
 
 export async function POST(
     req: NextRequest,
@@ -25,14 +17,14 @@ export async function POST(
         }
 
         const body = await req.json().catch(() => ({}))
-        const rating = String(body.rating ?? "") as SimpleRating
+        const rawNote = body?.note
 
-        if (!["hard", "medium", "easy"].includes(rating)) {
-            return NextResponse.json(
-                { error: "rating phải là 'hard' | 'medium' | 'easy'" },
-                { status: 400 },
-            )
-        }
+        const note =
+            typeof rawNote === "string"
+                ? rawNote
+                : rawNote === null || rawNote === undefined
+                    ? ""
+                    : String(rawNote)
 
         const flashcardsCol = await getFlashcardsCollection()
         const _id = new ObjectId(id)
@@ -45,19 +37,12 @@ export async function POST(
             )
         }
 
-        const now = new Date()
-        const intervalMinutes = RATING_INTERVAL_MINUTES[rating]
-        const dueAt = new Date(now.getTime() + intervalMinutes * 60 * 1000)
-
         await flashcardsCol.updateOne(
             { _id },
             {
                 $set: {
-                    lastReviewedAt: now,
-                    dueAt,
-                    reviewRating: rating,
-                    reviewIntervalMinutes: intervalMinutes,
-                    updatedAt: now,
+                    note,
+                    updatedAt: new Date(),
                 },
             },
         )
@@ -65,16 +50,12 @@ export async function POST(
         return NextResponse.json({
             success: true,
             cardId: id,
-            next: {
-                rating,
-                intervalMinutes,
-                dueAt,
-            },
+            note,
         })
     } catch (err) {
-        console.error("Review error", err)
+        console.error("Note error", err)
         return NextResponse.json(
-            { error: "Không cập nhật được lịch ôn" },
+            { error: "Không lưu được ghi chú" },
             { status: 500 },
         )
     }
