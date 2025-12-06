@@ -2,15 +2,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { getUsersCollection, ObjectId } from "@/lib/mongodb"
-import { promises as fs } from "fs"
-import path from "path"
+import cloudinary from "@/lib/cloudinary"
 
 export const runtime = "nodejs"
 
 export async function POST(req: NextRequest) {
     try {
         const session = await auth()
-        const userId = (session?.user as any)?.id as string | undefined
+
+        // ✅ Không dùng any, dùng type guard thuần TypeScript
+        const userId =
+            session?.user &&
+            "id" in session.user &&
+            typeof session.user.id === "string"
+                ? session.user.id
+                : undefined
 
         if (!userId) {
             return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 })
@@ -26,6 +32,7 @@ export async function POST(req: NextRequest) {
             )
         }
 
+        // Giới hạn 2MB
         const maxSize = 2 * 1024 * 1024
         if (file.size > maxSize) {
             return NextResponse.json(
@@ -41,33 +48,30 @@ export async function POST(req: NextRequest) {
             )
         }
 
+        // Đọc file thành buffer
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
-        const uploadDir = path.join(process.cwd(), "public", "avatars")
-        await fs.mkdir(uploadDir, { recursive: true })
+        const mimeType = file.type || "image/png"
+        const base64 = buffer.toString("base64")
+        const dataUri = `data:${mimeType};base64,${base64}`
 
-        // 🔥 Đọc user hiện tại để xoá avatar cũ nếu có
+        const folder =
+            process.env.CLOUDINARY_FOLDER || "flashcard-medicine/avatars"
+
+        // Upload lên Cloudinary
+        const uploadResult = await cloudinary.uploader.upload(dataUri, {
+            folder,
+            public_id: userId, // mỗi user 1 avatar, upload mới sẽ overwrite
+            overwrite: true,
+            invalidate: true,
+        })
+
+        const imageUrl = uploadResult.secure_url
+
         const users = await getUsersCollection()
-        const dbUser = await users.findOne({ _id: new ObjectId(userId) })
-        const oldImage = dbUser?.image as string | undefined
-        if (oldImage && oldImage.startsWith("/avatars/")) {
-            const oldFilename = oldImage.replace("/avatars/", "")
-            const oldPath = path.join(uploadDir, oldFilename)
-            // best effort – không cần await lỗi
-            fs.unlink(oldPath).catch(() => { })
-        }
 
-        // 🔥 Tạo tên file mới theo time để tránh cache
-        const extFromName = file.name.split(".").pop()
-        const ext = extFromName && extFromName.length <= 5 ? extFromName : "png"
-        const filename = `${userId}-${Date.now()}.${ext}`
-        const filePath = path.join(uploadDir, filename)
-
-        await fs.writeFile(filePath, buffer)
-
-        const imageUrl = `/avatars/${filename}`
-
+        // Cập nhật URL avatar mới vào DB
         await users.updateOne(
             { _id: new ObjectId(userId) },
             {
