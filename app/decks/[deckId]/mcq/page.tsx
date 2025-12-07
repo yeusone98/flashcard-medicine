@@ -1,8 +1,8 @@
+// app/decks/[deckId]/mcq/page.tsx
 "use client"
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
 import {
   Card,
   CardHeader,
@@ -43,6 +43,19 @@ interface AnswerState {
 
 type ReviewMode = "all" | "wrong"
 
+interface DeckSummary {
+  _id: string
+  name?: string
+}
+
+interface McqResult {
+  totalQuestions: number
+  correctCount: number
+  percent: number
+  score10: number
+  createdAt: string
+  answers: AnswerState[]
+}
 
 export default function MCQPage() {
   const params = useParams<{ deckId: string }>()
@@ -59,44 +72,82 @@ export default function MCQPage() {
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [reviewMode, setReviewMode] = useState<ReviewMode>("all")
 
-  // Lấy deck name + câu hỏi MCQ
-  useEffect(() => {
-    const fetchAll = async () => {
-      if (!deckId) return
+  const [savedResult, setSavedResult] = useState<McqResult | null>(null)
+  const [isSavingResult, setIsSavingResult] = useState(false)
 
+  // Lấy deck name + câu hỏi MCQ + kết quả (nếu có)
+  useEffect(() => {
+    if (!deckId) return
+
+    const fetchAll = async () => {
       try {
         setLoading(true)
 
-        const [deckRes, questionsRes] = await Promise.all([
+        const [deckRes, questionsRes, resultRes] = await Promise.all([
           fetch("/api/decks"),
           fetch(`/api/questions?deckId=${deckId}`),
+          fetch(`/api/mcq-results?deckId=${deckId}`),
         ])
 
-        const deckList = await deckRes.json()
-        const deck = deckList.find((d: any) => d._id === deckId)
+        if (!deckRes.ok) {
+          throw new Error("Không thể tải danh sách deck")
+        }
+        if (!questionsRes.ok) {
+          throw new Error("Không thể tải câu hỏi trắc nghiệm")
+        }
+
+        const deckList = (await deckRes.json()) as DeckSummary[]
+        const deck = deckList.find(d => d._id === deckId)
         setDeckName(deck?.name ?? "")
 
-        const data: Question[] = await questionsRes.json()
-        setQuestions(data)
-        setAnswers(
-          data.map(() => ({
-            selectedIndex: null,
-            isCorrect: null,
-          })),
-        )
+        const questionsData = (await questionsRes.json()) as Question[]
+
+        let loadedResult: McqResult | null = null
+        if (resultRes.ok) {
+          type McqResultApiResponse = { result: McqResult | null }
+          const resultJson = (await resultRes.json()) as McqResultApiResponse
+          loadedResult = resultJson.result ?? null
+        }
+
+        setQuestions(questionsData)
         setIndex(0)
-        setIsSubmitted(false)
-        setShowSubmitModal(false)
         setReviewMode("all")
-      } catch (err) {
-        console.error(err)
+
+        // Nếu có kết quả + có mảng answers trùng số câu → load lại màu luôn
+        if (
+          loadedResult &&
+          Array.isArray(loadedResult.answers) &&
+          loadedResult.answers.length === questionsData.length
+        ) {
+          setAnswers(loadedResult.answers)
+          setIsSubmitted(true)
+          setSavedResult(loadedResult)
+        } else {
+          // Không có kết quả chi tiết → reset như bài mới
+          setAnswers(
+            questionsData.map<AnswerState>(() => ({
+              selectedIndex: null,
+              isCorrect: null,
+            })),
+          )
+          setIsSubmitted(false)
+          setSavedResult(null)
+        }
+      } catch (error) {
+        console.error(error)
+        setIsSubmitted(false)
+        setSavedResult(null)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchAll()
+    void fetchAll()
   }, [deckId])
+
+  const cancelSubmit = () => {
+    setShowSubmitModal(false)
+  }
 
   const hasQuestions = questions.length > 0
   const current = hasQuestions ? questions[index] : null
@@ -105,12 +156,23 @@ export default function MCQPage() {
   const unansweredCount = answers.filter(a => a.selectedIndex === null).length
   const correctCount = answers.filter(a => a.isCorrect === true).length
   const answeredCount = total - unansweredCount
-  const percent = total ? Math.round((correctCount / total) * 100) : 0
-  const score10 = total ? (correctCount / total) * 10 : 0
+
+  const totalForDisplay = savedResult?.totalQuestions ?? total
+  const correctForDisplay = savedResult?.correctCount ?? correctCount
+  const answeredForDisplay =
+    savedResult?.totalQuestions ?? answeredCount
+  const percentForDisplay =
+    savedResult?.percent ??
+    (totalForDisplay
+      ? Math.round((correctForDisplay / totalForDisplay) * 100)
+      : 0)
+  const score10ForDisplay =
+    savedResult?.score10 ??
+    (totalForDisplay ? (correctForDisplay / totalForDisplay) * 10 : 0)
 
   const progress = hasQuestions ? ((index + 1) / total) * 100 : 0
 
-  // Lọc index câu theo mode xem (tất cả / chỉ câu sai sau khi nộp)
+  // Lọc index câu theo mode xem
   const getFilteredIndices = () => {
     if (!isSubmitted || reviewMode === "all") {
       return questions.map((_, i) => i)
@@ -131,14 +193,12 @@ export default function MCQPage() {
       ? true
       : currentFilteredPos === filteredIndices.length - 1
 
-  // Disable nút prev/next
   const isPrevDisabled =
     !hasQuestions ||
     (!isSubmitted && index === 0) ||
     (isSubmitted && isFirstInView)
   const isNextDisabled = !hasQuestions || (isSubmitted && isLastInView)
 
-  // Danh sách index để render list câu hỏi
   const questionIndicesForList =
     !isSubmitted || reviewMode === "all"
       ? questions.map((_, i) => i)
@@ -147,7 +207,6 @@ export default function MCQPage() {
   const isLastQuestionBeforeSubmit =
     !isSubmitted && hasQuestions && index === total - 1
 
-  // Chọn đáp án
   const handleSelect = (choiceIndex: number) => {
     if (!current || isSubmitted) return
 
@@ -195,7 +254,6 @@ export default function MCQPage() {
     setIndex(filtered[prevPos])
   }
 
-  // Nút chính: trước khi nộp = Tiếp / Nộp bài, sau khi nộp = Câu tiếp theo
   const handleMainButton = () => {
     if (!hasQuestions) return
     if (index < total - 1) {
@@ -205,18 +263,74 @@ export default function MCQPage() {
     }
   }
 
-  const confirmSubmit = () => {
+  const confirmSubmit = async () => {
+    if (!hasQuestions) return
+
     setIsSubmitted(true)
     setShowSubmitModal(false)
     setReviewMode("all")
+
+    const totalQuestions = total
+    const correct = correctCount
+    const computedPercent = totalQuestions
+      ? Math.round((correct / totalQuestions) * 100)
+      : 0
+    const computedScore10 = totalQuestions
+      ? (correct / totalQuestions) * 10
+      : 0
+
+    const baseResult: McqResult = {
+      totalQuestions,
+      correctCount: correct,
+      percent: computedPercent,
+      score10: computedScore10,
+      answers: [...answers],
+      createdAt: new Date().toISOString(),
+    }
+
+    setSavedResult(baseResult)
+
+    if (!deckId) return
+
+    try {
+      setIsSavingResult(true)
+      const res = await fetch("/api/mcq-results", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deckId,
+          totalQuestions,
+          correctCount: correct,
+          percent: computedPercent,
+          score10: computedScore10,
+          answers,
+        }),
+      })
+
+      if (res.ok) {
+        const json = await res.json()
+        if (json?.createdAt) {
+          setSavedResult(prev =>
+            prev
+              ? { ...prev, createdAt: json.createdAt as string }
+              : { ...baseResult, createdAt: json.createdAt as string },
+          )
+        }
+      } else {
+        console.error("Không thể lưu kết quả trắc nghiệm", await res.text())
+      }
+    } catch (error) {
+      console.error("Lỗi lưu kết quả trắc nghiệm", error)
+    } finally {
+      setIsSavingResult(false)
+    }
   }
 
-  const cancelSubmit = () => {
-    setShowSubmitModal(false)
-  }
-
-  const resetQuiz = () => {
+  const resetQuiz = async () => {
     if (!hasQuestions) return
+
     setAnswers(
       questions.map(() => ({
         selectedIndex: null,
@@ -226,6 +340,17 @@ export default function MCQPage() {
     setIsSubmitted(false)
     setReviewMode("all")
     setIndex(0)
+    setSavedResult(null)
+
+    if (!deckId) return
+
+    try {
+      await fetch(`/api/mcq-results?deckId=${deckId}`, {
+        method: "DELETE",
+      })
+    } catch (error) {
+      console.error("Không thể reset kết quả trắc nghiệm", error)
+    }
   }
 
   const handleChangeReviewMode = (mode: ReviewMode) => {
@@ -448,7 +573,7 @@ export default function MCQPage() {
             </CardFooter>
           </Card>
 
-          {/* Cột phải: Kết quả + danh sách câu */}
+          {/* Cột phải: Kết quả + danh sách */}
           <Card className="h-full">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Kết quả & danh sách</CardTitle>
@@ -460,27 +585,27 @@ export default function MCQPage() {
                   <>
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-semibold text-emerald-400">
-                        {score10.toFixed(1)}
+                        {score10ForDisplay.toFixed(1)}
                       </span>
                       <span className="text-[11px] text-muted-foreground">
-                        / 10 điểm · {percent}%
+                        / 10 điểm · {percentForDisplay}%
                       </span>
                     </div>
                     <p className="mt-1">
                       Đã làm{" "}
                       <span className="font-semibold">
-                        {answeredCount}/{total}
+                        {answeredForDisplay}/{totalForDisplay}
                       </span>{" "}
                       câu.
                     </p>
                     <p>
                       Đúng:{" "}
                       <span className="font-semibold text-emerald-400">
-                        {correctCount}
+                        {correctForDisplay}
                       </span>{" "}
                       – Sai:{" "}
                       <span className="font-semibold text-destructive">
-                        {answeredCount - correctCount}
+                        {answeredForDisplay - correctForDisplay}
                       </span>
                     </p>
                     <Button
@@ -488,6 +613,7 @@ export default function MCQPage() {
                       variant="outline"
                       className="mt-2 gap-1"
                       onClick={resetQuiz}
+                      disabled={isSavingResult}
                     >
                       <RotateCcw className="h-4 w-4" />
                       Làm lại từ đầu
@@ -501,7 +627,8 @@ export default function MCQPage() {
                       <span className="font-semibold">
                         {answeredCount}/{total}
                       </span>{" "}
-                      câu. Làm tới câu cuối rồi bấm <span className="font-semibold">Nộp bài</span> để xem điểm.
+                      câu. Làm tới câu cuối rồi bấm{" "}
+                      <span className="font-semibold">Nộp bài</span> để xem điểm.
                     </p>
                   </>
                 )}
@@ -539,8 +666,8 @@ export default function MCQPage() {
                 </p>
                 <div className="rounded-2xl border bg-muted/40 px-3 py-3">
                   {questionIndicesForList.length === 0 &&
-                    isSubmitted &&
-                    reviewMode === "wrong" ? (
+                  isSubmitted &&
+                  reviewMode === "wrong" ? (
                     <p className="text-[11px] text-muted-foreground">
                       Bạn không có câu nào sai 🎉
                     </p>

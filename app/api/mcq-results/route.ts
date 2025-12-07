@@ -1,19 +1,17 @@
 // app/api/mcq-results/route.ts
 import { NextRequest, NextResponse } from "next/server"
+import type { Session } from "next-auth"
 import { auth } from "@/auth"
 import { getMcqResultsCollection, ObjectId } from "@/lib/mongodb"
-import type { Session } from "next-auth"
 
 export const runtime = "nodejs"
 
 function getUserIdFromSession(session: Session | null): string | undefined {
-    if (!session?.user) return undefined
-
-    if ("id" in session.user && typeof session.user.id === "string") {
-        return session.user.id
-    }
-
-    return undefined
+  if (!session?.user) return undefined
+  if ("id" in session.user && typeof session.user.id === "string") {
+    return session.user.id
+  }
+  return undefined
 }
 
 export async function GET(req: NextRequest) {
@@ -60,6 +58,7 @@ export async function GET(req: NextRequest) {
         percent: existing.percent,
         score10: existing.score10,
         createdAt: existing.createdAt.toISOString(),
+        answers: existing.answers ?? [],
       },
     })
   } catch (error) {
@@ -71,6 +70,11 @@ export async function GET(req: NextRequest) {
   }
 }
 
+type AnswerPayload = {
+  selectedIndex: number | null
+  isCorrect: boolean | null
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
@@ -80,20 +84,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 })
     }
 
-    const body = await req.json()
+    const body = (await req.json()) as {
+      deckId?: string
+      totalQuestions?: number
+      correctCount?: number
+      percent?: number
+      score10?: number
+      answers?: AnswerPayload[]
+    }
+
     const {
       deckId,
       totalQuestions,
       correctCount,
       percent,
       score10,
-    } = body as {
-      deckId?: string
-      totalQuestions?: number
-      correctCount?: number
-      percent?: number
-      score10?: number
-    }
+      answers,
+    } = body
 
     if (!deckId) {
       return NextResponse.json(
@@ -124,6 +131,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    let normalizedAnswers: AnswerPayload[] = []
+    if (Array.isArray(answers)) {
+      normalizedAnswers = answers.map(a => ({
+        selectedIndex:
+          typeof a?.selectedIndex === "number" ? a.selectedIndex : null,
+        isCorrect:
+          typeof a?.isCorrect === "boolean" ? a.isCorrect : null,
+      }))
+    }
+
     const collection = await getMcqResultsCollection()
     const now = new Date()
 
@@ -138,6 +155,7 @@ export async function POST(req: NextRequest) {
           correctCount,
           percent,
           score10,
+          answers: normalizedAnswers,
           updatedAt: now,
         },
         $setOnInsert: {

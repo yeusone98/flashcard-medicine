@@ -70,7 +70,6 @@ export interface FlashcardDoc {
 }
 
 
-
 export interface QuestionDoc {
   _id?: ObjectId
   deckId: ObjectId
@@ -83,18 +82,34 @@ export interface QuestionDoc {
   updatedAt: Date
 }
 
+export interface McqAnswerDoc {
+  selectedIndex: number | null
+  isCorrect: boolean | null
+}
+
+export interface McqResultDoc {
+  _id?: ObjectId
+  userId: ObjectId
+  deckId: ObjectId
+  totalQuestions: number
+  correctCount: number
+  percent: number
+  score10: number
+  answers: McqAnswerDoc[]    
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface UserDoc {
   _id?: ObjectId
   name?: string | null
   email: string
-  password: string
+  password?: string
   image?: string | null
   createdAt: Date
   updatedAt: Date
 }
 
-
-// ===== Helper lấy collection =====
 export async function getDecksCollection(): Promise<Collection<DeckDoc>> {
   const db = await getDb()
   return db.collection<DeckDoc>("decks")
@@ -108,6 +123,11 @@ export async function getFlashcardsCollection(): Promise<Collection<FlashcardDoc
 export async function getQuestionsCollection(): Promise<Collection<QuestionDoc>> {
   const db = await getDb()
   return db.collection<QuestionDoc>("questions")
+}
+
+export async function getMcqResultsCollection(): Promise<Collection<McqResultDoc>> {
+  const db = await getDb()
+  return db.collection<McqResultDoc>("mcq_results")
 }
 
 export async function getUsersCollection(): Promise<Collection<UserDoc>> {

@@ -38,49 +38,54 @@ export default function ImportMCQPage() {
         }
 
         try {
-            setLoading(true)
-            setMessage(null)
+    setLoading(true)
+    setMessage(null)
 
-            const formData = new FormData()
-            formData.append("file", file)
-            formData.append("deckName", deckName.trim())
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("deckName", deckName.trim())
 
-            const res = await fetch("/api/import/mcq", {
-                method: "POST",
-                body: formData,
-            })
+    const res = await fetch("/api/import/mcq", {
+        method: "POST",
+        body: formData,
+    })
 
-            const data = await res.json().catch(() => null)
+    const data = await res.json().catch(() => null)
 
-            if (!res.ok) {
-                throw new Error(data?.error || "Import MCQ thất bại")
-            }
-
-            // reset form
-            const name = deckName.trim()
-            setDeckName("")
-            setFile(null)
-
-            setMessage("Import MCQ thành công.")
-
-            toast({
-                title: "Import MCQ thành công",
-                description: `Deck "${name}" đã được tạo/import thành công.`,
-            })
-        } catch (error: any) {
-            console.error(error)
-            const desc = error?.message || "Đã xảy ra lỗi, vui lòng thử lại."
-            setMessage(desc)
-
-            toast({
-                variant: "destructive",
-                title: "Import MCQ thất bại",
-                description: desc,
-            })
-        } finally {
-            setLoading(false)
-        }
+    if (!res.ok) {
+        throw new Error(data?.error || "Import MCQ thất bại")
     }
+
+    // reset form
+    const name = deckName.trim()
+    setDeckName("")
+    setFile(null)
+
+    setMessage("Import MCQ thành công.")
+
+    toast({
+        title: "Import MCQ thành công",
+        description: `Deck "${name}" đã được tạo/import thành công.`,
+    })
+} catch (error) {
+    console.error(error)
+
+    const desc =
+        error instanceof Error
+            ? error.message
+            : "Đã xảy ra lỗi, vui lòng thử lại."
+
+        setMessage(desc)
+
+        toast({
+            variant: "destructive",
+            title: "Import MCQ thất bại",
+            description: desc,
+        })
+    } finally {
+        setLoading(false)
+    }
+        }
 
     return (
         <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col gap-4 px-4 py-6">
