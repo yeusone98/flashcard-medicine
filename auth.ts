@@ -18,30 +18,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 email: { label: "Email", type: "email" },
                 password: { label: "Password", type: "password" },
             },
-            async authorize(
-                credentials: Partial<Record<"email" | "password", unknown>>,
-                _request: Request,
-            ) {
-                // ép kiểu lại cho dễ xài
-                const emailRaw = credentials?.email as string | undefined
-                const password = credentials?.password as string | undefined
+            async authorize(credentials) {
+                // Ép kiểu an toàn
+                const email =
+                    typeof credentials?.email === "string"
+                        ? credentials.email.toLowerCase().trim()
+                        : undefined
+                const password =
+                    typeof credentials?.password === "string"
+                        ? credentials.password
+                        : undefined
 
-                if (!emailRaw || !password) return null
-
-                const email = emailRaw.toLowerCase().trim()
+                if (!email || !password) {
+                    return null
+                }
 
                 const users = await getUsersCollection()
                 const user = await users.findOne({ email })
-                if (!user) return null
+
+                // ✅ Check luôn user.password để TS biết chắc là string
+                if (!user || !user.password) {
+                    return null
+                }
 
                 const ok = await bcrypt.compare(password, user.password)
                 if (!ok) return null
 
                 // object trả về sẽ đi vào token + session.user
                 return {
-                    id: user._id!.toString(),
+                    id: user._id?.toString() ?? "",
                     name: user.name ?? "",
                     email: user.email,
+                    image: user.image ?? null,
                 }
             },
         }),
@@ -49,14 +57,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                token.id = (user as any).id
+                // lưu id user vào token
+                ; (token as any).id = (user as any).id
             }
             return token
         },
         async session({ session, token }) {
-            if (!session.user || !token.id) return session
+            if (!session.user) return session
 
-            const userId = token.id as string
+            const userId = (token as any).id as string | undefined
+            if (!userId) return session
+
             const users = await getUsersCollection()
             const dbUser = await users.findOne({ _id: new ObjectId(userId) })
 
@@ -65,7 +76,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (dbUser) {
                 session.user.name = dbUser.name ?? session.user.name
                 session.user.email = dbUser.email ?? session.user.email
-                    ; (session.user as any).image = dbUser.image ?? null
+                    ; (session.user as any).image =
+                        dbUser.image ?? (session.user as any).image ?? null
             }
 
             return session
