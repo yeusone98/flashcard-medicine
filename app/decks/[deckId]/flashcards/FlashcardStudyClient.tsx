@@ -170,7 +170,6 @@ export default function FlashcardStudyClient({
       // ignore storage errors
     }
   }, [current?._id, deckId, mode])
-
   // đánh dấu đã xem
   useEffect(() => {
     if (!current?._id) return

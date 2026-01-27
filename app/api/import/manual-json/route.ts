@@ -9,7 +9,7 @@ import {
 
 export const runtime = "nodejs"
 
-// ===== Kiểu dữ liệu ===== //
+// ===== Ki?u d? li?u ===== //
 interface ManualFlashcard {
   front: string
   back: string
@@ -36,11 +36,10 @@ interface ManualImportPayload {
   deckId?: string
   deckName?: string
   description?: string
-  subject?: string      // 🔹 thêm field cho môn/chủ đề
+  subject?: string
   flashcards?: ManualFlashcard[]
   questions?: ManualQuestion[]
 }
-
 
 function normalizeImage(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined
@@ -73,12 +72,8 @@ export async function POST(req: NextRequest) {
     const deckNameInput =
       typeof body.deckName === "string" ? body.deckName.trim() : ""
 
-    const flashcards = Array.isArray(body.flashcards)
-      ? body.flashcards
-      : []
-    const questions = Array.isArray(body.questions)
-      ? body.questions
-      : []
+    const flashcards = Array.isArray(body.flashcards) ? body.flashcards : []
+    const questions = Array.isArray(body.questions) ? body.questions : []
 
     if (flashcards.length === 0 && questions.length === 0) {
       return NextResponse.json(
@@ -90,12 +85,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const [decksCol, flashcardsCol, questionsCol] =
-      await Promise.all([
-        getDecksCollection(),
-        getFlashcardsCollection(),
-        getQuestionsCollection(),
-      ])
+    const [decksCol, flashcardsCol, questionsCol] = await Promise.all([
+      getDecksCollection(),
+      getFlashcardsCollection(),
+      getQuestionsCollection(),
+    ])
 
     const now = new Date()
 
@@ -105,10 +99,7 @@ export async function POST(req: NextRequest) {
 
     if (deckIdRaw) {
       if (!ObjectId.isValid(deckIdRaw)) {
-        return NextResponse.json(
-          { error: "Invalid deckId" },
-          { status: 400 },
-        )
+        return NextResponse.json({ error: "Invalid deckId" }, { status: 400 })
       }
 
       const existing = await decksCol.findOne({ _id: new ObjectId(deckIdRaw) })
@@ -120,10 +111,13 @@ export async function POST(req: NextRequest) {
       }
 
       deckId = existing._id
-      deckName = String(existing.name ?? deckNameInput ?? "")
+      deckName = deckNameInput || String(existing.name ?? "")
       mode = "append"
 
       const updateFields: Record<string, unknown> = { updatedAt: now }
+      if (deckNameInput) {
+        updateFields.name = deckNameInput
+      }
       if (typeof body.description === "string" && body.description.trim()) {
         updateFields.description = body.description.trim()
       }
@@ -143,7 +137,7 @@ export async function POST(req: NextRequest) {
       const deckInsert = await decksCol.insertOne({
         name: deckNameInput,
         description: body.description?.trim() || undefined,
-        subject: body.subject?.trim() || undefined, // subject / topic
+        subject: body.subject?.trim() || undefined,
         createdAt: now,
         updatedAt: now,
       })
@@ -155,12 +149,9 @@ export async function POST(req: NextRequest) {
     let insertedFlashcardCount = 0
     let insertedQuestionCount = 0
 
-    // 2. Lưu flashcards (nếu có)
     if (flashcards.length > 0) {
       const baseOrder =
-        mode === "append"
-          ? await flashcardsCol.countDocuments({ deckId })
-          : 0
+        mode === "append" ? await flashcardsCol.countDocuments({ deckId }) : 0
       const fcDocs = flashcards
         .map((fc: ManualFlashcard, index: number) => ({
           deckId,
@@ -174,10 +165,7 @@ export async function POST(req: NextRequest) {
           createdAt: now,
           updatedAt: now,
         }))
-        .filter(
-          (f: { front: string; back: string }) =>
-            f.front && f.back,
-        )
+        .filter((f: { front: string; back: string }) => f.front && f.back)
 
       if (fcDocs.length) {
         await flashcardsCol.insertMany(fcDocs)
@@ -185,12 +173,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Lưu questions (nếu có)
     if (questions.length > 0) {
       const baseOrder =
-        mode === "append"
-          ? await questionsCol.countDocuments({ deckId })
-          : 0
+        mode === "append" ? await questionsCol.countDocuments({ deckId }) : 0
       const qDocs = questions
         .map((q: ManualQuestion, index: number) => {
           const question = q.question?.toString().trim()
@@ -245,7 +230,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error in /api/import/manual-json", error)
     return NextResponse.json(
-      { error: "Không thể import JSON thủ công" },
+      { error: "Kh?ng th? import JSON th? c?ng" },
       { status: 500 },
     )
   }

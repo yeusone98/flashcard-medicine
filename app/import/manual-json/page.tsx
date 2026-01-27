@@ -354,7 +354,7 @@ export default function ImportManualJsonPage() {
 
       setJsonText("")
       if (!isAppending) {
-      delete payload.deckId
+        delete payload.deckId
         setDeckName("")
         setDescription("")
       }
@@ -631,18 +631,22 @@ export default function ImportManualJsonPage() {
                 id="json"
                 className="mt-1 h-80 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs outline-none ring-0 focus-visible:border-primary"
                 placeholder={`{
+  "deckName": "Cardiology basics",
+  "description": "Ôn tập tim mạch",
+  "subject": "Nội tim mạch",
   "flashcards": [
     {
-      "front": "What is heart failure?",
-      "back": "Heart failure is ...",
-      "frontImage": "https://...",
-      "backImage": "https://..."
-    }
+      "front": "Định nghĩa suy tim?",
+      "back": "Suy tim là...",
+      "frontImage": "https://.../front.png",
+      "backImage": "https://.../back.png"
+    },
+    { "front": "Có mấy độ NYHA?", "back": "4 độ: I, II, III, IV" }
   ],
   "questions": [
     {
-      "question": "Normal SpO2 range?",
-      "image": "https://...",
+      "question": "SpO2 bình thường khoảng bao nhiêu?",
+      "image": "https://.../question.png",
       "choices": [
         { "text": "95-100%", "isCorrect": true, "image": "https://..." },
         { "text": "80-85%", "isCorrect": false }
