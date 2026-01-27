@@ -142,13 +142,14 @@ YÊU CẦU:
         // 3. Lưu flashcards
         if (flashcards.length > 0) {
             const docs = flashcards
-                .map((fc: AiFlashcard) => {
+                .map((fc: AiFlashcard, index: number) => {
                     const front = fc.front ? String(fc.front).trim() : ""
                     const back = fc.back ? String(fc.back).trim() : ""
                     return {
                         deckId,
                         front,
                         back,
+                        order: index,
                         level: 0,
                         createdAt: now,
                         updatedAt: now,
@@ -164,7 +165,7 @@ YÊU CẦU:
         // 4. Lưu MCQ
         if (questions.length > 0) {
             const qDocs = questions
-                .map((q: AiQuestion) => {
+                .map((q: AiQuestion, index: number) => {
                     const question = q.question ? String(q.question).trim() : ""
                     const choices: { text: string; isCorrect: boolean }[] =
                         Array.isArray(q.choices)
@@ -183,6 +184,7 @@ YÊU CẦU:
                         question,
                         choices,
                         explanation,
+                        order: index,
                         level: 0,
                         createdAt: now,
                         updatedAt: now,

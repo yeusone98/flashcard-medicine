@@ -11,6 +11,7 @@ import {
   ListChecks,
   Trash2,
   Loader2,
+  Pencil,
 } from "lucide-react"
 
 import { useToast } from "@/hooks/use-toast"
@@ -68,6 +69,20 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
   )
 
   const hasSubject = subject.length > 0
+
+  const buildHref = (base: string, params?: Record<string, string | undefined>) => {
+    const search = new URLSearchParams()
+    if (subject) {
+      search.set("subject", subject)
+    }
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) search.set(key, value)
+      })
+    }
+    const query = search.toString()
+    return query ? `${base}?${query}` : base
+  }
 
   const title = hasSubject
     ? `Bộ thẻ – ${subject}`
@@ -178,7 +193,12 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1">
                         <CardTitle className="text-base md:text-lg">
-                          {deck.name}
+                          <Link
+                            href={buildHref(`/decks/${deck._id}`)}
+                            className="hover:text-primary"
+                          >
+                            {deck.name}
+                          </Link>
                         </CardTitle>
                         <CardDescription className="text-xs md:text-sm">
                           {deck.description && deck.description.trim().length > 0
@@ -186,14 +206,26 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
                             : "Chưa có mô tả cho deck này."}
                         </CardDescription>
                       </div>
-                      {deck.subject && (
-                        <Badge
-                          variant="outline"
-                          className="text-[11px] uppercase tracking-tight"
+                      <div className="flex items-center gap-2">
+                        {deck.subject && (
+                          <Badge
+                            variant="outline"
+                            className="text-[11px] uppercase tracking-tight"
+                          >
+                            {deck.subject}
+                          </Badge>
+                        )}
+                        <Button
+                          asChild
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
                         >
-                          {deck.subject}
-                        </Badge>
-                      )}
+                          <Link href={buildHref(`/decks/${deck._id}/edit`)}>
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
 
@@ -213,7 +245,11 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
                         size="default"
                         className="flex-1 justify-center gap-2"
                       >
-                        <Link href={`/decks/${deck._id}/flashcards`}>
+                        <Link
+                          href={buildHref(`/decks/${deck._id}/flashcards`, {
+                            mode: "due",
+                          })}
+                        >
                           <BookOpenCheck className="h-4 w-4" />
                           Học flashcard
                         </Link>
@@ -226,7 +262,11 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
                         variant="outline"
                         className="flex-1 justify-center gap-2"
                       >
-                        <Link href={`/decks/${deck._id}/mcq`}>
+                        <Link
+                          href={buildHref(`/decks/${deck._id}/mcq`, {
+                            mode: "due",
+                          })}
+                        >
                           <ListChecks className="h-4 w-4" />
                           Làm trắc nghiệm
                         </Link>

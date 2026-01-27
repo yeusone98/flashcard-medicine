@@ -1,10 +1,17 @@
 // app/layout.tsx
 import type { Metadata } from "next"
+import { Be_Vietnam_Pro } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MainNav } from "@/components/main-nav"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthSessionProvider } from "@/components/auth-session-provider" // 👈 thêm
+
+const beVietnamPro = Be_Vietnam_Pro({
+    subsets: ["latin", "vietnamese"],
+    weight: ["400", "500", "600", "700"],
+    display: "swap",
+})
 
 export const metadata: Metadata = {
     title: "Flashcard Medicine",
@@ -17,8 +24,8 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en" suppressHydrationWarning>
-            <body className="min-h-screen bg-background text-foreground antialiased">
+        <html lang="vi" suppressHydrationWarning>
+            <body className={`${beVietnamPro.className} min-h-screen bg-background text-foreground antialiased`}>
                 <AuthSessionProvider>
                     <ThemeProvider>
                         <div className="flex min-h-screen flex-col">

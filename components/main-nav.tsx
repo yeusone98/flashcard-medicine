@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const links = [
   { href: "/", label: "Trang chủ" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/decks", label: "Bộ thẻ" },
   { href: "/deck-parents", label: "Môn học" }, // 👈 mới
   { href: "/import", label: "Import" },

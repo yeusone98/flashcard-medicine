@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select"
 
 interface ManualImportPayload {
+  deckId?: string
   deckName?: string
   description?: string
   subject?: string
@@ -38,6 +39,8 @@ type ImportResponse =
       flashcardCount?: number
       questionCount?: number
       deckId?: string
+      deckName?: string
+      mode?: "new" | "append"
       error?: string
     }
   | null
@@ -45,6 +48,7 @@ type ImportResponse =
 // Giá trị đặc biệt cho Select
 const NONE_VALUE = "__NONE__"
 const NEW_VALUE = "__NEW__"
+const NEW_DECK_VALUE = "__NEW_DECK__"
 
 export default function ImportManualJsonPage() {
   const [deckName, setDeckName] = useState("")
@@ -52,6 +56,12 @@ export default function ImportManualJsonPage() {
   const [jsonText, setJsonText] = useState("")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+
+  // deck target
+  const [deckOptions, setDeckOptions] = useState<{ id: string; name: string }[]>([])
+  const [deckValue, setDeckValue] = useState<string>(NEW_DECK_VALUE)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadedImageUrl, setUploadedImageUrl] = useState("")
 
   // parent deck / subject
   const [parentOptions, setParentOptions] = useState<string[]>([])
@@ -97,10 +107,117 @@ export default function ImportManualJsonPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchDecks = async () => {
+      try {
+        const res = await fetch("/api/decks")
+        if (!res.ok) return
+
+        const data = (await res.json()) as unknown
+
+        if (cancelled) return
+
+        if (Array.isArray(data)) {
+          const decks = data
+            .map((d) => ({
+              id: typeof d?._id === "string" ? d._id : "",
+              name: typeof d?.name === "string" ? d.name : "Untitled deck",
+            }))
+            .filter((d) => d.id)
+            .sort((a, b) => a.name.localeCompare(b.name, "vi"))
+
+          setDeckOptions(decks)
+        }
+      } catch (error) {
+        if (cancelled) return
+        console.error("Error calling /api/decks", error)
+      }
+    }
+
+    void fetchDecks()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const hasParentOptions = useMemo(
     () => parentOptions.length > 0,
     [parentOptions],
   )
+
+  const hasDeckOptions = useMemo(
+    () => deckOptions.length > 0,
+    [deckOptions],
+  )
+
+  const isAppending = deckValue !== NEW_DECK_VALUE
+
+  const selectedDeck = useMemo(
+    () => deckOptions.find((deck) => deck.id === deckValue),
+    [deckOptions, deckValue],
+  )
+
+  const handleImageUpload = async (file: File | null) => {
+    if (!file) return
+
+    try {
+      setUploadingImage(true)
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const res = await fetch("/api/uploads/image", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Image upload failed")
+      }
+
+      const url = typeof data?.url === "string" ? data.url : ""
+      if (!url) {
+        throw new Error("No image URL returned")
+      }
+
+      setUploadedImageUrl(url)
+      toast({
+        title: "Image uploaded",
+        description: "Copy the URL and paste into JSON fields.",
+      })
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Image upload failed"
+      toast({
+        variant: "destructive",
+        title: "Upload error",
+        description: message,
+      })
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const handleCopyImageUrl = async () => {
+    if (!uploadedImageUrl) return
+    try {
+      await navigator.clipboard.writeText(uploadedImageUrl)
+      toast({
+        title: "Copied",
+        description: "Image URL copied to clipboard.",
+      })
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Copy failed",
+        description: "Could not copy the image URL.",
+      })
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -143,59 +260,70 @@ export default function ImportManualJsonPage() {
     const deckNameTrimmed = deckName.trim()
     const descriptionTrimmed = description.trim()
 
-    if (deckNameTrimmed) {
-      payload.deckName = deckNameTrimmed
-    }
-    if (descriptionTrimmed) {
-      payload.description = descriptionTrimmed
-    }
-
-    const finalDeckName =
-      typeof payload.deckName === "string"
-        ? payload.deckName.toString().trim()
-        : ""
-
-    if (!finalDeckName) {
-      const desc =
-        "Thiếu deckName. Hãy nhập 'Tên deck' ở trên hoặc thêm field deckName trong JSON."
-      setMessage(desc)
-      toast({
-        variant: "destructive",
-        title: "Thiếu tên deck",
-        description: desc,
-      })
-      return
-    }
-
-    payload.deckName = finalDeckName
-
-    // 3. Xử lý subject (môn học / parent deck)
+    let finalDeckName = ""
     let finalSubject = ""
 
-    if (parentValue === NEW_VALUE) {
-      const trimmed = newParent.trim()
-      if (!trimmed) {
+    if (!isAppending) {
+      delete payload.deckId
+      if (deckNameTrimmed) {
+        payload.deckName = deckNameTrimmed
+      }
+      if (descriptionTrimmed) {
+        payload.description = descriptionTrimmed
+      }
+
+      finalDeckName =
+        typeof payload.deckName === "string"
+          ? payload.deckName.toString().trim()
+          : ""
+
+      if (!finalDeckName) {
         const desc =
-          "Bạn đã chọn tạo môn học mới nhưng chưa nhập tên."
+          "Missing deckName. Enter 'Deck name' above or add deckName in JSON."
         setMessage(desc)
         toast({
           variant: "destructive",
-          title: "Thiếu tên môn học",
+          title: "Missing deck name",
           description: desc,
         })
         return
       }
-      finalSubject = trimmed
-    } else if (parentValue && parentValue !== NONE_VALUE) {
-      finalSubject = parentValue
-    } else if (typeof payload.subject === "string") {
-      finalSubject = payload.subject.toString().trim()
-    }
 
-    if (finalSubject) {
-      payload.subject = finalSubject
+      payload.deckName = finalDeckName
+
+      // 3. Handle subject (optional)
+
+      if (parentValue === NEW_VALUE) {
+        const trimmed = newParent.trim()
+        if (!trimmed) {
+          const desc =
+            "You chose to create a new subject but did not enter a name."
+          setMessage(desc)
+          toast({
+            variant: "destructive",
+            title: "Missing subject name",
+            description: desc,
+          })
+          return
+        }
+        finalSubject = trimmed
+      } else if (parentValue && parentValue !== NONE_VALUE) {
+        finalSubject = parentValue
+      } else if (typeof payload.subject === "string") {
+        finalSubject = payload.subject.toString().trim()
+      }
+
+      if (finalSubject) {
+        payload.subject = finalSubject
+      } else {
+        payload.subject = undefined
+      }
     } else {
-      payload.subject = undefined
+      payload.deckId = deckValue
+      finalDeckName = selectedDeck?.name ?? ""
+      delete payload.deckName
+      delete payload.description
+      delete payload.subject
     }
 
     try {
@@ -216,33 +344,58 @@ export default function ImportManualJsonPage() {
 
       const flashcardCount = data?.flashcardCount ?? 0
       const questionCount = data?.questionCount ?? 0
+      const mode = data?.mode ?? (isAppending ? "append" : "new")
+      const deckLabel = data?.deckName || finalDeckName || selectedDeck?.name || "Deck"
 
-      const desc = `Đã tạo deck "${finalDeckName}" với ${flashcardCount} flashcard và ${questionCount} câu trắc nghiệm.`
+      const desc =
+        mode === "append"
+          ? `Added ${flashcardCount} flashcards and ${questionCount} questions to "${deckLabel}".`
+          : `Created deck "${deckLabel}" with ${flashcardCount} flashcards and ${questionCount} questions.`
 
       setJsonText("")
-      setDeckName("")
-      setDescription("")
+      if (!isAppending) {
+      delete payload.deckId
+        setDeckName("")
+        setDescription("")
+      }
       setMessage(desc)
 
-      // Nếu có subject thì thêm vào dropdown nếu chưa có
-      if (finalSubject) {
-        setParentOptions((prev) => {
-          if (prev.includes(finalSubject)) return prev
-          const next = [...prev, finalSubject]
-          next.sort((a, b) => a.localeCompare(b, "vi"))
+      if (
+        mode === "new" &&
+        typeof data?.deckId === "string" &&
+        typeof data?.deckName === "string"
+      ) {
+        const newDeckId = data.deckId
+        const newDeckName = data.deckName
+        setDeckOptions((prev) => {
+          if (prev.some((deck) => deck.id === newDeckId)) return prev
+          const next = [...prev, { id: newDeckId, name: newDeckName }]
+          next.sort((a, b) => a.name.localeCompare(b.name, "vi"))
           return next
         })
-        setParentValue(finalSubject)
-        setNewParent("")
-      } else {
-        setParentValue(NONE_VALUE)
-        setNewParent("")
+      }
+
+      if (mode === "new") {
+        if (finalSubject) {
+          setParentOptions((prev) => {
+            if (prev.includes(finalSubject)) return prev
+            const next = [...prev, finalSubject]
+            next.sort((a, b) => a.localeCompare(b, "vi"))
+            return next
+          })
+          setParentValue(finalSubject)
+          setNewParent("")
+        } else {
+          setParentValue(NONE_VALUE)
+          setNewParent("")
+        }
       }
 
       toast({
-        title: "Import JSON thành công",
+        title: "Import JSON successful",
         description: desc,
       })
+
     } catch (error) {
       console.error(error)
 
@@ -298,6 +451,50 @@ export default function ImportManualJsonPage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Target deck */}
+          <div className="space-y-1">
+            <label
+              htmlFor="targetDeck"
+              className="text-sm font-medium leading-none"
+            >
+              Target deck
+            </label>
+
+            <Select
+              value={deckValue}
+              onValueChange={(value) => setDeckValue(value)}
+              disabled={loading}
+            >
+              <SelectTrigger id="targetDeck" className="w-full">
+                <SelectValue
+                  placeholder={
+                    hasDeckOptions
+                      ? "Create new deck"
+                      : "Create new deck"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NEW_DECK_VALUE}>Create new deck</SelectItem>
+                {deckOptions.map((deck) => (
+                  <SelectItem key={deck.id} value={deck.id}>
+                    {deck.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {isAppending ? (
+              <p className="text-xs text-muted-foreground">
+                Adding to: {selectedDeck?.name ?? "Unknown deck"}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                A new deck will be created from the JSON below.
+              </p>
+            )}
+          </div>
+
           {/* Tên deck */}
           <div className="space-y-1">
             <label
@@ -311,7 +508,7 @@ export default function ImportManualJsonPage() {
               placeholder='VD: "Theo dõi kiểm báo trong mổ – 5 yếu tố cơ bản"'
               value={deckName}
               onChange={(e) => setDeckName(e.target.value)}
-              disabled={loading}
+              disabled={loading || isAppending}
             />
           </div>
 
@@ -330,7 +527,7 @@ export default function ImportManualJsonPage() {
               placeholder='VD: "Ôn tập 5 yếu tố theo dõi cơ bản trong mổ: nhiệt độ, SpO2, EtCO2, ECG và huyết áp động mạch..."'
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              disabled={loading}
+              disabled={loading || isAppending}
             />
           </div>
 
@@ -344,7 +541,7 @@ export default function ImportManualJsonPage() {
             <Select
               value={parentValue}
               onValueChange={(value) => setParentValue(value)}
-              disabled={loading}
+              disabled={loading || isAppending}
             >
               <SelectTrigger id="parent" className="w-full">
                 <SelectValue
@@ -387,10 +584,39 @@ export default function ImportManualJsonPage() {
                 placeholder='VD: "Nội tim", "Ngoại tiêu hoá", "TOEIC Listening"...'
                 value={newParent}
                 onChange={(e) => setNewParent(e.target.value)}
-                disabled={loading}
+                disabled={loading || isAppending}
               />
             </div>
           )}
+
+          {/* Image upload helper */}
+          <div className="space-y-2 rounded-md border border-dashed border-border/70 bg-background/40 p-3">
+            <p className="text-sm font-medium">Image upload helper</p>
+            <input
+              type="file"
+              accept="image/*"
+              className="block w-full text-xs text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1 file:text-xs file:font-medium file:text-primary hover:file:bg-primary/20"
+              disabled={uploadingImage}
+              onChange={(e) => handleImageUpload(e.target.files?.[0] ?? null)}
+            />
+            {uploadedImageUrl ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Input value={uploadedImageUrl} readOnly />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyImageUrl}
+                >
+                  Copy URL
+                </Button>
+              </div>
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              Paste the URL into <code>frontImage</code>, <code>backImage</code>,
+              <code>image</code> (question), or <code>choices[].image</code> fields.
+            </p>
+          </div>
 
           {/* JSON + submit */}
           <form className="space-y-3" onSubmit={handleSubmit}>
@@ -406,17 +632,22 @@ export default function ImportManualJsonPage() {
                 className="mt-1 h-80 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs outline-none ring-0 focus-visible:border-primary"
                 placeholder={`{
   "flashcards": [
-    { "front": "Định nghĩa suy tim?", "back": "Suy tim là..." },
-    { "front": "Có mấy độ NYHA?", "back": "4 độ: I, II, III, IV" }
+    {
+      "front": "What is heart failure?",
+      "back": "Heart failure is ...",
+      "frontImage": "https://...",
+      "backImage": "https://..."
+    }
   ],
   "questions": [
     {
-      "question": "SpO2 bình thường khoảng bao nhiêu?",
+      "question": "Normal SpO2 range?",
+      "image": "https://...",
       "choices": [
-        { "text": "95–100%", "isCorrect": true },
-        { "text": "80–85%", "isCorrect": false }
+        { "text": "95-100%", "isCorrect": true, "image": "https://..." },
+        { "text": "80-85%", "isCorrect": false }
       ],
-      "explanation": "SpO2 bình thường từ 95–100%."
+      "explanation": "Normal SpO2 is 95-100%."
     }
   ]
 }`}
@@ -450,20 +681,18 @@ export default function ImportManualJsonPage() {
             </p>
             <ul className="list-disc space-y-1 pl-4">
               <li>
-                Root là <code>object</code>, có thể chứa{" "}
-                <code>deckName</code>, <code>description</code>,{" "}
-                <code>subject</code>, <code>flashcards</code>,{" "}
+                Root is an <code>object</code> and may include <code>deckName</code>,
+                <code>description</code>, <code>subject</code>, <code>flashcards</code>,
                 <code>questions</code>.
               </li>
               <li>
-                Mỗi <code>flashcard</code> có{" "}
-                <code>front</code> và <code>back</code>.
+                Each <code>flashcard</code> has <code>front</code> and <code>back</code>,
+                optional <code>frontImage</code>/<code>backImage</code> (URL).
               </li>
               <li>
-                Mỗi <code>question</code> có{" "}
-                <code>question</code>, mảng{" "}
-                <code>choices</code> (≥ 2 lựa chọn, ít nhất 1{" "}
-                <code>isCorrect: true</code>) và optional{" "}
+                Each <code>question</code> has <code>question</code>, an array of
+                <code>choices</code> (&gt;= 2, at least one <code>isCorrect: true</code>),
+                optional <code>image</code>, <code>choices[].image</code>, and
                 <code>explanation</code>.
               </li>
             </ul>

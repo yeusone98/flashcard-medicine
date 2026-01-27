@@ -65,10 +65,11 @@ export async function POST(req: NextRequest) {
     const deckId = deckInsert.insertedId
 
     // Lưu flashcards Q/A
-    const fcDocs = cards.map((c) => ({
+    const fcDocs = cards.map((c, index) => ({
       deckId,
       front: c.front,
       back: c.back,
+      order: index,
       level: 0,
       createdAt: now,
       updatedAt: now,
@@ -99,6 +100,7 @@ export async function POST(req: NextRequest) {
         question: c.front, // câu hỏi = Q
         choices,
         explanation: c.back, // A làm giải thích ngắn
+        order: idx,
         level: 0,
         createdAt: now,
         updatedAt: now,

@@ -7,6 +7,36 @@ import {
     ObjectId,
 } from "@/lib/mongodb"
 
+export async function GET(
+    _req: NextRequest,
+    { params }: { params: Promise<{ id: string }> },
+) {
+    const { id } = await params
+
+    if (!ObjectId.isValid(id)) {
+        return NextResponse.json(
+            { error: "deckId khÃ´ng há»£p lá»" },
+            { status: 400 },
+        )
+    }
+
+    const decksCol = await getDecksCollection()
+    const deck = await decksCol.findOne({ _id: new ObjectId(id) })
+
+    if (!deck) {
+        return NextResponse.json(
+            { error: "KhÃ´ng tÃ¬m tháº¥y deck" },
+            { status: 404 },
+        )
+    }
+
+    return NextResponse.json({
+        ...deck,
+        _id: deck._id?.toString(),
+    })
+}
+
+
 export async function DELETE(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> },

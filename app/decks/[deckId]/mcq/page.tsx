@@ -1,8 +1,16 @@
 // app/decks/[deckId]/mcq/page.tsx
 "use client"
 
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent,
+  type WheelEvent,
+} from "react"
+import Link from "next/link"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import {
   Card,
   CardHeader,
@@ -22,17 +30,19 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react"
+import { ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } from "lucide-react"
 
 interface Choice {
   text: string
   isCorrect: boolean
+  image?: string
 }
 
 interface Question {
   _id: string
   question: string
   choices: Choice[]
+  image?: string
   explanation?: string
 }
 
@@ -42,6 +52,18 @@ interface AnswerState {
 }
 
 type ReviewMode = "all" | "wrong"
+type StudyMode = "due" | "all" | "mix"
+
+function shuffle<T>(items: T[]): T[] {
+  const copy = [...items]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const temp = copy[i]
+    copy[i] = copy[j]
+    copy[j] = temp
+  }
+  return copy
+}
 
 interface DeckSummary {
   _id: string
@@ -60,9 +82,18 @@ interface McqResult {
 export default function MCQPage() {
   const params = useParams<{ deckId: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const deckId = params.deckId
+  const modeParam = searchParams.get("mode") ?? "due"
+  const studyMode: StudyMode =
+    modeParam === "mix" || modeParam === "all" || modeParam === "due"
+      ? (modeParam as StudyMode)
+      : "due"
+  const subjectParam = searchParams.get("subject") ?? ""
+  const subject = subjectParam.trim()
 
   const [questions, setQuestions] = useState<Question[]>([])
+  const [order, setOrder] = useState<number[]>([])
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState<AnswerState[]>([])
   const [loading, setLoading] = useState(true)
@@ -74,6 +105,12 @@ export default function MCQPage() {
 
   const [savedResult, setSavedResult] = useState<McqResult | null>(null)
   const [isSavingResult, setIsSavingResult] = useState(false)
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
+  const lastPointerRef = useRef({ x: 0, y: 0 })
+  const isPanningRef = useRef(false)
 
   // Lấy deck name + câu hỏi MCQ + kết quả (nếu có)
   useEffect(() => {
@@ -83,9 +120,10 @@ export default function MCQPage() {
       try {
         setLoading(true)
 
+        const questionMode = studyMode === "due" ? "due" : "all"
         const [deckRes, questionsRes, resultRes] = await Promise.all([
           fetch("/api/decks"),
-          fetch(`/api/questions?deckId=${deckId}`),
+          fetch(`/api/questions?deckId=${deckId}&mode=${questionMode}`),
           fetch(`/api/mcq-results?deckId=${deckId}`),
         ])
 
@@ -143,15 +181,103 @@ export default function MCQPage() {
     }
 
     void fetchAll()
-  }, [deckId])
+  }, [deckId, studyMode])
+
+  useEffect(() => {
+    if (questions.length === 0) {
+      setOrder([])
+      setIndex(0)
+      return
+    }
+
+    const baseOrder = questions.map((_, i) => i)
+    let nextOrder = baseOrder
+
+    if (studyMode === "mix" && typeof window !== "undefined") {
+      const stored = window.sessionStorage.getItem(`mcq-order:${deckId}`)
+      if (stored) {
+        try {
+          const storedIds = JSON.parse(stored) as string[]
+          const idToIndex = new Map(
+            questions.map((q, idx) => [q._id, idx]),
+          )
+          const mapped = storedIds
+            .map((id) => idToIndex.get(id))
+            .filter((value): value is number => typeof value === "number")
+
+          if (mapped.length === questions.length) {
+            nextOrder = mapped
+          }
+        } catch {
+          // ignore storage errors
+        }
+      }
+
+      if (nextOrder === baseOrder) {
+        nextOrder = shuffle(baseOrder)
+      }
+
+      try {
+        const ids = nextOrder.map((idx) => questions[idx]?._id).filter(Boolean)
+        window.sessionStorage.setItem(
+          `mcq-order:${deckId}`,
+          JSON.stringify(ids),
+        )
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    setOrder(nextOrder)
+
+    if (typeof window !== "undefined") {
+      try {
+        const storedPos = window.sessionStorage.getItem(
+          `mcq-pos:${deckId}:${studyMode}`,
+        )
+        const pos = storedPos ? Number(storedPos) : 0
+        if (!Number.isNaN(pos) && pos >= 0 && pos < questions.length) {
+          setIndex(pos)
+        } else {
+          setIndex(0)
+        }
+      } catch {
+        setIndex(0)
+      }
+    } else {
+      setIndex(0)
+    }
+  }, [deckId, studyMode, questions])
 
   const cancelSubmit = () => {
     setShowSubmitModal(false)
   }
 
-  const hasQuestions = questions.length > 0
-  const current = hasQuestions ? questions[index] : null
   const total = questions.length
+  const hasQuestions = total > 0
+
+  const resolvedOrder = useMemo(() => {
+    if (order.length === total) return order
+    return questions.map((_, i) => i)
+  }, [order, questions, total])
+
+  const currentQuestionIndex = hasQuestions ? resolvedOrder[index] : null
+  const current =
+    currentQuestionIndex !== null && currentQuestionIndex !== undefined
+      ? questions[currentQuestionIndex]
+      : null
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      window.sessionStorage.setItem(
+        `mcq-pos:${deckId}:${studyMode}`,
+        String(index),
+      )
+    } catch {
+      // ignore storage errors
+    }
+  }, [deckId, index, studyMode])
 
   const unansweredCount = answers.filter(a => a.selectedIndex === null).length
   const correctCount = answers.filter(a => a.isCorrect === true).length
@@ -172,26 +298,28 @@ export default function MCQPage() {
 
   const progress = hasQuestions ? ((index + 1) / total) * 100 : 0
 
-  // Lọc index câu theo mode xem
-  const getFilteredIndices = () => {
+  // Lọc vị trí câu theo chế độ xem
+  const getFilteredPositions = () => {
     if (!isSubmitted || reviewMode === "all") {
-      return questions.map((_, i) => i)
+      return resolvedOrder.map((_, pos) => pos)
     }
-    const wrongIndices: number[] = []
-    answers.forEach((a, i) => {
-      if (a?.isCorrect === false) wrongIndices.push(i)
+    const wrongPositions: number[] = []
+    resolvedOrder.forEach((questionIndex, pos) => {
+      if (answers[questionIndex]?.isCorrect === false) {
+        wrongPositions.push(pos)
+      }
     })
-    return wrongIndices
+    return wrongPositions
   }
 
-  const filteredIndices = getFilteredIndices()
-  const currentFilteredPos = filteredIndices.indexOf(index)
+  const filteredPositions = getFilteredPositions()
+  const currentFilteredPos = filteredPositions.indexOf(index)
   const isFirstInView =
-    filteredIndices.length === 0 ? true : currentFilteredPos <= 0
+    filteredPositions.length === 0 ? true : currentFilteredPos <= 0
   const isLastInView =
-    filteredIndices.length === 0
+    filteredPositions.length === 0
       ? true
-      : currentFilteredPos === filteredIndices.length - 1
+      : currentFilteredPos === filteredPositions.length - 1
 
   const isPrevDisabled =
     !hasQuestions ||
@@ -199,21 +327,19 @@ export default function MCQPage() {
     (isSubmitted && isFirstInView)
   const isNextDisabled = !hasQuestions || (isSubmitted && isLastInView)
 
-  const questionIndicesForList =
-    !isSubmitted || reviewMode === "all"
-      ? questions.map((_, i) => i)
-      : filteredIndices
+  const positionsForList = filteredPositions
 
   const isLastQuestionBeforeSubmit =
     !isSubmitted && hasQuestions && index === total - 1
 
   const handleSelect = (choiceIndex: number) => {
     if (!current || isSubmitted) return
+    if (currentQuestionIndex === null) return
 
     setAnswers(prev => {
       const copy = [...prev]
       const isCorrect = current.choices[choiceIndex]?.isCorrect ?? false
-      copy[index] = { selectedIndex: choiceIndex, isCorrect }
+      copy[currentQuestionIndex] = { selectedIndex: choiceIndex, isCorrect }
       return copy
     })
   }
@@ -225,7 +351,7 @@ export default function MCQPage() {
   const nextQuestion = () => {
     if (!hasQuestions) return
 
-    const filtered = getFilteredIndices()
+    const filtered = getFilteredPositions()
     if (filtered.length === 0) return
 
     const pos = filtered.indexOf(index)
@@ -241,7 +367,7 @@ export default function MCQPage() {
   const prevQuestion = () => {
     if (!hasQuestions) return
 
-    const filtered = getFilteredIndices()
+    const filtered = getFilteredPositions()
     if (filtered.length === 0) return
 
     const pos = filtered.indexOf(index)
@@ -289,6 +415,25 @@ export default function MCQPage() {
     }
 
     setSavedResult(baseResult)
+
+    const reviewUpdates = questions
+      .map((q, idx) => ({
+        id: q._id,
+        isCorrect: answers[idx]?.isCorrect === true,
+      }))
+      .filter((item) => item.id)
+
+    if (reviewUpdates.length > 0) {
+      void Promise.allSettled(
+        reviewUpdates.map((item) =>
+          fetch(`/api/questions/${item.id}/review`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isCorrect: item.isCorrect }),
+          }),
+        ),
+      )
+    }
 
     if (!deckId) return
 
@@ -341,6 +486,20 @@ export default function MCQPage() {
     setReviewMode("all")
     setIndex(0)
     setSavedResult(null)
+    if (studyMode === "mix") {
+      const baseOrder = questions.map((_, i) => i)
+      const nextOrder = shuffle(baseOrder)
+      setOrder(nextOrder)
+      try {
+        const ids = nextOrder.map((idx) => questions[idx]?._id).filter(Boolean)
+        window.sessionStorage.setItem(
+          `mcq-order:${deckId}`,
+          JSON.stringify(ids),
+        )
+      } catch {
+        // ignore storage errors
+      }
+    }
 
     if (!deckId) return
 
@@ -356,9 +515,11 @@ export default function MCQPage() {
   const handleChangeReviewMode = (mode: ReviewMode) => {
     setReviewMode(mode)
     if (mode === "wrong" && isSubmitted) {
-      const firstWrongIndex = answers.findIndex(a => a?.isCorrect === false)
-      if (firstWrongIndex !== -1) {
-        setIndex(firstWrongIndex)
+      const firstWrongPos = resolvedOrder.findIndex(
+        (questionIndex) => answers[questionIndex]?.isCorrect === false,
+      )
+      if (firstWrongPos !== -1) {
+        setIndex(firstWrongPos)
       }
     }
   }
@@ -369,15 +530,82 @@ export default function MCQPage() {
       ? "Nộp bài"
       : "Câu tiếp theo"
 
+  const openImage = (src: string, alt: string) => {
+    setLightbox({ src, alt })
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }
+
+  const clampZoom = (value: number) => Math.min(3, Math.max(1, value))
+
+  const handleWheelZoom = (event: WheelEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const delta = event.deltaY < 0 ? 0.2 : -0.2
+    setZoom((prev) => clampZoom(prev + delta))
+  }
+
+  const handlePointerDown = (event: PointerEvent<HTMLImageElement>) => {
+    event.preventDefault()
+    setIsPanning(true)
+    isPanningRef.current = true
+    lastPointerRef.current = { x: event.clientX, y: event.clientY }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handlePointerMove = (event: PointerEvent<HTMLImageElement>) => {
+    if (!isPanningRef.current) return
+    const dx = event.clientX - lastPointerRef.current.x
+    const dy = event.clientY - lastPointerRef.current.y
+    lastPointerRef.current = { x: event.clientX, y: event.clientY }
+    setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
+  }
+
+  const handlePointerUp = (event: PointerEvent<HTMLImageElement>) => {
+    setIsPanning(false)
+    isPanningRef.current = false
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
   return (
     <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl flex-col gap-6 px-4 py-6">
+      <nav className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+        <Link
+          href={
+            subject
+              ? `/decks?subject=${encodeURIComponent(subject)}`
+              : "/decks"
+          }
+          className="hover:text-foreground"
+        >
+          Decks
+        </Link>
+        <span>/</span>
+        <Link
+          href={
+            subject
+              ? `/decks/${deckId}?subject=${encodeURIComponent(subject)}`
+              : `/decks/${deckId}`
+          }
+          className="hover:text-foreground"
+        >
+          {deckName || "Deck"}
+        </Link>
+        <span>/</span>
+        <span className="text-foreground">MCQ</span>
+      </nav>
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/decks")}
+            onClick={() =>
+              router.push(
+                subject
+                  ? `/decks/${deckId}?subject=${encodeURIComponent(subject)}`
+                  : `/decks/${deckId}`,
+              )
+            }
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
@@ -389,6 +617,52 @@ export default function MCQPage() {
               Chọn đáp án cho từng câu hỏi, làm đến câu cuối rồi nộp bài để xem
               điểm và giải thích.
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Button
+                asChild
+                size="sm"
+                variant={studyMode === "due" ? "default" : "outline"}
+              >
+                <Link
+                  href={`/decks/${deckId}/mcq?mode=due${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`}
+                >
+                  Hôm nay
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                variant={studyMode === "all" ? "default" : "outline"}
+              >
+                <Link
+                  href={`/decks/${deckId}/mcq?mode=all${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`}
+                >
+                  Tất cả
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                variant={studyMode === "mix" ? "default" : "outline"}
+              >
+                <Link
+                  href={`/decks/${deckId}/mcq?mode=mix${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`}
+                >
+                  Tổng ôn trộn đề
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link
+                  href={
+                    subject
+                      ? `/decks/${deckId}/edit?subject=${encodeURIComponent(subject)}`
+                      : `/decks/${deckId}/edit`
+                  }
+                >
+                  Edit set
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -458,10 +732,29 @@ export default function MCQPage() {
                 </p>
               </div>
 
+              {current.image ? (
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    className="group"
+                    onClick={() => openImage(current.image || "", "MCQ question")}
+                  >
+                    <img
+                      src={current.image}
+                      alt="MCQ question"
+                      className="max-h-64 w-auto max-w-full rounded-xl border border-emerald-500/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
+                    />
+                  </button>
+                </div>
+              ) : null}
+
               {/* Đáp án */}
               <div className="space-y-2">
                 {current.choices.map((choice, i) => {
-                  const state = answers[index]
+                  const state =
+                    currentQuestionIndex !== null
+                      ? answers[currentQuestionIndex]
+                      : undefined
                   const selectedIndex = state?.selectedIndex
                   const isSelected = selectedIndex === i
                   const isCorrectChoice = choice.isCorrect
@@ -503,13 +796,33 @@ export default function MCQPage() {
                       disabled={isSubmitted}
                       className={choiceClasses}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-start gap-3">
                         <span className="flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold">
                           {String.fromCharCode(65 + i)}
                         </span>
-                        <span className="whitespace-pre-wrap">
-                          {choice.text}
-                        </span>
+                        <div className="space-y-2">
+                          <span className="whitespace-pre-wrap">
+                            {choice.text}
+                          </span>
+                          {choice.image ? (
+                            <button
+                              type="button"
+                              className="group"
+                              onClick={() =>
+                                openImage(
+                                  choice.image || "",
+                                  `MCQ choice ${String.fromCharCode(65 + i)}`,
+                                )
+                              }
+                            >
+                              <img
+                                src={choice.image}
+                                alt="MCQ choice"
+                                className="max-h-28 w-auto max-w-full rounded-lg border border-emerald-500/30 object-contain transition group-hover:opacity-90 cursor-zoom-in"
+                              />
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
 
                       {isSubmitted && (
@@ -665,7 +978,7 @@ export default function MCQPage() {
                   Danh sách câu hỏi
                 </p>
                 <div className="rounded-2xl border bg-muted/40 px-3 py-3">
-                  {questionIndicesForList.length === 0 &&
+                  {positionsForList.length === 0 &&
                   isSubmitted &&
                   reviewMode === "wrong" ? (
                     <p className="text-[11px] text-muted-foreground">
@@ -673,9 +986,10 @@ export default function MCQPage() {
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {questionIndicesForList.map(i => {
-                        const state = answers[i]
-                        const isCurrent = i === index
+                      {positionsForList.map(pos => {
+                        const questionIndex = resolvedOrder[pos]
+                        const state = answers[questionIndex]
+                        const isCurrent = pos === index
 
                         let classes =
                           "inline-flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-medium transition-all"
@@ -720,12 +1034,12 @@ export default function MCQPage() {
 
                         return (
                           <button
-                            key={i}
+                            key={questionIndex}
                             type="button"
-                            onClick={() => goToQuestion(i)}
+                            onClick={() => goToQuestion(pos)}
                             className={classes}
                           >
-                            {i + 1}
+                            {pos + 1}
                           </button>
                         )
                       })}
@@ -795,6 +1109,83 @@ export default function MCQPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={Boolean(lightbox)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLightbox(null)
+            setZoom(1)
+            setPan({ x: 0, y: 0 })
+            setIsPanning(false)
+            isPanningRef.current = false
+          }
+        }}
+      >
+        <DialogContent className="w-[95vw] max-w-5xl border-slate-800 bg-slate-950/95">
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-sm text-slate-200">
+              {lightbox?.alt || "Image"}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => setZoom((prev) => clampZoom(prev - 0.2))}
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-slate-300">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => setZoom((prev) => clampZoom(prev + 0.2))}
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  setZoom(1)
+                  setPan({ x: 0, y: 0 })
+                }}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div
+            className="flex max-h-[75vh] items-center justify-center overflow-hidden rounded-xl bg-slate-900/60 p-4"
+            onWheel={handleWheelZoom}
+          >
+            {lightbox?.src ? (
+              <img
+                src={lightbox.src}
+                alt={lightbox.alt}
+                draggable={false}
+                className={cn(
+                  "max-h-[70vh] w-auto max-w-full select-none touch-none",
+                  isPanning ? "cursor-grabbing" : "cursor-grab",
+                )}
+                style={{
+                  transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+                }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+

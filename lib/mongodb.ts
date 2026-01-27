@@ -54,13 +54,17 @@ export interface FlashcardDoc {
   deckId: ObjectId
   front: string
   back: string
+  frontImage?: string
+  backImage?: string
+  tags?: string[]
+  order?: number
   level: number
   createdAt: Date
   updatedAt: Date
   sm2Repetitions?: number
   sm2Interval?: number
   sm2Easiness?: number
-  dueAt?: Date
+  dueAt?: Date | null
   lastReviewedAt?: Date
 
   // mới thêm
@@ -75,11 +79,21 @@ export interface QuestionDoc {
   deckId: ObjectId
   flashcardId?: ObjectId
   question: string
-  choices: { text: string; isCorrect: boolean }[]
+  choices: { text: string; isCorrect: boolean; image?: string }[]
+  image?: string
   explanation?: string
+  tags?: string[]
+  order?: number
   level: number
   createdAt: Date
   updatedAt: Date
+  sm2Repetitions?: number
+  sm2Interval?: number
+  sm2Easiness?: number
+  dueAt?: Date | null
+  lastReviewedAt?: Date
+  reviewRating?: "again" | "hard" | "good" | "easy"
+  reviewIntervalMinutes?: number
 }
 
 export interface McqAnswerDoc {

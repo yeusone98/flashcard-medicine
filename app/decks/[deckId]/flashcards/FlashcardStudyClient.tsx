@@ -1,9 +1,17 @@
 "use client"
 
 import * as React from "react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
-import { ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react"
+import {
+  ChevronLeft,
+  ChevronRight,
+  RefreshCcw,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -13,39 +21,46 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
 type ReviewRating = "hard" | "medium" | "easy"
 
-const RATING_INTERVAL_MINUTES: Record<ReviewRating, number> = {
-  hard: 5,
-  medium: 15,
-  easy: 30,
-}
-
 export interface FlashcardStudyItem {
   _id: string
   front: string
   back: string
+  frontImage?: string | null
+  backImage?: string | null
+  dueAt?: string | null
+  reviewRating?: string | null
   note?: string | null
 }
 
 interface FlashcardStudyClientProps {
   deckId: string
   deckName: string
+  mode: string
+  subject?: string
   cards: FlashcardStudyItem[]
 }
 
 interface CardState {
   nextAvailableAt: number
-  lastRating?: ReviewRating
 }
 
 export default function FlashcardStudyClient({
   deckId,
   deckName,
+  mode,
+  subject,
   cards,
 }: FlashcardStudyClientProps) {
   const { toast } = useToast()
@@ -57,16 +72,74 @@ export default function FlashcardStudyClient({
   const [isFlipAnimating, setIsFlipAnimating] = useState(false) // 👉 control animate flip
   const [isReviewing, setIsReviewing] = useState(false)
   const [onlyHard, setOnlyHard] = useState(false)
+  const [lightbox, setLightbox] = useState<{
+    src: string
+    alt: string
+  } | null>(null)
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
+  const lastPointerRef = useRef({ x: 0, y: 0 })
+  const isPanningRef = useRef(false)
 
-  const [cardStates, setCardStates] = useState<Record<string, CardState>>(() =>
-    Object.fromEntries(cards.map((c) => [c._id, { nextAvailableAt: 0 }])),
+  const initialCardStates = useMemo(
+    () =>
+      Object.fromEntries(
+        cards.map((c) => [
+          c._id,
+          { nextAvailableAt: c.dueAt ? new Date(c.dueAt).getTime() : 0 },
+        ]),
+      ),
+    [cards],
   )
+
+  const [cardStates, setCardStates] = useState<Record<string, CardState>>(
+    () => initialCardStates,
+  )
+  const [sessionRatings, setSessionRatings] = useState<
+    Record<string, ReviewRating | undefined>
+  >({})
 
   const [notes, setNotes] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       cards.map((c) => [c._id, c.note ? String(c.note) : ""]),
     ),
   )
+
+  useEffect(() => {
+    setCardStates(initialCardStates)
+    setSessionRatings({})
+    setNotes(
+      Object.fromEntries(
+        cards.map((c) => [c._id, c.note ? String(c.note) : ""]),
+      ),
+    )
+    setSeenIds(new Set())
+    setIndex(0)
+    setShowBack(false)
+    setIsFlipAnimating(false)
+
+    if (typeof window !== "undefined") {
+      try {
+        const stored = window.sessionStorage.getItem(
+          `flashcards:${deckId}:${mode}`,
+        )
+        if (stored) {
+          const parsed = JSON.parse(stored) as { cardId?: string }
+          if (parsed?.cardId) {
+            const foundIndex = cards.findIndex(
+              (c) => c._id === parsed.cardId,
+            )
+            if (foundIndex >= 0) {
+              setIndex(foundIndex)
+            }
+          }
+        }
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }, [cards, deckId, initialCardStates, mode])
 
   const [sessionStart] = useState(() => Date.now())
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -85,6 +158,19 @@ export default function FlashcardStudyClient({
     return cards[index]
   }, [cards, index, total])
 
+  useEffect(() => {
+    if (!current?._id) return
+    if (typeof window === "undefined") return
+    try {
+      window.sessionStorage.setItem(
+        `flashcards:${deckId}:${mode}`,
+        JSON.stringify({ cardId: current._id }),
+      )
+    } catch {
+      // ignore storage errors
+    }
+  }, [current?._id, deckId, mode])
+
   // đánh dấu đã xem
   useEffect(() => {
     if (!current?._id) return
@@ -102,10 +188,10 @@ export default function FlashcardStudyClient({
   const ratedCount = useMemo(
     () =>
       cards.reduce(
-        (acc, c) => acc + (cardStates[c._id]?.lastRating ? 1 : 0),
+        (acc, c) => acc + (sessionRatings[c._id] ? 1 : 0),
         0,
       ),
-    [cards, cardStates],
+    [cards, sessionRatings],
   )
 
   const ratingStats = useMemo(() => {
@@ -113,13 +199,13 @@ export default function FlashcardStudyClient({
     let medium = 0
     let easy = 0
     for (const c of cards) {
-      const r = cardStates[c._id]?.lastRating
+      const r = sessionRatings[c._id]
       if (r === "hard") hard++
       else if (r === "medium") medium++
       else if (r === "easy") easy++
     }
     return { hard, medium, easy }
-  }, [cards, cardStates])
+  }, [cards, sessionRatings])
 
   const elapsedSeconds = Math.max(
     0,
@@ -152,10 +238,10 @@ export default function FlashcardStudyClient({
       const candidateCard = cards[candidate]
       const state = cardStates[candidateCard._id]
 
-      if (onlyHard && state?.lastRating !== "hard") continue
+      if (onlyHard && sessionRatings[candidateCard._id] !== "hard") continue
 
       const nextAvailableAt = state?.nextAvailableAt ?? 0
-      if (nextAvailableAt > now) continue
+      if (mode === "due" && nextAvailableAt > now) continue
 
       nextIndex = candidate
       break
@@ -175,7 +261,7 @@ export default function FlashcardStudyClient({
     setIsFlipAnimating(false)
     setShowBack(false)
     setIndex(nextIndex)
-  }, [cards, cardStates, index, onlyHard, toast, total])
+  }, [cards, cardStates, index, mode, onlyHard, sessionRatings, toast, total])
 
   const goPrev = useCallback(() => {
     if (total === 0) return
@@ -193,8 +279,7 @@ export default function FlashcardStudyClient({
     for (let step = 1; step <= index; step++) {
       const candidate = index - step
       const candidateCard = cards[candidate]
-      const state = cardStates[candidateCard._id]
-      if (state?.lastRating === "hard") {
+      if (sessionRatings[candidateCard._id] === "hard") {
         prevIndex = candidate
         break
       }
@@ -206,15 +291,14 @@ export default function FlashcardStudyClient({
       setShowBack(false)
       setIndex(prevIndex)
     }
-  }, [cards, cardStates, index, onlyHard, total])
+  }, [cards, cardStates, index, onlyHard, sessionRatings, total])
 
   const resetStudy = () => {
     setIndex(0)
     setIsFlipAnimating(false)
     setShowBack(false)
-    setCardStates(
-      Object.fromEntries(cards.map((c) => [c._id, { nextAvailableAt: 0 }])),
-    )
+    setCardStates(initialCardStates)
+    setSessionRatings({})
     setSeenIds(new Set())
   }
 
@@ -223,25 +307,16 @@ export default function FlashcardStudyClient({
     async (rating: ReviewRating) => {
       if (!current) return
 
-      const intervalMinutes = RATING_INTERVAL_MINUTES[rating]
       const now = Date.now()
-      const dueAtMs = now + intervalMinutes * 60 * 1000
 
-      const currentState = cardStates[current._id]
-      const alreadyRated = !!currentState?.lastRating
+      const alreadyRated = !!sessionRatings[current._id]
       const willAllBeRated =
         !alreadyRated && ratedCount + 1 >= total && total > 0
 
       try {
         setIsReviewing(true)
 
-        setCardStates((prev) => ({
-          ...prev,
-          [current._id]: {
-            nextAvailableAt: dueAtMs,
-            lastRating: rating,
-          },
-        }))
+        setSessionRatings((prev) => ({ ...prev, [current._id]: rating }))
 
         const res = await fetch(`/api/flashcards/${current._id}/review`, {
           method: "POST",
@@ -252,31 +327,44 @@ export default function FlashcardStudyClient({
         const data = await res.json().catch(() => null)
 
         if (!res.ok) {
-          throw new Error(data?.error || "Không cập nhật được lịch ôn")
+          throw new Error(data?.error || "Could not update schedule")
         }
 
-        const serverMinutes: number =
-          typeof data?.next?.intervalMinutes === "number"
-            ? data.next.intervalMinutes
-            : intervalMinutes
+        const serverDays: number =
+          typeof data?.next?.intervalDays === "number"
+            ? data.next.intervalDays
+            : 1
+
+        const dueAtIso = data?.next?.dueAt
+        const dueAtMs = dueAtIso ? new Date(dueAtIso).getTime() : now
+
+        setCardStates((prev) => ({
+          ...prev,
+          [current._id]: {
+            nextAvailableAt: dueAtMs,
+          },
+        }))
 
         const title =
           rating === "hard"
-            ? "Đánh dấu: Khó"
+            ? "Marked: Hard"
             : rating === "medium"
-              ? "Đánh dấu: Trung bình"
-              : "Đánh dấu: Dễ"
+              ? "Marked: Medium"
+              : "Marked: Easy"
+
+        const intervalLabel =
+          serverDays <= 1 ? "tomorrow" : `in ${serverDays} days`
 
         toast({
           title,
-          description: `Thẻ này sẽ lặp lại sau khoảng ${serverMinutes} phút.`,
+          description: `This card will come back ${intervalLabel}.`,
         })
 
         if (willAllBeRated) {
           toast({
-            title: "Hoàn thành bộ thẻ 🎉",
+            title: "Session complete",
             description:
-              "Bạn đã chấm hết tất cả flashcard trong bộ này. Nếu tiếp tục học, các thẻ sẽ được đưa lại theo mốc 5 / 15 / 30 phút.",
+              "You rated all cards in this session. Due cards will return based on SM-2 scheduling.",
           })
         }
 
@@ -285,19 +373,20 @@ export default function FlashcardStudyClient({
         const error =
           err instanceof Error
             ? err
-            : new Error("Đã xảy ra lỗi khi chấm thẻ.")
+            : new Error("Failed to rate card.")
         console.error(error)
         toast({
           variant: "destructive",
-          title: "Lỗi khi chấm thẻ",
-          description: error.message || "Vui lòng thử lại.",
+          title: "Rating error",
+          description: error.message || "Please try again.",
         })
       } finally {
         setIsReviewing(false)
       }
     },
-    [cardStates, current, goNext, ratedCount, toast, total],
+    [cardStates, current, goNext, ratedCount, toast, total, sessionRatings],
   )
+
 
   // toggle chỉ thẻ Khó
   const handleToggleOnlyHard = () => {
@@ -305,7 +394,7 @@ export default function FlashcardStudyClient({
       const next = !prev
       if (next) {
         const firstHardIndex = cards.findIndex(
-          (c) => cardStates[c._id]?.lastRating === "hard",
+          (c) => sessionRatings[c._id] === "hard",
         )
         if (firstHardIndex === -1) {
           toast({
@@ -416,14 +505,50 @@ export default function FlashcardStudyClient({
     return () => window.removeEventListener("keydown", handler)
   }, [goNext, goPrev, handleFlip, handleRating])
 
+  const openImage = useCallback((src: string, alt: string) => {
+    setLightbox({ src, alt })
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }, [])
+
+  const clampZoom = (value: number) => Math.min(3, Math.max(1, value))
+
+  const handleWheelZoom = (event: React.WheelEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const delta = event.deltaY < 0 ? 0.2 : -0.2
+    setZoom((prev) => clampZoom(prev + delta))
+  }
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLImageElement>) => {
+    event.preventDefault()
+    setIsPanning(true)
+    isPanningRef.current = true
+    lastPointerRef.current = { x: event.clientX, y: event.clientY }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLImageElement>) => {
+    if (!isPanningRef.current) return
+    const dx = event.clientX - lastPointerRef.current.x
+    const dy = event.clientY - lastPointerRef.current.y
+    lastPointerRef.current = { x: event.clientX, y: event.clientY }
+    setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
+  }
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLImageElement>) => {
+    setIsPanning(false)
+    isPanningRef.current = false
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
   if (total === 0) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
-        <p className="text-lg font-medium">
-          Bộ thẻ này chưa có flashcard nào.
-        </p>
+        <p className="text-lg font-medium">No flashcards available.</p>
         <p className="text-sm text-muted-foreground">
-          Hãy import hoặc tạo flashcard trước khi bắt đầu học.
+          {mode === "due"
+            ? "No cards are due today. Switch to All or Mixed to review everything."
+            : "Import or create flashcards before studying."}
         </p>
       </div>
     )
@@ -436,33 +561,95 @@ export default function FlashcardStudyClient({
     <div className="flex flex-col gap-5 pb-8">
       {/* Header */}
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="space-y-2">
+          <nav className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            <Link
+              href={
+                subject
+                  ? `/decks?subject=${encodeURIComponent(subject)}`
+                  : "/decks"
+              }
+              className="hover:text-foreground"
+            >
+              Decks
+            </Link>
+            <span>/</span>
+            <Link
+              href={
+                subject
+                  ? `/decks/${deckId}?subject=${encodeURIComponent(subject)}`
+                  : `/decks/${deckId}`
+              }
+              className="hover:text-foreground"
+            >
+              {deckName}
+            </Link>
+            <span>/</span>
+            <span className="text-foreground">Flashcards</span>
+          </nav>
           <h1 className="text-xl font-semibold tracking-tight">
-            Học flashcard –{" "}
+            Flashcards -{" "}
             <span className="text-emerald-300">{deckName}</span>
           </h1>
           <p className="text-xs text-muted-foreground">
-            Space để lật thẻ · 1/2/3 để chấm Khó / Trung bình / Dễ.
+            Space to flip. 1/2/3 to rate Hard / Medium / Easy.
           </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              asChild
+              size="sm"
+              variant={mode === "due" ? "default" : "outline"}
+            >
+              <Link
+                href={`/decks/${deckId}/flashcards?mode=due${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`}
+              >
+                Today
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              variant={mode === "all" ? "default" : "outline"}
+            >
+              <Link
+                href={`/decks/${deckId}/flashcards?mode=all${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`}
+              >
+                All
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              variant={mode === "mix" ? "default" : "outline"}
+            >
+              <Link
+                href={`/decks/${deckId}/flashcards?mode=mix${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`}
+              >
+                Mixed review
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link
+                href={
+                  subject
+                    ? `/decks/${deckId}/edit?subject=${encodeURIComponent(subject)}`
+                    : `/decks/${deckId}/edit`
+                }
+              >
+                Edit set
+              </Link>
+            </Button>
+          </div>
         </div>
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span>
-            Thẻ hiện tại:{" "}
-            <span className="font-medium text-foreground">
-              {currentNumber}/{total}
-            </span>
+            Card: <span className="font-medium text-foreground">{currentNumber}/{total}</span>
           </span>
           <span>
-            Đã chấm:{" "}
-            <span className="font-medium text-foreground">
-              {ratedCount}/{total}
-            </span>
+            Rated: <span className="font-medium text-foreground">{ratedCount}/{total}</span>
           </span>
           <span className="hidden md:inline">
-            Thời gian:{" "}
-            <span className="font-medium text-foreground">
-              {elapsedLabel}
-            </span>
+            Time: <span className="font-medium text-foreground">{elapsedLabel}</span>
           </span>
         </div>
       </header>
@@ -550,6 +737,21 @@ export default function FlashcardStudyClient({
                     <p className="mb-3 text-[11px] uppercase tracking-[0.25em] text-emerald-300/80">
                       Mặt trước
                     </p>
+                    {current?.frontImage ? (
+                      <button
+                        type="button"
+                        className="group"
+                        onClick={() =>
+                          openImage(current.frontImage || "", "Flashcard front")
+                        }
+                      >
+                        <img
+                          src={current.frontImage}
+                          alt="Flashcard front"
+                          className="mb-4 max-h-40 w-auto max-w-full rounded-xl border border-emerald-500/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
+                        />
+                      </button>
+                    ) : null}
                     <p className="whitespace-pre-line text-lg font-medium leading-relaxed md:text-xl">
                       {current?.front}
                     </p>
@@ -569,6 +771,21 @@ export default function FlashcardStudyClient({
                     <p className="mb-3 text-[11px] uppercase tracking-[0.25em] text-emerald-300/80">
                       Mặt sau
                     </p>
+                    {current?.backImage ? (
+                      <button
+                        type="button"
+                        className="group"
+                        onClick={() =>
+                          openImage(current.backImage || "", "Flashcard back")
+                        }
+                      >
+                        <img
+                          src={current.backImage}
+                          alt="Flashcard back"
+                          className="mb-4 max-h-40 w-auto max-w-full rounded-xl border border-emerald-500/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
+                        />
+                      </button>
+                    ) : null}
                     <p className="whitespace-pre-line text-lg font-medium leading-relaxed md:text-xl">
                       {current?.back}
                     </p>
@@ -594,7 +811,7 @@ export default function FlashcardStudyClient({
                 className="justify-center border-destructive/60 bg-destructive/10 text-destructive hover:bg-destructive/20"
                 onClick={() => void handleRating("hard")}
               >
-                Khó · 5&apos; (1)
+                Khó (1)
               </Button>
               <Button
                 variant="outline"
@@ -603,7 +820,7 @@ export default function FlashcardStudyClient({
                 className="justify-center border-amber-400/70 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20"
                 onClick={() => void handleRating("medium")}
               >
-                Trung bình · 15&apos; (2)
+                Trung bình (2)
               </Button>
               <Button
                 size="sm"
@@ -611,13 +828,12 @@ export default function FlashcardStudyClient({
                 className="justify-center bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
                 onClick={() => void handleRating("easy")}
               >
-                Dễ · 30&apos; (3)
+                Dễ (3)
               </Button>
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Phím tắt: Space = lật thẻ · 1 = Khó (5&apos;) · 2 = Trung bình
-            (15&apos;) · 3 = Dễ (30&apos;) · ← / → = lùi / tiến.
+            Phím tắt: Space = lật thẻ · 1 = Khó · 2 = Trung bình · 3 = Dễ · ← / → = lùi / tiến.
           </p>
 
           {/* Ghi chú */}
@@ -633,7 +849,7 @@ export default function FlashcardStudyClient({
                 placeholder="Ví dụ: mẹo nhớ, phân biệt với bệnh khác, bẫy đề thi…"
                 value={currentNote}
                 onChange={handleNoteChange}
-                onBlur={void handleNoteBlur}
+                onBlur={handleNoteBlur}
               />
               <p className="text-[11px] text-muted-foreground">
                 Ghi chú được lưu riêng cho từng thẻ.
@@ -680,8 +896,7 @@ export default function FlashcardStudyClient({
               <ScrollArea className="h-[260px] pr-1">
                 <div className="grid grid-cols-5 gap-2 sm:grid-cols-4">
                   {cards.map((card, idx) => {
-                    const state = cardStates[card._id]
-                    const rating = state?.lastRating
+                    const rating = sessionRatings[card._id]
                     const isCurrent = idx === index
 
                     const baseClasses =
@@ -788,6 +1003,82 @@ export default function FlashcardStudyClient({
           </Card>
         </div>
       </div>
+
+      <Dialog
+        open={Boolean(lightbox)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLightbox(null)
+            setZoom(1)
+            setPan({ x: 0, y: 0 })
+            setIsPanning(false)
+            isPanningRef.current = false
+          }
+        }}
+      >
+        <DialogContent className="w-[95vw] max-w-5xl border-slate-800 bg-slate-950/95">
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-sm text-slate-200">
+              {lightbox?.alt || "Image"}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => setZoom((prev) => clampZoom(prev - 0.2))}
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-slate-300">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => setZoom((prev) => clampZoom(prev + 0.2))}
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  setZoom(1)
+                  setPan({ x: 0, y: 0 })
+                }}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div
+            className="flex max-h-[75vh] items-center justify-center overflow-hidden rounded-xl bg-slate-900/60 p-4"
+            onWheel={handleWheelZoom}
+          >
+            {lightbox?.src ? (
+              <img
+                src={lightbox.src}
+                alt={lightbox.alt}
+                draggable={false}
+                className={cn(
+                  "max-h-[70vh] w-auto max-w-full select-none touch-none",
+                  isPanning ? "cursor-grabbing" : "cursor-grab",
+                )}
+                style={{
+                  transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+                }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
