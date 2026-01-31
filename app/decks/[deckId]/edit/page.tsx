@@ -651,6 +651,36 @@ export default function EditDeckPage() {
     [deckId, clearQuestionDirty, toast],
   )
 
+  const scheduleFlashcardAutosave = useCallback(
+    (clientId: string) => {
+      const existingTimer = flashAutosaveTimers.current[clientId]
+      if (existingTimer) {
+        window.clearTimeout(existingTimer)
+      }
+
+      flashAutosaveTimers.current[clientId] = window.setTimeout(() => {
+        delete flashAutosaveTimers.current[clientId]
+        void saveFlashcardByKey(clientId, { silent: true })
+      }, AUTO_SAVE_MS)
+    },
+    [saveFlashcardByKey],
+  )
+
+  const scheduleQuestionAutosave = useCallback(
+    (clientId: string) => {
+      const existingTimer = questionAutosaveTimers.current[clientId]
+      if (existingTimer) {
+        window.clearTimeout(existingTimer)
+      }
+
+      questionAutosaveTimers.current[clientId] = window.setTimeout(() => {
+        delete questionAutosaveTimers.current[clientId]
+        void saveQuestionByKey(clientId, { silent: true })
+      }, AUTO_SAVE_MS)
+    },
+    [saveQuestionByKey],
+  )
+
 
   const persistFlashcardOrder = async (ordered: FlashcardItem[]) => {
     const updates = ordered
@@ -806,6 +836,111 @@ export default function EditDeckPage() {
     const card = flashcards[index]
     if (!card) return
     await saveFlashcardByKey(card.clientId)
+  }
+
+  const finalizeDelete = async (clientId: string) => {
+    const pending = pendingDeletes.current[clientId]
+    if (!pending) return
+    delete pendingDeletes.current[clientId]
+
+    const restoreFlashcard = () => {
+      const card = pending.item as FlashcardItem
+      setFlashcards((prev) => {
+        if (prev.some((item) => item.clientId === clientId)) return prev
+        const next = [...prev]
+        const insertIndex = Math.min(Math.max(pending.index, 0), next.length)
+        next.splice(insertIndex, 0, card)
+        return next
+      })
+      if (pending.wasDirty) {
+        markFlashcardDirty(clientId)
+      }
+    }
+
+    const restoreQuestion = () => {
+      const question = pending.item as QuestionItem
+      setQuestions((prev) => {
+        if (prev.some((item) => item.clientId === clientId)) return prev
+        const next = [...prev]
+        const insertIndex = Math.min(Math.max(pending.index, 0), next.length)
+        next.splice(insertIndex, 0, question)
+        return next
+      })
+      if (pending.wasDirty) {
+        markQuestionDirty(clientId)
+      }
+    }
+
+    try {
+      if (pending.type === "flashcard") {
+        const card = pending.item as FlashcardItem
+        if (!card._id) return
+        const res = await fetch(`/api/flashcards/${card._id}`, {
+          method: "DELETE",
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => null)
+          throw new Error(data?.error || "Delete failed")
+        }
+      } else {
+        const question = pending.item as QuestionItem
+        if (!question._id) return
+        const res = await fetch(`/api/questions/${question._id}`, {
+          method: "DELETE",
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => null)
+          throw new Error(data?.error || "Delete failed")
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Delete failed"
+      toast({
+        variant: "destructive",
+        title: "Delete failed",
+        description: message,
+      })
+      if (pending.type === "flashcard") {
+        restoreFlashcard()
+      } else {
+        restoreQuestion()
+      }
+    }
+  }
+
+  const undoDelete = (clientId: string) => {
+    const pending = pendingDeletes.current[clientId]
+    if (!pending) return
+
+    window.clearTimeout(pending.timer)
+    delete pendingDeletes.current[clientId]
+
+    if (pending.type === "flashcard") {
+      const card = pending.item as FlashcardItem
+      setFlashcards((prev) => {
+        if (prev.some((item) => item.clientId === clientId)) return prev
+        const next = [...prev]
+        const insertIndex = Math.min(Math.max(pending.index, 0), next.length)
+        next.splice(insertIndex, 0, card)
+        return next
+      })
+      if (pending.wasDirty) {
+        markFlashcardDirty(clientId)
+      }
+      return
+    }
+
+    const question = pending.item as QuestionItem
+    setQuestions((prev) => {
+      if (prev.some((item) => item.clientId === clientId)) return prev
+      const next = [...prev]
+      const insertIndex = Math.min(Math.max(pending.index, 0), next.length)
+      next.splice(insertIndex, 0, question)
+      return next
+    })
+    if (pending.wasDirty) {
+      markQuestionDirty(clientId)
+    }
   }
 
   const deleteFlashcard = async (
