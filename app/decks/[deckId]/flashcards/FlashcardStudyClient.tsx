@@ -588,7 +588,7 @@ export default function FlashcardStudyClient({
           </nav>
           <h1 className="text-xl font-semibold tracking-tight">
             Flashcards -{" "}
-            <span className="text-emerald-300">{deckName}</span>
+            <span className="text-primary">{deckName}</span>
           </h1>
           <p className="text-xs text-muted-foreground">
             Space to flip. 1/2/3 to rate Hard / Medium / Easy.
@@ -711,7 +711,7 @@ export default function FlashcardStudyClient({
             <CardContent className="relative px-0 py-0">
               <div className="h-[320px] w-full [perspective:1400px] md:h-[360px]">
                 <motion.div
-                  className="relative h-full w-full rounded-3xl border border-emerald-600/40 bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-950 shadow-2xl shadow-emerald-900/60"
+                  className="relative h-full w-full rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-slate-950 to-slate-950 shadow-2xl shadow-[0_30px_60px_-50px_hsl(var(--primary)/0.55)]"
                   style={{ transformStyle: "preserve-3d" }}
                   animate={{ rotateY: showBack ? 180 : 0 }}
                   initial={false}
@@ -723,7 +723,7 @@ export default function FlashcardStudyClient({
                   onClick={handleFlip}
                 >
                   {/* layer ánh sáng */}
-                  <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top,_rgba(52,211,153,0.22),_transparent_55%),_radial-gradient(circle_at_bottom,_rgba(16,185,129,0.22),_transparent_55%)]" />
+                  <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top,_rgba(14,165,164,0.22),_transparent_55%),_radial-gradient(circle_at_bottom,_rgba(14,165,164,0.18),_transparent_55%)]" />
 
                   {/* FRONT */}
                   <div
@@ -733,7 +733,7 @@ export default function FlashcardStudyClient({
                       transform: "rotateY(0deg)",
                     }}
                   >
-                    <p className="mb-3 text-[11px] uppercase tracking-[0.25em] text-emerald-300/80">
+                    <p className="mb-3 text-[11px] uppercase tracking-[0.25em] text-primary/80">
                       Mặt trước
                     </p>
                     {current?.frontImage ? (
@@ -747,14 +747,14 @@ export default function FlashcardStudyClient({
                         <img
                           src={current.frontImage}
                           alt="Flashcard front"
-                          className="mb-4 max-h-40 w-auto max-w-full rounded-xl border border-emerald-500/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
+                          className="mb-4 max-h-40 w-auto max-w-full rounded-xl border border-primary/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
                         />
                       </button>
                     ) : null}
                     <p className="whitespace-pre-line text-lg font-medium leading-relaxed md:text-xl">
                       {current?.front}
                     </p>
-                    <p className="mt-4 text-[11px] text-emerald-200/80">
+                    <p className="mt-4 text-[11px] text-primary/70">
                       Nhấn vào thẻ hoặc Space để lật
                     </p>
                   </div>
@@ -767,7 +767,7 @@ export default function FlashcardStudyClient({
                       transform: "rotateY(180deg)",
                     }}
                   >
-                    <p className="mb-3 text-[11px] uppercase tracking-[0.25em] text-emerald-300/80">
+                    <p className="mb-3 text-[11px] uppercase tracking-[0.25em] text-primary/80">
                       Mặt sau
                     </p>
                     {current?.backImage ? (
@@ -781,14 +781,14 @@ export default function FlashcardStudyClient({
                         <img
                           src={current.backImage}
                           alt="Flashcard back"
-                          className="mb-4 max-h-40 w-auto max-w-full rounded-xl border border-emerald-500/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
+                          className="mb-4 max-h-40 w-auto max-w-full rounded-xl border border-primary/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
                         />
                       </button>
                     ) : null}
                     <p className="whitespace-pre-line text-lg font-medium leading-relaxed md:text-xl">
                       {current?.back}
                     </p>
-                    <p className="mt-4 text-[11px] text-emerald-200/80">
+                    <p className="mt-4 text-[11px] text-primary/70">
                       Nhấn vào thẻ hoặc Space để lật lại
                     </p>
                   </div>
@@ -824,7 +824,7 @@ export default function FlashcardStudyClient({
               <Button
                 size="sm"
                 disabled={isReviewing || !current}
-                className="justify-center bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
+                className="justify-center bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => void handleRating("easy")}
               >
                 Dễ (3)
@@ -844,7 +844,7 @@ export default function FlashcardStudyClient({
             </CardHeader>
             <CardContent className="space-y-2">
               <textarea
-                className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 shadow-sm outline-none ring-0 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                className="min-h-[90px] w-full rounded-xl border border-border/70 bg-background/60 px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-0 focus:border-primary/60 focus:ring-2 focus:ring-primary/30"
                 placeholder="Ví dụ: mẹo nhớ, phân biệt với bệnh khác, bẫy đề thi…"
                 value={currentNote}
                 onChange={handleNoteChange}
@@ -887,7 +887,7 @@ export default function FlashcardStudyClient({
                   <span className="h-2 w-2 rounded-full bg-amber-400" /> TB
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" /> Dễ
+                  <span className="h-2 w-2 rounded-full bg-primary" /> Dễ
                 </span>
               </div>
             </CardHeader>
@@ -912,12 +912,12 @@ export default function FlashcardStudyClient({
                         "border-amber-400/70 bg-amber-400/10 text-amber-100"
                     } else if (rating === "easy") {
                       ratingClasses =
-                        "border-emerald-400/70 bg-emerald-400/10 text-emerald-100"
+                        "border-primary/60 bg-primary/10 text-primary"
                     }
 
                     const currentClasses = isCurrent
-                      ? "border-emerald-400 bg-emerald-500/20 text-emerald-50"
-                      : "hover:border-emerald-400 hover:text-emerald-100"
+                      ? "border-primary/60 bg-primary/15 text-primary"
+                      : "hover:border-primary/60 hover:text-primary"
 
                     return (
                       <button
@@ -980,11 +980,11 @@ export default function FlashcardStudyClient({
                     {ratingStats.medium}
                   </p>
                 </div>
-                <div className="rounded-md bg-emerald-400/10 px-2 py-1">
-                  <p className="text-[10px] uppercase tracking-wide text-emerald-200">
+                <div className="rounded-md bg-primary/10 px-2 py-1">
+                  <p className="text-[10px] uppercase tracking-wide text-primary/80">
                     Dễ
                   </p>
-                  <p className="text-xs font-semibold text-emerald-50">
+                  <p className="text-xs font-semibold text-primary">
                     {ratingStats.easy}
                   </p>
                 </div>

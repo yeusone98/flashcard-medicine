@@ -1,6 +1,6 @@
 // app/layout.tsx
 import type { Metadata } from "next"
-import { Be_Vietnam_Pro } from "next/font/google"
+import { Be_Vietnam_Pro, Sora } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MainNav } from "@/components/main-nav"
@@ -11,6 +11,14 @@ const beVietnamPro = Be_Vietnam_Pro({
     subsets: ["latin", "vietnamese"],
     weight: ["400", "500", "600", "700"],
     display: "swap",
+    variable: "--font-sans",
+})
+
+const sora = Sora({
+    subsets: ["latin", "vietnamese"],
+    weight: ["400", "500", "600", "700"],
+    display: "swap",
+    variable: "--font-display",
 })
 
 export const metadata: Metadata = {
@@ -25,12 +33,14 @@ export default function RootLayout({
 }) {
     return (
         <html lang="vi" suppressHydrationWarning>
-            <body className={`${beVietnamPro.className} min-h-screen bg-background text-foreground antialiased`}>
+            <body
+                className={`${beVietnamPro.variable} ${sora.variable} min-h-screen bg-background text-foreground antialiased`}
+            >
                 <AuthSessionProvider>
                     <ThemeProvider>
                         <div className="flex min-h-screen flex-col">
                             <MainNav />
-                            <main className="flex-1">{children}</main>
+                            <main className="flex-1 page-shell">{children}</main>
                             <Toaster />
                         </div>
                     </ThemeProvider>

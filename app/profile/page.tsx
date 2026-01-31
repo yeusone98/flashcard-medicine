@@ -88,7 +88,7 @@ export default function ProfilePage() {
 
     if (status === "loading") {
         return (
-            <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+            <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center stagger">
                 <p className="text-sm text-muted-foreground">Đang tải...</p>
             </main>
         )
@@ -96,7 +96,7 @@ export default function ProfilePage() {
 
     if (!user) {
         return (
-            <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+            <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center stagger">
                 <p className="text-sm text-muted-foreground">
                     Bạn cần đăng nhập để xem trang này.
                 </p>
@@ -105,7 +105,7 @@ export default function ProfilePage() {
     }
 
     return (
-        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col gap-6 px-4 py-6">
+        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col gap-6 px-4 py-6 stagger">
             <Card>
                 <CardHeader>
                     <CardTitle>Hồ sơ cá nhân</CardTitle>

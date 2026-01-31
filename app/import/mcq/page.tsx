@@ -88,7 +88,7 @@ export default function ImportMCQPage() {
         }
 
     return (
-        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col gap-4 px-4 py-6">
+        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col gap-4 px-4 py-6 stagger">
             <div className="flex items-center gap-2">
                 <Button asChild variant="ghost" size="icon" className="-ml-2">
                     <Link href="/import">

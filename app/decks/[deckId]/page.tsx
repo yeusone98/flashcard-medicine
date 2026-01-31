@@ -74,7 +74,7 @@ export default async function DeckOverviewPage(
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6">
+    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6 stagger">
       <nav className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         <Link href={decksHref} className="hover:text-foreground">
           Decks

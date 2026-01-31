@@ -88,7 +88,7 @@ export default function DashboardClient() {
 
   if (loading) {
     return (
-      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4">
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4 stagger">
         <p className="text-sm text-muted-foreground">Đang tải dashboard...</p>
       </main>
     )
@@ -96,7 +96,7 @@ export default function DashboardClient() {
 
   if (!data) {
     return (
-      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4">
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4 stagger">
         <p className="text-sm text-muted-foreground">Không có dữ liệu dashboard.</p>
       </main>
     )
@@ -107,7 +107,7 @@ export default function DashboardClient() {
   const reviewedToday = summary.reviewedFlashcardsToday + summary.reviewedQuestionsToday
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6">
+    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6 stagger">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/60 px-3 py-1 text-[11px] text-muted-foreground">

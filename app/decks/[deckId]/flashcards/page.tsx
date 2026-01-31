@@ -85,7 +85,7 @@ export default async function DeckFlashcardsPage(
     const displayCards = mode === "mix" ? shuffle(cards) : cards
 
     return (
-        <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-5xl px-4 py-6">
+        <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-5xl px-4 py-6 stagger">
             <FlashcardStudyClient
                 deckId={deckId}
                 deckName={deckName}

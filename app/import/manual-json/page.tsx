@@ -416,7 +416,7 @@ export default function ImportManualJsonPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col gap-4 px-4 py-6">
+    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col gap-4 px-4 py-6 stagger">
       {/* Header */}
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="icon" className="-ml-2">

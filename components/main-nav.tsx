@@ -48,11 +48,13 @@ export function MainNav() {
   const avatarSrc = user?.image || "/avatar-default.png"
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl shadow-[0_10px_30px_-24px_rgba(8,60,60,0.35)] relative after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-primary/40 after:to-transparent">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-3 md:h-16 md:px-4">
         {/* Logo + tên app */}
         <Link href="/" className="flex items-center gap-2">
-          <Layers className="h-5 w-5" />
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
+            <Layers className="h-4 w-4" />
+          </span>
           <span className="text-sm font-semibold tracking-tight md:text-base">
             Flashcard Medicine
           </span>
@@ -73,7 +75,7 @@ export function MainNav() {
                   href={link.href}
                   className={cn(
                     buttonVariants({
-                      variant: isActive ? "default" : "ghost",
+                      variant: isActive ? "secondary" : "ghost",
                       size: "sm",
                     }),
                     "px-2 md:px-3",
@@ -91,7 +93,7 @@ export function MainNav() {
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full border bg-background px-2 py-1 text-xs hover:bg-accent md:px-3">
+                <button className="flex items-center gap-2 rounded-full border border-border/70 bg-background/70 px-2 py-1 text-xs shadow-sm hover:bg-accent/70 md:px-3">
                   <Avatar className="h-7 w-7">
                     <AvatarImage src={avatarSrc} alt={displayName} />
                     <AvatarFallback className="text-[11px]">

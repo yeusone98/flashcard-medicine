@@ -671,7 +671,7 @@ export default function MCQPage() {
             {deckName || "Deck không tên"}
           </Badge>
           <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/80" />
             {isSubmitted ? "Đã nộp bài · Đang xem lại" : "Đang làm bài"}
           </span>
         </div>
@@ -742,7 +742,7 @@ export default function MCQPage() {
                     <img
                       src={current.image}
                       alt="MCQ question"
-                      className="max-h-64 w-auto max-w-full rounded-xl border border-emerald-500/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
+                      className="max-h-64 w-auto max-w-full rounded-xl border border-primary/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
                     />
                   </button>
                 </div>
@@ -773,7 +773,7 @@ export default function MCQPage() {
                     if (isCorrectChoice) {
                       choiceClasses = cn(
                         choiceClasses,
-                        "border-emerald-500 bg-emerald-500/10 text-emerald-50",
+                        "border-primary/50 bg-primary/10 text-primary",
                       )
                     } else if (isSelected && !isCorrectChoice) {
                       choiceClasses = cn(
@@ -818,7 +818,7 @@ export default function MCQPage() {
                               <img
                                 src={choice.image}
                                 alt="MCQ choice"
-                                className="max-h-28 w-auto max-w-full rounded-lg border border-emerald-500/30 object-contain transition group-hover:opacity-90 cursor-zoom-in"
+                                className="max-h-28 w-auto max-w-full rounded-lg border border-primary/30 object-contain transition group-hover:opacity-90 cursor-zoom-in"
                               />
                             </button>
                           ) : null}
@@ -843,7 +843,7 @@ export default function MCQPage() {
               {isSubmitted && (
                 <div className="mt-3 rounded-xl border bg-muted/40 px-4 py-3 text-sm">
                   <p className="mb-1">
-                    <span className="font-semibold text-emerald-400">
+                    <span className="font-semibold text-primary">
                       Đáp án đúng:{" "}
                     </span>
                     {current.choices.find(c => c.isCorrect)?.text ??
@@ -897,7 +897,7 @@ export default function MCQPage() {
                 {isSubmitted ? (
                   <>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-semibold text-emerald-400">
+                      <span className="text-2xl font-semibold text-primary">
                         {score10ForDisplay.toFixed(1)}
                       </span>
                       <span className="text-[11px] text-muted-foreground">
@@ -913,7 +913,7 @@ export default function MCQPage() {
                     </p>
                     <p>
                       Đúng:{" "}
-                      <span className="font-semibold text-emerald-400">
+                      <span className="font-semibold text-primary">
                         {correctForDisplay}
                       </span>{" "}
                       – Sai:{" "}
@@ -1010,7 +1010,7 @@ export default function MCQPage() {
                           if (state?.isCorrect === true) {
                             classes = cn(
                               classes,
-                              "bg-emerald-500 text-emerald-950 border-emerald-400",
+                              "bg-primary text-primary-foreground border-primary/70",
                             )
                           } else if (state?.isCorrect === false) {
                             classes = cn(
@@ -1061,7 +1061,7 @@ export default function MCQPage() {
                     ) : (
                       <>
                         <span className="inline-flex items-center gap-1">
-                          <span className="inline-block h-3 w-3 rounded-full bg-emerald-500" />
+                          <span className="inline-block h-3 w-3 rounded-full bg-primary" />
                           Đúng
                         </span>
                         <span className="inline-flex items-center gap-1">

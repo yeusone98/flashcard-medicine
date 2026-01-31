@@ -16,7 +16,7 @@ import { requireSession } from "@/lib/require-user"
 export default async function ImportHubPage() {
     await requireSession()
     return (
-        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-8">
+        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-8 stagger">
             <section className="space-y-2">
                 <Badge variant="outline" className="text-xs">
                     Import dữ liệu

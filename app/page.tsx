@@ -16,7 +16,7 @@ import { requireSession } from "@/lib/require-user"
 export default async function HomePage() {
     await requireSession()
     return (
-        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-8 px-4 py-10">
+        <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-8 px-4 py-10 stagger">
             {/* Header */}
             <section className="space-y-3">
                 <Badge variant="outline" className="text-xs">

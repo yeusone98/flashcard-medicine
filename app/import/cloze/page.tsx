@@ -78,7 +78,7 @@ export default function ImportClozePage() {
 
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-2xl flex-col px-4 py-8">
+    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-2xl flex-col px-4 py-8 stagger">
       <div className="mb-4 flex items-center gap-2">
         <Button asChild variant="ghost" size="icon">
           <Link href="/import">

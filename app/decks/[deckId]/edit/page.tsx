@@ -1436,7 +1436,7 @@ export default function EditDeckPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4">
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4 stagger">
         <p className="text-sm text-muted-foreground">Loading deck...</p>
       </main>
     )
@@ -1444,7 +1444,7 @@ export default function EditDeckPage() {
 
   if (!deck) {
     return (
-      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4">
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center px-4 stagger">
         <p className="text-sm text-muted-foreground">Deck not found.</p>
       </main>
     )
@@ -1464,7 +1464,7 @@ export default function EditDeckPage() {
   }`
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6">
+    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6 stagger">
       <nav className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         <Link
           href={decksHref}
@@ -1783,7 +1783,7 @@ export default function EditDeckPage() {
                               <img
                                 src={card.frontImage}
                                 alt="Front"
-                                className="max-h-40 w-auto max-w-full rounded-lg border border-emerald-500/30 object-contain"
+                                className="max-h-40 w-auto max-w-full rounded-lg border border-primary/30 object-contain"
                               />
                             ) : (
                               <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-border/70 text-xs text-muted-foreground">
@@ -1847,7 +1847,7 @@ export default function EditDeckPage() {
                               <img
                                 src={card.backImage}
                                 alt="Back"
-                                className="max-h-40 w-auto max-w-full rounded-lg border border-emerald-500/30 object-contain"
+                                className="max-h-40 w-auto max-w-full rounded-lg border border-primary/30 object-contain"
                               />
                             ) : (
                               <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-border/70 text-xs text-muted-foreground">
@@ -2110,7 +2110,7 @@ export default function EditDeckPage() {
                                 <img
                                   src={question.image}
                                   alt="Question"
-                                  className="max-h-48 w-auto max-w-full rounded-lg border border-emerald-500/30 object-contain"
+                                  className="max-h-48 w-auto max-w-full rounded-lg border border-primary/30 object-contain"
                                 />
                               ) : (
                                 <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-border/70 text-xs text-muted-foreground">
@@ -2288,7 +2288,7 @@ export default function EditDeckPage() {
                                     <img
                                       src={choice.image}
                                       alt={`Choice ${choiceIndex + 1}`}
-                                      className="mt-2 max-h-32 w-auto max-w-full rounded-lg border border-emerald-500/30 object-contain"
+                                      className="mt-2 max-h-32 w-auto max-w-full rounded-lg border border-primary/30 object-contain"
                                     />
                                   ) : null}
                                 </div>

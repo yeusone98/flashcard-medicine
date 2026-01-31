@@ -55,10 +55,10 @@ export default function RegisterPage() {
     }
 
     return (
-        <main className="relative flex min-h-svh items-center justify-center overflow-hidden bg-[#020617] px-4 py-10">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_0_0,#22c55e22,transparent_60%),radial-gradient(circle_at_100%_100%,#22c55e22,transparent_55%)]" />
+        <main className="auth-shell relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-10 stagger">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_0_0,#0ea5a42b,transparent_60%),radial-gradient(circle_at_100%_100%,#0ea5a42b,transparent_55%)]" />
             <div className="relative w-full max-w-xl">
-                <Card className="border border-slate-800/70 bg-slate-950/85 shadow-2xl shadow-black/60 backdrop-blur-xl">
+                <Card className="border-border/70 bg-card/90 shadow-[0_20px_60px_-40px_rgba(8,60,60,0.45)] backdrop-blur-lg">
                     <CardHeader>
                         <CardTitle className="text-2xl">Đăng ký</CardTitle>
                     </CardHeader>

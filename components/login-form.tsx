@@ -47,7 +47,7 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="overflow-hidden border border-slate-800/70 bg-slate-950/90 shadow-2xl shadow-black/60 backdrop-blur-xl">
+    <Card className="overflow-hidden border-border/70 bg-card/90 shadow-[0_20px_60px_-40px_rgba(8,60,60,0.45)] backdrop-blur-lg">
       {/* 2 cột, cao tối thiểu để form & ảnh cân nhau */}
       <div className="grid min-h-[430px] md:grid-cols-[1.1fr,0.9fr]">
         {/* CỘT FORM – căn giữa theo chiều dọc */}
@@ -103,7 +103,7 @@ export function LoginForm() {
 
         {/* CỘT ẢNH – full viền, khớp card */}
         <div className="relative hidden md:block">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/25 via-transparent to-emerald-500/35" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-primary/25" />
           <Image
             src={beLan}
             alt="Lại Bùi Kim Lan"

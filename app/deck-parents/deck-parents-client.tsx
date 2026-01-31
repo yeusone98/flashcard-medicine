@@ -54,16 +54,16 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
   const hasFilter = query.trim().length > 0
 
   return (
-    <main className="container max-w-5xl mx-auto py-8 space-y-6">
+    <main className="container max-w-5xl mx-auto py-8 space-y-6 stagger">
       {/* Header */}
       <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Layers className="h-5 w-5" />
           </div>
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/80 px-3 py-1 text-[11px] text-muted-foreground">
-              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/15 text-primary">
                 <Layers className="h-3 w-3" />
               </span>
               <span>Môn học / Chủ đề</span>
@@ -73,11 +73,11 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
             </h1>
             <p className="text-sm text-muted-foreground">
               Có{" "}
-              <span className="font-medium text-emerald-400">
+              <span className="font-medium text-primary">
                 {parents.length}
               </span>{" "}
               môn học với tổng cộng{" "}
-              <span className="font-medium text-emerald-400">
+              <span className="font-medium text-primary">
                 {totalDecks}
               </span>{" "}
               bộ thẻ. Nhấn vào một môn để xem các deck bên trong.
@@ -165,7 +165,7 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
                 href={`/decks?subject=${encodeURIComponent(parent.name)}`}
                 className="group block h-full"
               >
-                <Card className="flex h-full flex-col border-border/70 bg-card/80 transition-colors group-hover:border-emerald-500/70 group-hover:bg-card/95">
+                <Card className="flex h-full flex-col border-border/70 bg-card/80 transition-colors group-hover:border-primary/60 group-hover:bg-card/95">
                   <CardHeader className="pb-2">
                     <CardTitle className="line-clamp-2 text-base font-semibold">
                       {parent.name}
@@ -175,7 +175,7 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-1 pt-1">
-                    <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">
+                    <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[11px] text-primary/80">
                       <Layers className="h-3 w-3" />
                       <span>Nhấn để xem deck</span>
                     </div>
