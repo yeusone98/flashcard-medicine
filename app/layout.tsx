@@ -15,7 +15,7 @@ const beVietnamPro = Be_Vietnam_Pro({
 })
 
 const sora = Sora({
-    subsets: ["latin", "vietnamese"],
+    subsets: ["latin"],
     weight: ["400", "500", "600", "700"],
     display: "swap",
     variable: "--font-display",
