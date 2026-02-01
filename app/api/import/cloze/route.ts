@@ -7,6 +7,8 @@ import {
   getFlashcardsCollection,
   getQuestionsCollection,
 } from "@/lib/mongodb"
+import { getDefaultDeckOptions } from "@/lib/fsrs"
+import { State } from "ts-fsrs"
 
 export const runtime = "nodejs" // để dùng Buffer/mammoth
 
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
     const deckInsert = await decksCol.insertOne({
       name: deckName || file.name.replace(/\.docx$/i, ""),
       description: deckDescription || undefined,
+      options: getDefaultDeckOptions(),
       createdAt: now,
       updatedAt: now,
     })
@@ -73,6 +76,7 @@ export async function POST(req: NextRequest) {
       back: c.back,
       order: index,
       level: 0,
+      fsrsState: State.New,
       createdAt: now,
       updatedAt: now,
     }))
@@ -81,28 +85,33 @@ export async function POST(req: NextRequest) {
       await flashcardsCol.insertMany(fcDocs)
     }
 
+    const clozeToPrompt = (value: string) =>
+      value.replace(/\{\{c\d+::([\s\S]+?)(?:::([\s\S]+?))?\}\}/gi, "___")
+
     // Tạo câu hỏi trắc nghiệm từ các card
     const questionsForMCQ = cards.map((c, idx) => {
-      // lấy các đáp án sai từ back của card khác
+      // pick wrong answers from other cloze cards
       const wrongCandidates = cards
         .filter((_, j) => j !== idx)
-        .map((card) => card.back)
+        .map((card) => card.answer)
+        .filter(Boolean)
 
       const wrongShuffled = shuffle(wrongCandidates).slice(0, 3)
-      const choiceTexts = [...wrongShuffled, c.back]
+      const correctAnswer = c.answer || c.back
+      const choiceTexts = [...wrongShuffled, correctAnswer]
 
       const choices = shuffle(
         choiceTexts.map((text) => ({
           text,
-          isCorrect: text === c.back,
+          isCorrect: text === correctAnswer,
         })),
       )
 
       return {
         deckId,
-        question: c.front, // câu hỏi = phần Cloze đã che
+        question: clozeToPrompt(c.front),
         choices,
-        explanation: c.back, // dùng back làm “giải thích ngắn”
+        explanation: c.answer || c.back,
         order: idx,
         level: 0,
         createdAt: now,

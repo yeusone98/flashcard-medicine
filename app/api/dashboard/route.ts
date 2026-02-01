@@ -188,7 +188,7 @@ export async function GET() {
   } catch (error) {
     console.error("[DASHBOARD][GET] error", error)
     return NextResponse.json(
-      { error: "KhÃ´ng thá» táº£i dashboard" },
+      { error: "Không thể tải dashboard" },
       { status: 500 },
     )
   }

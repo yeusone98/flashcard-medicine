@@ -12,6 +12,7 @@ import {
   Trash2,
   Loader2,
   Pencil,
+  LayoutDashboard,
 } from "lucide-react"
 
 import { useToast } from "@/hooks/use-toast"
@@ -191,30 +192,43 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
                 <Card className="flex h-full flex-col border-border/70 bg-card/80">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-1">
-                        <CardTitle className="text-base md:text-lg">
-                          <Link
-                            href={buildHref(`/decks/${deck._id}`)}
-                            className="hover:text-primary"
-                          >
-                            {deck.name}
-                          </Link>
-                        </CardTitle>
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <CardTitle className="text-base md:text-lg">
+                            <Link
+                              href={buildHref(`/decks/${deck._id}`)}
+                              className="hover:text-primary"
+                            >
+                              {deck.name}
+                            </Link>
+                          </CardTitle>
+                          {deck.subject && (
+                            <Badge
+                              variant="outline"
+                              className="text-[11px] uppercase tracking-tight"
+                            >
+                              {deck.subject}
+                            </Badge>
+                          )}
+                        </div>
                         <CardDescription className="text-xs md:text-sm">
                           {deck.description && deck.description.trim().length > 0
                             ? deck.description
                             : "Chưa có mô tả cho deck này."}
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {deck.subject && (
-                          <Badge
-                            variant="outline"
-                            className="text-[11px] uppercase tracking-tight"
-                          >
-                            {deck.subject}
-                          </Badge>
-                        )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-[11px]"
+                        >
+                          <Link href={buildHref(`/decks/${deck._id}`)}>
+                            <LayoutDashboard className="mr-1 h-3.5 w-3.5" />
+                            Tổng quan
+                          </Link>
+                        </Button>
                         <Button
                           asChild
                           size="icon"

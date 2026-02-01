@@ -1,7 +1,21 @@
 // app/api/questions/[id]/review/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { getQuestionsCollection, ObjectId } from "@/lib/mongodb"
-import { applySm2, ratingToGrade, type ReviewRating } from "@/lib/srs"
+import {
+  getDecksCollection,
+  getQuestionsCollection,
+  getReviewLogsCollection,
+  ObjectId,
+} from "@/lib/mongodb"
+import {
+  buildFsrsCard,
+  mapRatingToLabel,
+  mapReviewRating,
+  mapStateToLabel,
+  normalizeDeckOptions,
+  scheduleFsrsReview,
+} from "@/lib/fsrs"
+
+type ReviewRating = "again" | "hard" | "good" | "easy"
 
 const allowedRatings: ReviewRating[] = ["again", "hard", "good", "easy"]
 
@@ -42,7 +56,11 @@ export async function POST(
       )
     }
 
-    const questionsCol = await getQuestionsCollection()
+    const [questionsCol, decksCol, reviewLogsCol] = await Promise.all([
+      getQuestionsCollection(),
+      getDecksCollection(),
+      getReviewLogsCollection(),
+    ])
     const _id = new ObjectId(id)
 
     const question = await questionsCol.findOne({ _id })
@@ -53,30 +71,37 @@ export async function POST(
       )
     }
 
+    const deck = await decksCol.findOne({ _id: question.deckId })
+    const deckOptions = normalizeDeckOptions(deck?.options ?? null)
+
     const now = new Date()
-    const grade = ratingToGrade(rating)
+    const fsrsCard = buildFsrsCard(question, now)
+    const fsrsRating = mapReviewRating(rating)
 
-    const next = applySm2(
-      {
-        repetitions: question.sm2Repetitions ?? 0,
-        interval: question.sm2Interval ?? 0,
-        easiness: question.sm2Easiness ?? 2.5,
-      },
-      grade,
-      now,
+    const result = scheduleFsrsReview(fsrsCard, fsrsRating, now, deckOptions)
+    const nextCard = result.card
+    const log = result.log
+
+    const intervalMinutes = Math.max(
+      1,
+      Math.round((nextCard.due.getTime() - now.getTime()) / (60 * 1000)),
     )
-
-    const intervalMinutes = next.interval * 24 * 60
+    const intervalDays = Math.max(0, Math.round(nextCard.scheduled_days))
 
     await questionsCol.updateOne(
       { _id },
       {
         $set: {
           lastReviewedAt: now,
-          dueAt: next.dueAt,
-          sm2Repetitions: next.repetitions,
-          sm2Interval: next.interval,
-          sm2Easiness: next.easiness,
+          dueAt: nextCard.due,
+          fsrsState: nextCard.state,
+          fsrsStability: nextCard.stability,
+          fsrsDifficulty: nextCard.difficulty,
+          fsrsElapsedDays: nextCard.elapsed_days,
+          fsrsScheduledDays: nextCard.scheduled_days,
+          fsrsLearningSteps: nextCard.learning_steps,
+          fsrsReps: nextCard.reps,
+          fsrsLapses: nextCard.lapses,
           reviewRating: rating,
           reviewIntervalMinutes: intervalMinutes,
           updatedAt: now,
@@ -84,15 +109,34 @@ export async function POST(
       },
     )
 
+    await reviewLogsCol.insertOne({
+      deckId: question.deckId,
+      itemType: "question",
+      itemId: _id,
+      rating: mapRatingToLabel(fsrsRating),
+      state: mapStateToLabel(log.state),
+      dueAt: log.due,
+      nextDueAt: nextCard.due,
+      stability: log.stability,
+      difficulty: log.difficulty,
+      elapsedDays: log.elapsed_days,
+      scheduledDays: log.scheduled_days,
+      learningSteps: log.learning_steps,
+      reps: nextCard.reps,
+      lapses: nextCard.lapses,
+      reviewedAt: log.review,
+      createdAt: now,
+      updatedAt: now,
+    })
+
     return NextResponse.json({
       success: true,
       questionId: id,
       next: {
         rating,
-        intervalDays: next.interval,
+        intervalDays,
         intervalMinutes,
-        easiness: next.easiness,
-        dueAt: next.dueAt,
+        dueAt: nextCard.due,
       },
     })
   } catch (err) {

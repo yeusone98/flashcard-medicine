@@ -3,7 +3,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Layers, LogOut, User as UserIcon } from "lucide-react"
+import { Layers, LogOut, Menu, User as UserIcon } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 
 import { cn } from "@/lib/utils"
@@ -23,8 +23,10 @@ const links = [
   { href: "/", label: "Trang chủ" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/decks", label: "Bộ thẻ" },
-  { href: "/deck-parents", label: "Môn học" }, // 👈 mới
+  { href: "/deck-parents", label: "Môn học" },
   { href: "/import", label: "Import" },
+  { href: "/media", label: "Media" },
+  { href: "/help", label: "Hướng dẫn" },
 ]
 
 export function MainNav() {
@@ -62,6 +64,46 @@ export function MainNav() {
 
         {/* Nav + user + toggle theme */}
         <div className="flex items-center gap-2 md:gap-3">
+          {/* Mobile dropdown navigation */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "icon" }),
+                  "h-8 w-8 md:hidden",
+                )}
+                aria-label="Mở điều hướng"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Điều hướng</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {links.map((link) => {
+                const isActive =
+                  link.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(link.href)
+
+                return (
+                  <DropdownMenuItem key={link.href} asChild>
+                    <Link
+                      href={link.href}
+                      className={cn(
+                        "w-full cursor-pointer",
+                        isActive && "font-semibold text-primary",
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Desktop nav */}
           <nav className="hidden items-center gap-1 text-sm font-medium md:flex">
             {links.map((link) => {
               const isActive =

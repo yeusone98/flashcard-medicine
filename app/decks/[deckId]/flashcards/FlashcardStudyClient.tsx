@@ -30,6 +30,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import RichContent from "@/components/rich-content"
 
 type ReviewRating = "hard" | "medium" | "easy"
 
@@ -39,6 +40,9 @@ export interface FlashcardStudyItem {
   back: string
   frontImage?: string | null
   backImage?: string | null
+  frontAudio?: string | null
+  backAudio?: string | null
+  fields?: Record<string, string> | null
   dueAt?: string | null
   reviewRating?: string | null
   note?: string | null
@@ -363,7 +367,7 @@ export default function FlashcardStudyClient({
           toast({
             title: "Session complete",
             description:
-              "You rated all cards in this session. Due cards will return based on SM-2 scheduling.",
+              "You rated all cards in this session. Due cards will return based on FSRS scheduling.",
           })
         }
 
@@ -751,9 +755,18 @@ export default function FlashcardStudyClient({
                         />
                       </button>
                     ) : null}
-                    <p className="whitespace-pre-line text-lg font-medium leading-relaxed md:text-xl">
-                      {current?.front}
-                    </p>
+                    <RichContent
+                      content={current?.front}
+                      fields={current?.fields ?? undefined}
+                      className="text-lg font-medium leading-relaxed md:text-xl"
+                    />
+                    {current?.frontAudio ? (
+                      <div className="mt-3 w-full max-w-sm">
+                        <audio controls className="w-full">
+                          <source src={current.frontAudio} />
+                        </audio>
+                      </div>
+                    ) : null}
                     <p className="mt-4 text-[11px] text-primary/70">
                       Nhấn vào thẻ hoặc Space để lật
                     </p>
@@ -785,9 +798,19 @@ export default function FlashcardStudyClient({
                         />
                       </button>
                     ) : null}
-                    <p className="whitespace-pre-line text-lg font-medium leading-relaxed md:text-xl">
-                      {current?.back}
-                    </p>
+                    <RichContent
+                      content={current?.back}
+                      fields={current?.fields ?? undefined}
+                      revealCloze
+                      className="text-lg font-medium leading-relaxed md:text-xl"
+                    />
+                    {current?.backAudio ? (
+                      <div className="mt-3 w-full max-w-sm">
+                        <audio controls className="w-full">
+                          <source src={current.backAudio} />
+                        </audio>
+                      </div>
+                    ) : null}
                     <p className="mt-4 text-[11px] text-primary/70">
                       Nhấn vào thẻ hoặc Space để lật lại
                     </p>
@@ -1015,9 +1038,9 @@ export default function FlashcardStudyClient({
           }
         }}
       >
-        <DialogContent className="w-[95vw] max-w-5xl border-slate-800 bg-slate-950/95">
+        <DialogContent className="w-[95vw] max-w-5xl border-border/70 bg-background/95 backdrop-blur">
           <DialogHeader className="flex flex-row items-center justify-between space-y-0">
-            <DialogTitle className="text-sm text-slate-200">
+            <DialogTitle className="text-sm text-foreground">
               {lightbox?.alt || "Image"}
             </DialogTitle>
             <div className="flex items-center gap-2">
@@ -1029,7 +1052,7 @@ export default function FlashcardStudyClient({
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-xs text-slate-300">
+              <span className="text-xs text-muted-foreground">
                 {Math.round(zoom * 100)}%
               </span>
               <Button
@@ -1054,7 +1077,7 @@ export default function FlashcardStudyClient({
             </div>
           </DialogHeader>
           <div
-            className="flex max-h-[75vh] items-center justify-center overflow-hidden rounded-xl bg-slate-900/60 p-4"
+            className="flex max-h-[75vh] items-center justify-center overflow-hidden rounded-xl bg-muted/40 p-4"
             onWheel={handleWheelZoom}
           >
             {lightbox?.src ? (

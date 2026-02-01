@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@/auth"
 import { getQuestionsCollection, ObjectId } from "@/lib/mongodb"
-import cloudinary from "@/lib/cloudinary"
+import { uploadMediaFile } from "@/lib/media"
 
 export const runtime = "nodejs"
 
@@ -9,6 +10,12 @@ export async function POST(
   props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const session = await auth()
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { id } = await props.params
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -27,38 +34,12 @@ export async function POST(
       )
     }
 
-    const maxSize = 4 * 1024 * 1024
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: "Ảnh quá lớn (tối đa 4MB)" },
-        { status: 400 },
-      )
-    }
-
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "File phải là hình ảnh" },
-        { status: 400 },
-      )
-    }
-
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    const mimeType = file.type || "image/png"
-    const base64 = buffer.toString("base64")
-    const dataUri = `data:${mimeType};base64,${base64}`
-
-    const folder =
-      process.env.CLOUDINARY_FOLDER || "flashcard-medicine/questions"
-
-    const uploadResult = await cloudinary.uploader.upload(dataUri, {
-      folder,
-      public_id: id,
-      overwrite: true,
-      invalidate: true,
-    })
-
-    const imageUrl = uploadResult.secure_url
+    const ownerId =
+      "id" in session.user && typeof session.user.id === "string"
+        ? session.user.id
+        : undefined
+    const { media } = await uploadMediaFile(file, { kind: "image", ownerId })
+    const imageUrl = media.url
 
     const questionsCol = await getQuestionsCollection()
     const _id = new ObjectId(id)
@@ -67,7 +48,7 @@ export async function POST(
       { _id },
       {
         $set: {
-          imageUrl,
+          image: imageUrl,
           updatedAt: new Date(),
         },
       },

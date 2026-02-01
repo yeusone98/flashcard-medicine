@@ -22,6 +22,14 @@ export interface IQuestion extends Document {
     sm2Easiness?: number
     dueAt?: Date | null
     lastReviewedAt?: Date
+    fsrsState?: number
+    fsrsStability?: number
+    fsrsDifficulty?: number
+    fsrsElapsedDays?: number
+    fsrsScheduledDays?: number
+    fsrsLearningSteps?: number
+    fsrsReps?: number
+    fsrsLapses?: number
     reviewRating?: "again" | "hard" | "good" | "easy"
     reviewIntervalMinutes?: number
 }
@@ -51,6 +59,14 @@ const QuestionSchema = new Schema<IQuestion>(
         sm2Easiness: Number,
         dueAt: Date,
         lastReviewedAt: Date,
+        fsrsState: Number,
+        fsrsStability: Number,
+        fsrsDifficulty: Number,
+        fsrsElapsedDays: Number,
+        fsrsScheduledDays: Number,
+        fsrsLearningSteps: Number,
+        fsrsReps: Number,
+        fsrsLapses: Number,
         reviewRating: String,
         reviewIntervalMinutes: Number,
     },

@@ -6,6 +6,7 @@ import {
   getQuestionsCollection,
   ObjectId,
 } from "@/lib/mongodb"
+import { getDefaultDeckOptions } from "@/lib/fsrs"
 
 export const runtime = "nodejs"
 
@@ -138,6 +139,7 @@ export async function POST(req: NextRequest) {
         name: deckNameInput,
         description: body.description?.trim() || undefined,
         subject: body.subject?.trim() || undefined,
+        options: getDefaultDeckOptions(),
         createdAt: now,
         updatedAt: now,
       })

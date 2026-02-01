@@ -7,6 +7,7 @@ import {
   getFlashcardsCollection,
   getQuestionsCollection,
 } from "@/lib/mongodb"
+import { getDefaultDeckOptions } from "@/lib/fsrs"
 
 export const runtime = "nodejs"
 
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
     const deckInsert = await decksCol.insertOne({
       name: deckName || file.name.replace(/\.docx$/i, ""),
       description: deckDescription || undefined,
+      options: getDefaultDeckOptions(),
       createdAt: now,
       updatedAt: now,
     })

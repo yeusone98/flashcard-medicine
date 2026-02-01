@@ -23,6 +23,25 @@ function normalizeTags(value: unknown): string[] | undefined {
   return Array.from(new Set(tags))
 }
 
+function normalizeFields(
+  value: unknown,
+): Record<string, string> | undefined {
+  if (!value || typeof value !== "object") return undefined
+  const entries = Object.entries(value as Record<string, unknown>)
+  const output: Record<string, string> = {}
+  for (const [key, raw] of entries) {
+    const trimmedKey = String(key || "").trim()
+    if (!trimmedKey) continue
+    output[trimmedKey] =
+      typeof raw === "string"
+        ? raw
+        : raw === null || raw === undefined
+          ? ""
+          : String(raw)
+  }
+  return output
+}
+
 export async function PATCH(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
@@ -48,8 +67,17 @@ export async function PATCH(
     if ("backImage" in body) {
       update.backImage = normalizeImage(body.backImage) ?? ""
     }
+    if ("frontAudio" in body) {
+      update.frontAudio = normalizeImage(body.frontAudio) ?? ""
+    }
+    if ("backAudio" in body) {
+      update.backAudio = normalizeImage(body.backAudio) ?? ""
+    }
     if ("tags" in body) {
       update.tags = normalizeTags(body.tags)
+    }
+    if ("fields" in body) {
+      update.fields = normalizeFields(body.fields) ?? {}
     }
     if (typeof body.order === "number" && Number.isFinite(body.order)) {
       update.order = body.order

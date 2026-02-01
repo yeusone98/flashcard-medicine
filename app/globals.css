@@ -98,6 +98,56 @@
   }
 }
 
+@layer components {
+  .rich-content {
+    @apply text-inherit;
+  }
+
+  .rich-content p {
+    @apply mb-2 last:mb-0;
+  }
+
+  .rich-content ul {
+    @apply list-disc pl-5;
+  }
+
+  .rich-content ol {
+    @apply list-decimal pl-5;
+  }
+
+  .rich-content li + li {
+    @apply mt-1;
+  }
+
+  .rich-content a {
+    @apply text-primary underline underline-offset-4;
+  }
+
+  .rich-content code {
+    @apply rounded bg-muted/60 px-1 py-0.5 text-[0.85em];
+  }
+
+  .rich-content pre {
+    @apply overflow-x-auto rounded-lg border border-border/70 bg-muted/40 p-3 text-sm;
+  }
+
+  .rich-content img {
+    @apply max-w-full rounded-lg border border-primary/30 shadow;
+  }
+
+  .cloze-blank {
+    @apply rounded-md border border-primary/40 bg-primary/10 px-1.5 py-0.5 font-semibold text-primary/90;
+  }
+
+  .cloze-answer {
+    @apply rounded-md bg-primary/15 px-1.5 py-0.5 font-semibold text-primary;
+  }
+
+  .field-missing {
+    @apply rounded-md border border-dashed border-destructive/60 bg-destructive/10 px-1.5 py-0.5 text-destructive;
+  }
+}
+
 @layer utilities {
   .page-shell {
     animation: page-enter 0.65s ease both;

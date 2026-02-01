@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import RichContent from "@/components/rich-content"
 import { cn } from "@/lib/utils"
 import { ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } from "lucide-react"
 
@@ -139,6 +140,23 @@ export default function MCQPage() {
         setDeckName(deck?.name ?? "")
 
         const questionsData = (await questionsRes.json()) as Question[]
+        const normalizedQuestions = questionsData.map((q) => ({
+          ...q,
+          image:
+            q.image ||
+            (q as unknown as { imageUrl?: string }).imageUrl ||
+            "",
+          choices: Array.isArray(q.choices)
+            ? q.choices.map((choice) => ({
+                ...choice,
+                image:
+                  choice.image ||
+                  (choice as unknown as { imageUrl?: string }).imageUrl ||
+                  "",
+              }))
+            : [],
+        }))
+
 
         let loadedResult: McqResult | null = null
         if (resultRes.ok) {
@@ -147,7 +165,7 @@ export default function MCQPage() {
           loadedResult = resultJson.result ?? null
         }
 
-        setQuestions(questionsData)
+        setQuestions(normalizedQuestions)
         setIndex(0)
         setReviewMode("all")
 
@@ -155,7 +173,7 @@ export default function MCQPage() {
         if (
           loadedResult &&
           Array.isArray(loadedResult.answers) &&
-          loadedResult.answers.length === questionsData.length
+          loadedResult.answers.length === normalizedQuestions.length
         ) {
           setAnswers(loadedResult.answers)
           setIsSubmitted(true)
@@ -163,7 +181,7 @@ export default function MCQPage() {
         } else {
           // Không có kết quả chi tiết → reset như bài mới
           setAnswers(
-            questionsData.map<AnswerState>(() => ({
+            normalizedQuestions.map<AnswerState>(() => ({
               selectedIndex: null,
               isCorrect: null,
             })),
@@ -727,9 +745,10 @@ export default function MCQPage() {
 
             <CardContent className="space-y-4">
               <div className="rounded-2xl bg-card/70 px-4 py-3 text-sm md:text-base">
-                <p className="whitespace-pre-wrap leading-relaxed">
-                  {current.question}
-                </p>
+                <RichContent
+                  content={current.question}
+                  className="leading-relaxed"
+                />
               </div>
 
               {current.image ? (
@@ -801,9 +820,10 @@ export default function MCQPage() {
                           {String.fromCharCode(65 + i)}
                         </span>
                         <div className="space-y-2">
-                          <span className="whitespace-pre-wrap">
-                            {choice.text}
-                          </span>
+                          <RichContent
+                            content={choice.text}
+                            className="leading-relaxed"
+                          />
                           {choice.image ? (
                             <button
                               type="button"
@@ -842,18 +862,27 @@ export default function MCQPage() {
               {/* Giải thích */}
               {isSubmitted && (
                 <div className="mt-3 rounded-xl border bg-muted/40 px-4 py-3 text-sm">
-                  <p className="mb-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-1">
                     <span className="font-semibold text-primary">
-                      Đáp án đúng:{" "}
+                      Đáp án đúng:
                     </span>
-                    {current.choices.find(c => c.isCorrect)?.text ??
-                      "Chưa đánh dấu isCorrect trong dữ liệu"}
-                  </p>
+                    <RichContent
+                      as="span"
+                      content={
+                        current.choices.find(c => c.isCorrect)?.text ??
+                        "Chưa đánh dấu isCorrect trong dữ liệu"
+                      }
+                      className="text-primary"
+                    />
+                  </div>
                   {current.explanation && (
-                    <p className="text-muted-foreground">
-                      <span className="font-semibold">Giải thích: </span>
-                      {current.explanation}
-                    </p>
+                    <div className="text-muted-foreground">
+                      <span className="font-semibold">Giải thích:</span>
+                      <RichContent
+                        content={current.explanation}
+                        className="mt-1 text-sm"
+                      />
+                    </div>
                   )}
                 </div>
               )}
@@ -1122,9 +1151,9 @@ export default function MCQPage() {
           }
         }}
       >
-        <DialogContent className="w-[95vw] max-w-5xl border-slate-800 bg-slate-950/95">
+        <DialogContent className="w-[95vw] max-w-5xl border-border/70 bg-background/95 backdrop-blur">
           <DialogHeader className="flex flex-row items-center justify-between space-y-0">
-            <DialogTitle className="text-sm text-slate-200">
+            <DialogTitle className="text-sm text-foreground">
               {lightbox?.alt || "Image"}
             </DialogTitle>
             <div className="flex items-center gap-2">
@@ -1136,7 +1165,7 @@ export default function MCQPage() {
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-xs text-slate-300">
+              <span className="text-xs text-muted-foreground">
                 {Math.round(zoom * 100)}%
               </span>
               <Button
@@ -1161,7 +1190,7 @@ export default function MCQPage() {
             </div>
           </DialogHeader>
           <div
-            className="flex max-h-[75vh] items-center justify-center overflow-hidden rounded-xl bg-slate-900/60 p-4"
+            className="flex max-h-[75vh] items-center justify-center overflow-hidden rounded-xl bg-muted/40 p-4"
             onWheel={handleWheelZoom}
           >
             {lightbox?.src ? (

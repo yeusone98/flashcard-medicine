@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { BookOpenCheck, ListChecks, RefreshCw } from "lucide-react"
+import { BookOpenCheck, ListChecks, RefreshCw, LifeBuoy } from "lucide-react"
 
 import {
   Card,
@@ -124,10 +124,18 @@ export default function DashboardClient() {
           </p>
         </div>
 
-        <Button variant="outline" size="sm" onClick={loadDashboard}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/help">
+              <LifeBuoy className="mr-2 h-4 w-4" />
+              Hướng dẫn
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" onClick={loadDashboard}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Làm mới
+          </Button>
+        </div>
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">

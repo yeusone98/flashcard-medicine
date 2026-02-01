@@ -19,6 +19,7 @@ import {
   Plus,
   Save,
   Trash2,
+  Volume2,
   X,
 } from "lucide-react"
 
@@ -43,6 +44,11 @@ interface DeckInfo {
   subject?: string
 }
 
+type FieldItem = {
+  key: string
+  value: string
+}
+
 interface FlashcardItem {
   clientId: string
   _id?: string
@@ -50,6 +56,9 @@ interface FlashcardItem {
   back: string
   frontImage?: string
   backImage?: string
+  frontAudio?: string
+  backAudio?: string
+  fields: FieldItem[]
   tags: string[]
   order?: number
   isSaving?: boolean
@@ -152,6 +161,33 @@ export default function EditDeckPage() {
 
   const tagsToInput = (tags: string[]) => tags.join(", ")
 
+  const recordToFields = (record: unknown): FieldItem[] => {
+    if (!record || typeof record !== "object") return []
+    return Object.entries(record as Record<string, unknown>).map(
+      ([key, value]) => ({
+        key,
+        value:
+          typeof value === "string"
+            ? value
+            : value === null || value === undefined
+              ? ""
+              : String(value),
+      }),
+    )
+  }
+
+  const normalizeFieldsInput = (
+    fields: FieldItem[],
+  ): Record<string, string> | undefined => {
+    const output: Record<string, string> = {}
+    fields.forEach(({ key, value }) => {
+      const trimmedKey = key.trim()
+      if (!trimmedKey) return
+      output[trimmedKey] = value
+    })
+    return Object.keys(output).length > 0 ? output : undefined
+  }
+
   const mergeTags = (current: string[], incoming: string[]) =>
     Array.from(new Set([...current, ...incoming]))
 
@@ -248,8 +284,21 @@ export default function EditDeckPage() {
               _id: card._id,
               front: String(card.front ?? ""),
               back: String(card.back ?? ""),
-              frontImage: typeof card.frontImage === "string" ? card.frontImage : "",
-              backImage: typeof card.backImage === "string" ? card.backImage : "",
+              frontImage:
+                typeof card.frontImage === "string"
+                  ? card.frontImage
+                  : typeof card.frontImageUrl === "string"
+                    ? card.frontImageUrl
+                    : "",
+              backImage:
+                typeof card.backImage === "string"
+                  ? card.backImage
+                  : typeof card.backImageUrl === "string"
+                    ? card.backImageUrl
+                    : "",
+              frontAudio: typeof card.frontAudio === "string" ? card.frontAudio : "",
+              backAudio: typeof card.backAudio === "string" ? card.backAudio : "",
+              fields: recordToFields(card.fields),
               tags: Array.isArray(card.tags)
                 ? card.tags
                     .filter((tag: unknown) => typeof tag === "string")
@@ -269,7 +318,12 @@ export default function EditDeckPage() {
               _id: q._id,
               question: String(q.question ?? ""),
               explanation: typeof q.explanation === "string" ? q.explanation : "",
-              image: typeof q.image === "string" ? q.image : "",
+              image:
+                typeof q.image === "string"
+                  ? q.image
+                  : typeof q.imageUrl === "string"
+                    ? q.imageUrl
+                    : "",
               order: typeof q.order === "number" ? q.order : undefined,
               tags: Array.isArray(q.tags)
                 ? q.tags
@@ -348,6 +402,30 @@ export default function EditDeckPage() {
     const url = typeof data?.url === "string" ? data.url : ""
     if (!url) {
       throw new Error("No image URL returned")
+    }
+
+    return url
+  }
+
+  const uploadAudioFile = async (file: File) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("kind", "audio")
+
+    const res = await fetch("/api/media/upload", {
+      method: "POST",
+      body: formData,
+    })
+
+    const data = await res.json().catch(() => null)
+
+    if (!res.ok) {
+      throw new Error(data?.error || "Audio upload failed")
+    }
+
+    const url = typeof data?.media?.url === "string" ? data.media.url : ""
+    if (!url) {
+      throw new Error("No audio URL returned")
     }
 
     return url
@@ -443,6 +521,7 @@ export default function EditDeckPage() {
 
       const front = card.front.trim()
       const back = card.back.trim()
+      const fields = normalizeFieldsInput(card.fields) ?? {}
 
       if (!front || !back) {
         if (!options?.silent) {
@@ -467,6 +546,9 @@ export default function EditDeckPage() {
               back,
               frontImage: card.frontImage,
               backImage: card.backImage,
+              frontAudio: card.frontAudio,
+              backAudio: card.backAudio,
+              fields,
               tags: card.tags,
               order: typeof card.order === "number" ? card.order : undefined,
             }),
@@ -489,6 +571,9 @@ export default function EditDeckPage() {
               back,
               frontImage: card.frontImage,
               backImage: card.backImage,
+              frontAudio: card.frontAudio,
+              backAudio: card.backAudio,
+              fields,
               tags: card.tags,
               order:
                 typeof card.order === "number" ? card.order : Math.max(0, index),
@@ -793,7 +878,7 @@ export default function EditDeckPage() {
 
   const updateFlashcard = (
     index: number,
-    field: "front" | "back" | "frontImage" | "backImage",
+    field: "front" | "back" | "frontImage" | "backImage" | "frontAudio" | "backAudio",
     value: string,
   ) => {
     setFlashcards((prev) =>
@@ -818,6 +903,76 @@ export default function EditDeckPage() {
     }
   }
 
+  const handleFieldAudioUpload = async (
+    key: string,
+    file: File | null,
+    onUrl: (url: string) => void,
+  ) => {
+    if (!file) return
+
+    try {
+      setUploading((prev) => ({ ...prev, [key]: true }))
+      const url = await uploadAudioFile(file)
+      onUrl(url)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Audio upload failed"
+      toast({
+        variant: "destructive",
+        title: "Upload error",
+        description: message,
+      })
+    } finally {
+      setUploading((prev) => ({ ...prev, [key]: false }))
+    }
+  }
+
+  const updateFlashcardFields = (index: number, fields: FieldItem[]) => {
+    setFlashcards((prev) =>
+      prev.map((card, i) => (i === index ? { ...card, fields } : card)),
+    )
+    const key = flashcards[index]?.clientId
+    if (key) {
+      markFlashcardDirty(key)
+      scheduleFlashcardAutosave(key)
+    }
+  }
+
+  const addFlashcardField = (index: number) => {
+    const current = flashcards[index]?.fields ?? []
+    updateFlashcardFields(index, [...current, { key: "", value: "" }])
+  }
+
+  const updateFlashcardFieldKey = (
+    index: number,
+    fieldIndex: number,
+    value: string,
+  ) => {
+    const current = flashcards[index]?.fields ?? []
+    const next = current.map((field, i) =>
+      i === fieldIndex ? { ...field, key: value } : field,
+    )
+    updateFlashcardFields(index, next)
+  }
+
+  const updateFlashcardFieldValue = (
+    index: number,
+    fieldIndex: number,
+    value: string,
+  ) => {
+    const current = flashcards[index]?.fields ?? []
+    const next = current.map((field, i) =>
+      i === fieldIndex ? { ...field, value } : field,
+    )
+    updateFlashcardFields(index, next)
+  }
+
+  const removeFlashcardField = (index: number, fieldIndex: number) => {
+    const current = flashcards[index]?.fields ?? []
+    const next = current.filter((_, i) => i !== fieldIndex)
+    updateFlashcardFields(index, next)
+  }
+
   const addFlashcard = () => {
     const newCard: FlashcardItem = {
       clientId: createClientId(),
@@ -825,6 +980,9 @@ export default function EditDeckPage() {
       back: "",
       frontImage: "",
       backImage: "",
+      frontAudio: "",
+      backAudio: "",
+      fields: [],
       tags: [],
       order: flashcards.length,
     }
@@ -1513,6 +1671,16 @@ export default function EditDeckPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="sm">
             <Link
+              href={deckHref}
+              onClick={(event) => {
+                if (!confirmLeave()) event.preventDefault()
+              }}
+            >
+              Tổng quan
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link
               href={flashcardsHref}
               onClick={(event) => {
                 if (!confirmLeave()) event.preventDefault()
@@ -1623,7 +1791,7 @@ export default function EditDeckPage() {
                     variant="outline"
                     onClick={bulkRemoveFlashcardTags}
                   >
-                    Gá»¡ tag
+                    Gỡ tag
                   </Button>
                 </div>
                 <Button type="button" size="sm" variant="destructive" onClick={bulkDeleteFlashcards}>
@@ -1648,6 +1816,8 @@ export default function EditDeckPage() {
                 const showImages = Boolean(openFlashcardImages[cardKey])
                 const frontKey = `flash-${cardKey}-front`
                 const backKey = `flash-${cardKey}-back`
+                const frontAudioKey = `flash-${cardKey}-front-audio`
+                const backAudioKey = `flash-${cardKey}-back-audio`
 
                 return (
                   <div
@@ -1737,7 +1907,7 @@ export default function EditDeckPage() {
                           onClick={() => toggleFlashcardImages(cardKey)}
                         >
                           <Image className="h-4 w-4" />
-                          Hình ảnh
+                          Media
                         </button>
                         <Button
                           type="button"
@@ -1770,6 +1940,76 @@ export default function EditDeckPage() {
                           ))}
                         </div>
                       )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Trường bổ sung
+                      </label>
+                      {card.fields.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground">
+                          Chưa có trường nào. Bấm “Thêm trường” để tạo.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {card.fields.map((field, fieldIndex) => (
+                            <div
+                              key={`${cardKey}-field-${fieldIndex}`}
+                              className="flex flex-wrap items-start gap-2"
+                            >
+                              <Input
+                                placeholder="Tên trường (vd: term)"
+                                value={field.key}
+                                onChange={(event) =>
+                                  updateFlashcardFieldKey(
+                                    index,
+                                    fieldIndex,
+                                    event.target.value,
+                                  )
+                                }
+                                className="min-w-[140px] flex-1"
+                              />
+                              <Input
+                                placeholder="Nội dung trường"
+                                value={field.value}
+                                onChange={(event) =>
+                                  updateFlashcardFieldValue(
+                                    index,
+                                    fieldIndex,
+                                    event.target.value,
+                                  )
+                                }
+                                className="min-w-[200px] flex-[2]"
+                              />
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  removeFlashcardField(index, fieldIndex)
+                                }
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => addFlashcardField(index)}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Thêm trường
+                        </Button>
+                        <span className="text-[11px] text-muted-foreground">
+                          Dùng {"{{field:ten_truong}}"} trong nội dung để chèn.
+                        </span>
+                      </div>
                     </div>
 
                     {showImages && (
@@ -1901,6 +2141,131 @@ export default function EditDeckPage() {
                             />
                           </div>
                         </div>
+
+
+                        <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 p-3">
+                          <p className="text-xs font-semibold text-muted-foreground">
+                            Âm thanh mặt trước
+                          </p>
+                          <div className="mt-2 flex flex-col gap-2">
+                            {card.frontAudio ? (
+                              <audio controls className="w-full">
+                                <source src={card.frontAudio} />
+                              </audio>
+                            ) : (
+                              <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-border/70 text-xs text-muted-foreground">
+                                Chưa có âm thanh
+                              </div>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <label
+                                className={cn(
+                                  buttonVariants({ variant: "outline", size: "sm" }),
+                                  "cursor-pointer",
+                                )}
+                              >
+                                <input
+                                  type="file"
+                                  accept="audio/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.currentTarget.files?.[0] ?? null
+                                    e.currentTarget.value = ""
+                                    void handleFieldAudioUpload(frontAudioKey, file, (url) =>
+                                      updateFlashcard(index, "frontAudio", url),
+                                    )
+                                  }}
+                                />
+                                {isUploading(frontAudioKey) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Volume2 className="h-4 w-4" />
+                                )}
+                                Tải âm thanh
+                              </label>
+                              {card.frontAudio ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => updateFlashcard(index, "frontAudio", "")}
+                                >
+                                  <X className="h-4 w-4" />
+                                  Xóa
+                                </Button>
+                              ) : null}
+                            </div>
+                            <Input
+                              placeholder="Dán URL âm thanh (optional)"
+                              value={card.frontAudio || ""}
+                              onChange={(e) =>
+                                updateFlashcard(index, "frontAudio", e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 p-3">
+                          <p className="text-xs font-semibold text-muted-foreground">
+                            Âm thanh mặt sau
+                          </p>
+                          <div className="mt-2 flex flex-col gap-2">
+                            {card.backAudio ? (
+                              <audio controls className="w-full">
+                                <source src={card.backAudio} />
+                              </audio>
+                            ) : (
+                              <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-border/70 text-xs text-muted-foreground">
+                                Chưa có âm thanh
+                              </div>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <label
+                                className={cn(
+                                  buttonVariants({ variant: "outline", size: "sm" }),
+                                  "cursor-pointer",
+                                )}
+                              >
+                                <input
+                                  type="file"
+                                  accept="audio/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.currentTarget.files?.[0] ?? null
+                                    e.currentTarget.value = ""
+                                    void handleFieldAudioUpload(backAudioKey, file, (url) =>
+                                      updateFlashcard(index, "backAudio", url),
+                                    )
+                                  }}
+                                />
+                                {isUploading(backAudioKey) ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Volume2 className="h-4 w-4" />
+                                )}
+                                Tải âm thanh
+                              </label>
+                              {card.backAudio ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => updateFlashcard(index, "backAudio", "")}
+                                >
+                                  <X className="h-4 w-4" />
+                                  Xóa
+                                </Button>
+                              ) : null}
+                            </div>
+                            <Input
+                              placeholder="Dán URL âm thanh (optional)"
+                              value={card.backAudio || ""}
+                              onChange={(e) =>
+                                updateFlashcard(index, "backAudio", e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1966,7 +2331,7 @@ export default function EditDeckPage() {
                     variant="outline"
                     onClick={bulkRemoveQuestionTags}
                   >
-                    Gá»¡ tag
+                    Gỡ tag
                   </Button>
                 </div>
                 <Button type="button" size="sm" variant="destructive" onClick={bulkDeleteQuestions}>

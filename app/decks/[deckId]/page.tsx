@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { Layers, BookOpenCheck, ListChecks, Pencil, Upload } from "lucide-react"
+import { BookOpenCheck, ListChecks, Pencil, Upload } from "lucide-react"
 
 import { requireSession } from "@/lib/require-user"
 import {
@@ -9,6 +9,7 @@ import {
   getQuestionsCollection,
   ObjectId,
 } from "@/lib/mongodb"
+import { normalizeDeckOptions } from "@/lib/fsrs"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -18,7 +19,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import DeckHeaderClient from "./deck-header-client"
+import DeckOptionsClient from "./deck-options-client"
 
 export default async function DeckOverviewPage(
   props: {
@@ -55,6 +57,8 @@ export default async function DeckOverviewPage(
     return notFound()
   }
 
+  const deckOptions = normalizeDeckOptions(deck.options ?? null)
+
   const decksHref = subject
     ? `/decks?subject=${encodeURIComponent(subject)}`
     : "/decks"
@@ -84,27 +88,12 @@ export default async function DeckOverviewPage(
       </nav>
 
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/60 px-3 py-1 text-[11px] text-muted-foreground">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Layers className="h-3 w-3" />
-            </span>
-            <span>Deck overview</span>
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            {deck.name}
-          </h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            {deck.description && deck.description.trim().length > 0
-              ? deck.description
-              : "Chưa có mô tả cho deck này."}
-          </p>
-          {deck.subject ? (
-            <Badge variant="outline" className="text-[11px] uppercase">
-              {deck.subject}
-            </Badge>
-          ) : null}
-        </div>
+        <DeckHeaderClient
+          deckId={deckId}
+          name={deck.name}
+          description={deck.description ?? ""}
+          subject={deck.subject ?? ""}
+        />
 
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="sm">
@@ -146,6 +135,8 @@ export default async function DeckOverviewPage(
             </Button>
           </CardContent>
         </Card>
+
+        <DeckOptionsClient deckId={deckId} initialOptions={deckOptions} />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">

@@ -5,16 +5,32 @@ export function parseClozeFlashcards(text: string) {
     .map(l => l.trim())
     .filter(Boolean)
 
-  const cards: { front: string; back: string }[] = []
+  const cards: { front: string; back: string; answer: string }[] = []
+  const legacyPattern = /\{\{(?!c\d+::)(.+?)\}\}/g
+  const clozePattern =
+    /\{\{c\d+::([\s\S]+?)(?:::([\s\S]+?))?\}\}/gi
 
   for (const line of lines) {
-    const match = line.match(/\{\{(.+?)\}\}/)
-    if (!match) continue
+    let normalized = line
+    normalized = normalized.replace(legacyPattern, (_match, rawAnswer) => {
+      const answer = String(rawAnswer || "").trim()
+      return `{{c1::${answer}}}`
+    })
 
-    const answer = match[1].trim()
-    const front = line.replace(/\{\{(.+?)\}\}/, '___')
+    const matches = Array.from(normalized.matchAll(clozePattern))
+    if (matches.length === 0) continue
 
-    cards.push({ front, back: answer })
+    const answers = matches
+      .map((match) => String(match[1] || "").trim())
+      .filter(Boolean)
+
+    if (answers.length === 0) continue
+
+    cards.push({
+      front: normalized,
+      back: normalized,
+      answer: answers[0],
+    })
   }
 
   return cards

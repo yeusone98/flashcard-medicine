@@ -1,6 +1,6 @@
 // app/page.tsx
 import Link from "next/link"
-import { ArrowRight, Layers, Upload } from "lucide-react"
+import { ArrowRight, Layers, Upload, LifeBuoy } from "lucide-react"
 import {
     Card,
     CardHeader,
@@ -109,6 +109,35 @@ export default async function HomePage() {
                         </CardFooter>
                     </Card>
                 </Link>
+            </section>
+
+            <section>
+                <Card className="flex flex-col border border-border/70 bg-gradient-to-r from-background/70 to-background/30">
+                    <CardHeader className="flex flex-row items-center justify-between gap-3">
+                        <div>
+                            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                    <LifeBuoy className="h-4 w-4" />
+                                </span>
+                                Cần hướng dẫn nhanh?
+                            </CardTitle>
+                            <CardDescription className="mt-2 text-xs md:text-sm">
+                                Xem hướng dẫn từng bước để tạo deck, học flashcard, làm MCQ và import dữ liệu.
+                            </CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="mt-auto flex items-center justify-between pt-2">
+                        <span className="text-[11px] text-muted-foreground">
+                            Xem trang <span className="font-medium">Hướng dẫn</span>
+                        </span>
+                        <Button asChild size="sm" variant="outline" className="gap-1">
+                            <Link href="/help">
+                                Mở hướng dẫn
+                                <ArrowRight className="h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
             </section>
         </main>
     )

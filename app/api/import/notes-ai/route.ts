@@ -6,6 +6,7 @@ import {
     getFlashcardsCollection,
     getQuestionsCollection,
 } from "@/lib/mongodb"
+import { getDefaultDeckOptions } from "@/lib/fsrs"
 
 export const runtime = "nodejs"
 
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
         const deckInsert = await decksCol.insertOne({
             name: String(deckName).trim(),
             description: "Sinh tự động từ ghi chú (Notion / Markdown)",
+            options: getDefaultDeckOptions(),
             createdAt: now,
             updatedAt: now,
         })

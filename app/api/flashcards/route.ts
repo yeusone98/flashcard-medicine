@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getFlashcardsCollection, ObjectId } from "@/lib/mongodb"
+import { State } from "ts-fsrs"
 
 function normalizeImage(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined
@@ -21,6 +22,25 @@ function normalizeTags(value: unknown): string[] | undefined {
 
   if (tags.length === 0) return undefined
   return Array.from(new Set(tags))
+}
+
+function normalizeFields(
+  value: unknown,
+): Record<string, string> | undefined {
+  if (!value || typeof value !== "object") return undefined
+  const entries = Object.entries(value as Record<string, unknown>)
+  const output: Record<string, string> = {}
+  for (const [key, raw] of entries) {
+    const trimmedKey = String(key || "").trim()
+    if (!trimmedKey) continue
+    output[trimmedKey] =
+      typeof raw === "string"
+        ? raw
+        : raw === null || raw === undefined
+          ? ""
+          : String(raw)
+  }
+  return Object.keys(output).length > 0 ? output : undefined
 }
 
 export async function GET(req: NextRequest) {
@@ -80,9 +100,13 @@ export async function POST(req: NextRequest) {
         back: typeof fc?.back === "string" ? fc.back.trim() : "",
         frontImage: normalizeImage(fc?.frontImage),
         backImage: normalizeImage(fc?.backImage),
+        frontAudio: normalizeImage(fc?.frontAudio),
+        backAudio: normalizeImage(fc?.backAudio),
+        fields: normalizeFields(fc?.fields),
         tags: normalizeTags(fc?.tags),
         order: typeof fc?.order === "number" ? fc.order : undefined,
         level: 0,
+        fsrsState: State.New,
         createdAt: now,
         updatedAt: now,
       }))

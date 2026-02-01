@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getQuestionsCollection, ObjectId } from "@/lib/mongodb"
+import {
+    getDecksCollection,
+    getQuestionsCollection,
+    getReviewLogsCollection,
+    ObjectId,
+} from "@/lib/mongodb"
+import { mapStateToQueue, normalizeDeckOptions } from "@/lib/fsrs"
+import { State } from "ts-fsrs"
 
 function normalizeImage(value: unknown): string | undefined {
     if (typeof value !== "string") return undefined
@@ -31,7 +38,11 @@ export async function GET(req: NextRequest) {
     }
 
     const deckObjectId = new ObjectId(deckId)
-    const questionsCol = await getQuestionsCollection()
+    const [questionsCol, decksCol, reviewLogsCol] = await Promise.all([
+        getQuestionsCollection(),
+        getDecksCollection(),
+        getReviewLogsCollection(),
+    ])
     const now = new Date()
 
     const query: any =
@@ -49,10 +60,56 @@ export async function GET(req: NextRequest) {
     const sort: Record<string, 1 | -1> =
         mode === "due" ? { dueAt: 1 } : { order: 1, createdAt: 1 }
 
-    const questions = await questionsCol
+    let questions = await questionsCol
         .find(query)
         .sort(sort)
         .toArray()
+
+    if (mode === "due") {
+        const deck = await decksCol.findOne({ _id: deckObjectId })
+        const deckOptions = normalizeDeckOptions(deck?.options ?? null)
+        const startOfDay = new Date(now)
+        startOfDay.setHours(0, 0, 0, 0)
+
+        const reviewCounts = await reviewLogsCol
+            .aggregate([
+                { $match: { deckId: deckObjectId, createdAt: { $gte: startOfDay } } },
+                { $group: { _id: "$state", count: { $sum: 1 } } },
+            ])
+            .toArray()
+
+        const countMap = new Map<string, number>(
+            reviewCounts.map((row) => [String(row._id), Number(row.count) || 0]),
+        )
+
+        let remainingNew = Math.max(0, deckOptions.newPerDay - (countMap.get("new") ?? 0))
+        const reviewedReview =
+            (countMap.get("review") ?? 0) + (countMap.get("relearning") ?? 0)
+        let remainingReview = Math.max(0, deckOptions.reviewPerDay - reviewedReview)
+
+        const filtered: typeof questions = []
+
+        for (const question of questions) {
+            const queue = mapStateToQueue(question.fsrsState)
+            if (queue === "new") {
+                if (remainingNew <= 0) continue
+                remainingNew -= 1
+                filtered.push(question)
+                continue
+            }
+
+            if (queue === "review") {
+                if (remainingReview <= 0) continue
+                remainingReview -= 1
+                filtered.push(question)
+                continue
+            }
+
+            filtered.push(question)
+        }
+
+        questions = filtered
+    }
 
     const data = questions.map((q) => ({
         ...q,
@@ -113,12 +170,13 @@ export async function POST(req: NextRequest) {
                         typeof q?.explanation === "string"
                             ? q.explanation.trim()
                             : undefined,
-                    tags: normalizeTags(q?.tags),
-                    order: typeof q?.order === "number" ? q.order : baseOrder + index,
-                    level: 0,
-                    createdAt: now,
-                    updatedAt: now,
-                }
+        tags: normalizeTags(q?.tags),
+        order: typeof q?.order === "number" ? q.order : baseOrder + index,
+        level: 0,
+        fsrsState: State.New,
+        createdAt: now,
+        updatedAt: now,
+      }
             })
             .filter(
                 (q: { question: string; choices: { isCorrect: boolean }[] }) =>
