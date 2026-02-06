@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import {
   Layers,
@@ -13,6 +13,7 @@ import {
   Loader2,
   Pencil,
   LayoutDashboard,
+  Plus,
 } from "lucide-react"
 
 import { useToast } from "@/hooks/use-toast"
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +40,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 // Kiểu deck dùng chung với server
 export type DeckItem = {
@@ -52,6 +62,12 @@ export type DeckItem = {
 export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) {
   const [decks, setDecks] = useState<DeckItem[]>(initialDecks ?? [])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createName, setCreateName] = useState("")
+  const [createDescription, setCreateDescription] = useState("")
+  const [createSubject, setCreateSubject] = useState("")
+  const [creating, setCreating] = useState(false)
+  const router = useRouter()
   const { toast } = useToast()
 
   // 🔹 Đọc ?subject=... từ URL ở client
@@ -92,6 +108,105 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
   const descriptionText = hasSubject
     ? "Chỉ hiển thị các bộ thẻ thuộc môn/chủ đề được chọn."
     : "Mỗi deck có thể dùng để học Flashcard hoặc làm Trắc nghiệm. Bạn có thể import thêm dữ liệu ở màn hình Import."
+
+  const NAME_MAX = 80
+  const DESC_MAX = 500
+
+  const openCreateDialog = () => {
+    setCreateName("")
+    setCreateDescription("")
+    setCreateSubject(subject)
+    setCreateOpen(true)
+  }
+
+  const handleCreateDeck = async () => {
+    if (creating) return
+
+    const name = createName.trim()
+    const description = createDescription.trim()
+    const subjectValue = createSubject.trim()
+
+    if (!name) {
+      toast({
+        variant: "destructive",
+        title: "Thiếu tên deck",
+        description: "Vui lòng nhập tên deck để tạo mới.",
+      })
+      return
+    }
+
+    if (name.length > NAME_MAX || description.length > DESC_MAX) {
+      toast({
+        variant: "destructive",
+        title: "Nội dung quá dài",
+        description: "Vui lòng rút gọn trước khi tạo deck.",
+      })
+      return
+    }
+
+    try {
+      setCreating(true)
+      const res = await fetch("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          description,
+          subject: subjectValue,
+        }),
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Tạo deck thất bại")
+      }
+
+      const deckId =
+        typeof data?.deckId === "string"
+          ? data.deckId
+          : typeof data?.id === "string"
+            ? data.id
+            : ""
+
+      if (!deckId) {
+        throw new Error("Không nhận được deckId")
+      }
+
+      const nowIso = new Date().toISOString()
+      setDecks((prev) => {
+        if (prev.some((d) => d._id === deckId)) return prev
+        return [
+          {
+            _id: deckId,
+            name,
+            description,
+            subject: subjectValue || undefined,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          },
+          ...prev,
+        ]
+      })
+
+      const subjectQuery = subjectValue
+        ? `?subject=${encodeURIComponent(subjectValue)}`
+        : ""
+
+      setCreateOpen(false)
+      router.push(`/decks/${deckId}/edit${subjectQuery}`)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Tạo deck thất bại"
+      toast({
+        variant: "destructive",
+        title: "Tạo deck thất bại",
+        description: message,
+      })
+    } finally {
+      setCreating(false)
+    }
+  }
 
   async function handleDeleteDeck(deck: DeckItem) {
     try {
@@ -135,6 +250,88 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6 md:py-8 stagger">
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tạo deck mới</DialogTitle>
+            <DialogDescription>
+              Tạo deck trống để thêm flashcard và câu hỏi MCQ từng thẻ một.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void handleCreateDeck()
+            }}
+          >
+            <div className="space-y-1">
+              <label className="text-sm font-medium">
+                Tên deck <span className="text-destructive">*</span>
+              </label>
+              <Input
+                value={createName}
+                onChange={(event) => setCreateName(event.target.value)}
+                maxLength={NAME_MAX}
+                placeholder="VD: Nội khoa 1 - Tim mạch"
+              />
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Tên deck giúp bạn dễ tìm trong danh sách.</span>
+                <span>{createName.length}/{NAME_MAX}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Mô tả (optional)</label>
+              <textarea
+                value={createDescription}
+                onChange={(event) => setCreateDescription(event.target.value)}
+                maxLength={DESC_MAX}
+                placeholder="Mục tiêu học, phạm vi kiến thức..."
+                className="min-h-[110px] w-full rounded-lg border border-input/70 bg-background/70 px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-0 focus:border-primary/60 focus:ring-2 focus:ring-primary/30"
+              />
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Giúp người học hiểu mục tiêu của deck.</span>
+                <span>{createDescription.length}/{DESC_MAX}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Môn học (optional)</label>
+              <Input
+                value={createSubject}
+                onChange={(event) => setCreateSubject(event.target.value)}
+                placeholder="VD: Sinh lý, Nội khoa..."
+              />
+              {hasSubject ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Đang lọc theo môn "{subject}". Bạn có thể đổi môn cho deck mới.
+                </p>
+              ) : null}
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateOpen(false)}
+                disabled={creating}
+              >
+                Huỷ
+              </Button>
+              <Button type="submit" disabled={creating}>
+                {creating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                Tạo deck
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <section className="flex items-start justify-between gap-3">
         <div className="space-y-2">
@@ -152,16 +349,22 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
           </p>
         </div>
 
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="hidden md:inline-flex"
-        >
-          <Link href={hasSubject ? "/decks" : "/"}>
-            {hasSubject ? "Xem tất cả bộ thẻ" : "Về trang chủ"}
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={openCreateDialog}>
+            <Plus className="h-4 w-4" />
+            Tạo deck
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="hidden md:inline-flex"
+          >
+            <Link href={hasSubject ? "/decks" : "/"}>
+              {hasSubject ? "Xem tất cả bộ thẻ" : "Về trang chủ"}
+            </Link>
+          </Button>
+        </div>
       </section>
 
       {/* Nội dung */}
