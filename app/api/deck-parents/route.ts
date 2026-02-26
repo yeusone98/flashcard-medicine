@@ -14,11 +14,11 @@ export async function GET() {
       getDeckParentsCollection(),
     ])
 
-    // ? L?y to?n b? gi? tr? distinct c?a field "subject"
     const rawSubjects = (await decksCol.distinct("subject")) as (
       | string
       | null
     )[]
+
     const storedParents = await parentsCol
       .find({}, { projection: { name: 1 } })
       .toArray()
@@ -28,7 +28,6 @@ export async function GET() {
       ...storedParents.map((p) => p?.name ?? null),
     ]
 
-    // ? L?c b? null/undefined/chu?i r?ng ? ph?a JS
     const parents = merged
       .filter((v): v is string => typeof v === "string")
       .map((s) => s.trim())
@@ -42,7 +41,7 @@ export async function GET() {
   } catch (error) {
     console.error("Error in /api/deck-parents", error)
     return NextResponse.json(
-      { error: "Kh?ng l?y ???c danh s?ch parent deck" },
+      { error: "Không lấy được danh sách môn học" },
       { status: 500 },
     )
   }
@@ -56,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     if (!name) {
       return NextResponse.json(
-        { error: "Thi?u t?n m?n h?c" },
+        { error: "Thiếu tên môn học" },
         { status: 400 },
       )
     }
@@ -72,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     if (existing?._id) {
       return NextResponse.json(
-        { error: "M?n h?c ?? t?n t?i" },
+        { error: "Môn học đã tồn tại" },
         { status: 409 },
       )
     }
@@ -91,7 +90,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error creating deck parent", error)
     return NextResponse.json(
-      { error: "Kh?ng th? t?o m?n h?c" },
+      { error: "Không thể tạo môn học" },
       { status: 500 },
     )
   }
