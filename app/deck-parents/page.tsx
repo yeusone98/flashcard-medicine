@@ -1,6 +1,6 @@
 // app/deck-parents/page.tsx
 import { requireSession } from "@/lib/require-user"
-import { getDecksCollection } from "@/lib/mongodb"
+import { getDeckParentsCollection, getDecksCollection } from "@/lib/mongodb"
 
 interface ParentRow {
   _id: string | null
@@ -17,7 +17,10 @@ import { DeckParentsClient } from "./deck-parents-client"
 export default async function DeckParentsPage() {
   await requireSession()
 
-  const decksCol = await getDecksCollection()
+  const [decksCol, parentsCol] = await Promise.all([
+    getDecksCollection(),
+    getDeckParentsCollection(),
+  ])
 
   const rows = (await decksCol
     .aggregate<ParentRow>([
@@ -31,12 +34,41 @@ export default async function DeckParentsPage() {
     ])
     .toArray()) as ParentRow[]
 
-  const parents: ParentInfo[] = rows
-    .filter((r) => typeof r._id === "string" && r._id.trim().length > 0)
-    .map((r) => ({
-      name: (r._id as string).trim(),
-      deckCount: r.count ?? 0,
-    }))
+  const storedParents = await parentsCol
+    .find({}, { projection: { name: 1 } })
+    .toArray()
+
+  const deckCountByName = new Map(
+    rows
+      .filter((r) => typeof r._id === "string" && r._id.trim().length > 0)
+      .map((r) => [(r._id as string).trim(), r.count ?? 0]),
+  )
+
+  const mergedNames = [
+    ...Array.from(deckCountByName.keys()),
+    ...storedParents
+      .map((p) => (typeof p.name === "string" ? p.name.trim() : ""))
+      .filter(Boolean),
+  ]
+
+  const nameByLower = new Map<string, string>()
+  mergedNames.forEach((name) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    const lower = trimmed.toLowerCase()
+    if (!nameByLower.has(lower)) {
+      nameByLower.set(lower, trimmed)
+    }
+  })
+
+  const uniqueNames = Array.from(nameByLower.values())
+
+  const parents: ParentInfo[] = uniqueNames.map((name) => ({
+    name,
+    deckCount: deckCountByName.get(name) ?? 0,
+  }))
+
+  parents.sort((a, b) => a.name.localeCompare(b.name, "vi"))
 
   return <DeckParentsClient parents={parents} />
 }

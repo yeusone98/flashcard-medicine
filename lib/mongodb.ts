@@ -172,6 +172,13 @@ export interface UserDoc {
   updatedAt: Date
 }
 
+export interface DeckParentDoc {
+  _id?: ObjectId
+  name: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface MediaDoc {
   _id?: ObjectId
   url: string
@@ -217,6 +224,11 @@ export async function getReviewLogsCollection(): Promise<Collection<ReviewLogDoc
 export async function getUsersCollection(): Promise<Collection<UserDoc>> {
   const db = await getDb()
   return db.collection<UserDoc>("users")
+}
+
+export async function getDeckParentsCollection(): Promise<Collection<DeckParentDoc>> {
+  const db = await getDb()
+  return db.collection<DeckParentDoc>("deck_parents")
 }
 
 export async function getMediaCollection(): Promise<Collection<MediaDoc>> {

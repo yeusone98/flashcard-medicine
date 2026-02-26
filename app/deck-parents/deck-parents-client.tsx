@@ -4,11 +4,12 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Layers, Search, SortAsc } from "lucide-react"
+import { Layers, Plus, Search, SortAsc } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
 
 import type { ParentInfo } from "./page"
 
@@ -19,23 +20,25 @@ interface DeckParentsClientProps {
 type SortBy = "name" | "count"
 
 export function DeckParentsClient({ parents }: DeckParentsClientProps) {
+  const { toast } = useToast()
+  const [items, setItems] = useState<ParentInfo[]>(parents)
   const [query, setQuery] = useState("")
   const [sortBy, setSortBy] = useState<SortBy>("name")
+  const [newSubject, setNewSubject] = useState("")
+  const [isCreating, setIsCreating] = useState(false)
 
   const totalDecks = useMemo(
-    () => parents.reduce((sum, p) => sum + (p.deckCount ?? 0), 0),
-    [parents],
+    () => items.reduce((sum, p) => sum + (p.deckCount ?? 0), 0),
+    [items],
   )
 
   const filteredParents = useMemo(() => {
     const q = query.trim().toLowerCase()
 
-    let list = parents
+    let list = items
 
     if (q) {
-      list = list.filter((p) =>
-        p.name.toLowerCase().includes(q),
-      )
+      list = list.filter((p) => p.name.toLowerCase().includes(q))
     }
 
     const copied = [...list]
@@ -49,9 +52,61 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
     })
 
     return copied
-  }, [parents, query, sortBy])
+  }, [items, query, sortBy])
 
   const hasFilter = query.trim().length > 0
+
+  const handleCreate = async () => {
+    const name = newSubject.trim()
+    if (!name) {
+      toast({
+        variant: "destructive",
+        title: "Thi?u t?n m?n h?c",
+        description: "Vui l?ng nh?p t?n m?n h?c.",
+      })
+      return
+    }
+
+    if (items.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+      toast({
+        variant: "destructive",
+        title: "M?n h?c ?? t?n t?i",
+        description: "T?n m?n h?c n?y ?? c? trong danh s?ch.",
+      })
+      return
+    }
+
+    try {
+      setIsCreating(true)
+      const res = await fetch("/api/deck-parents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      })
+
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(data?.error || "Kh?ng th? t?o m?n h?c")
+      }
+
+      setItems((prev) => [...prev, { name, deckCount: 0 }])
+      setNewSubject("")
+      toast({
+        title: "?? t?o m?n h?c",
+        description: name,
+      })
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Kh?ng th? t?o m?n h?c"
+      toast({
+        variant: "destructive",
+        title: "T?o m?n h?c th?t b?i",
+        description: message,
+      })
+    } finally {
+      setIsCreating(false)
+    }
+  }
 
   return (
     <main className="container max-w-5xl mx-auto py-8 space-y-6 stagger">
@@ -66,28 +121,43 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
               <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/15 text-primary">
                 <Layers className="h-3 w-3" />
               </span>
-              <span>Môn học / Chủ đề</span>
+              <span>M?n h?c / Ch? ??</span>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-              Chọn môn để xem bộ thẻ
+              Ch?n m?n ?? xem b? th?
             </h1>
             <p className="text-sm text-muted-foreground">
-              Có{" "}
-              <span className="font-medium text-primary">
-                {parents.length}
-              </span>{" "}
-              môn học với tổng cộng{" "}
-              <span className="font-medium text-primary">
-                {totalDecks}
-              </span>{" "}
-              bộ thẻ. Nhấn vào một môn để xem các deck bên trong.
+              C?{" "}
+              <span className="font-medium text-primary">{items.length}</span>{" "}
+              m?n h?c v?i t?ng c?ng{" "}
+              <span className="font-medium text-primary">{totalDecks}</span>{" "}
+              b? th?. Nh?n v?o m?t m?n ?? xem c?c deck b?n trong.
             </p>
           </div>
         </div>
 
-        <Button asChild variant="outline" size="sm">
-          <Link href="/decks">Xem tất cả bộ thẻ</Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              value={newSubject}
+              onChange={(e) => setNewSubject(e.target.value)}
+              placeholder="Nh?p t?n m?n h?c m?i..."
+              className="min-w-[200px] text-sm"
+            />
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleCreate}
+              disabled={isCreating}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              T?o m?n h?c
+            </Button>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/decks">Xem t?t c? b? th?</Link>
+          </Button>
+        </div>
       </section>
 
       {/* Thanh search + sort */}
@@ -98,20 +168,20 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tìm môn: Nội tim, Tiếng anh, Ngoại tiêu hóa..."
+              placeholder="T?m m?n: N?i tim, Ti?ng anh, Ngo?i ti?u h?a..."
               className="pl-9 text-sm"
             />
           </div>
           {hasFilter && (
             <p className="mt-1 text-xs text-muted-foreground">
-              Đang lọc theo: <span className="font-medium">{query}</span>
+              ?ang l?c theo: <span className="font-medium">{query}</span>
             </p>
           )}
         </div>
 
         <div className="flex items-center gap-2 text-xs md:text-sm">
           <span className="hidden text-muted-foreground md:inline-flex">
-            Sắp xếp:
+            S?p x?p:
           </span>
           <div className="inline-flex rounded-md border border-border/80 bg-background/60 p-1">
             <Button
@@ -122,7 +192,7 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
               onClick={() => setSortBy("name")}
             >
               <SortAsc className="mr-1 h-3 w-3" />
-              Tên
+              T?n
             </Button>
             <Button
               type="button"
@@ -132,23 +202,24 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
               onClick={() => setSortBy("count")}
             >
               <SortAsc className="mr-1 h-3 w-3 rotate-90" />
-              Số bộ thẻ
+              S? b? th?
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Danh sách parent */}
+      {/* Danh s?ch parent */}
       {filteredParents.length === 0 ? (
         <section className="flex h-[40vh] flex-col items-center justify-center gap-2 text-center">
           <p className="text-sm text-muted-foreground">
-            {parents.length === 0
-              ? "Hiện chưa có môn học nào. Hãy tạo deck với trường subject để bắt đầu."
-              : "Không tìm thấy môn học phù hợp với từ khoá tìm kiếm."}
+            {items.length === 0
+              ? "Hi?n ch?a c? m?n h?c n?o. H?y t?o deck v?i tr??ng subject ?? b?t ??u."
+              : "Kh?ng t?m th?y m?n h?c ph? h?p v?i t? kho? t?m ki?m."}
           </p>
           {hasFilter && (
-            <Button size="sm" variant="outline" onClick={() => setQuery("")}>
-              Xoá bộ lọc
+            <Button size="sm" variant="outline" onClick={() => setQuery("")}
+            >
+              Xo? b? l?c
             </Button>
           )}
         </section>
@@ -171,13 +242,13 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
                       {parent.name}
                     </CardTitle>
                     <CardDescription className="mt-1 text-xs text-muted-foreground">
-                      {parent.deckCount} bộ thẻ trong môn này
+                      {parent.deckCount} b? th? trong m?n n?y
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-1 pt-1">
                     <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[11px] text-primary/80">
                       <Layers className="h-3 w-3" />
-                      <span>Nhấn để xem deck</span>
+                      <span>Nh?n ?? xem deck</span>
                     </div>
                   </CardContent>
                 </Card>
