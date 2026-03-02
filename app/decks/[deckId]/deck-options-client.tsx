@@ -164,6 +164,30 @@ export default function DeckOptionsClient({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+          <p className="text-xs font-semibold text-foreground">
+            Cách áp dụng cài đặt học
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Chế độ <strong>`Hôm nay`</strong> chỉ lấy tối đa{" "}
+            <strong>
+              {isNewValid ? parsedNew : baseline.newPerDay}
+            </strong>{" "}
+            mục mới và{" "}
+            <strong>
+              {isReviewValid ? parsedReview : baseline.reviewPerDay}
+            </strong>{" "}
+            mục ôn trong ngày.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Chế độ <strong>`Tất cả`</strong> và <strong>`Tổng ôn`</strong> không
+            áp giới hạn số lượng.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Flashcards và MCQ cùng dùng chung 2 giới hạn này.
+          </p>
+        </div>
+
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-2">
             <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">

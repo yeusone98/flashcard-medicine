@@ -8,6 +8,7 @@ import {
   getMcqResultsCollection,
   ObjectId,
 } from "@/lib/mongodb"
+import { normalizeDeckOptions } from "@/lib/fsrs"
 
 export const runtime = "nodejs"
 
@@ -16,6 +17,21 @@ type DeckLite = {
   name?: string
   description?: string
   subject?: string
+  options?: unknown
+}
+
+type DueAggregateRow = {
+  _id: ObjectId
+  total?: number
+  due?: number
+  lastReviewedAt?: Date | null
+}
+
+type McqAggregateRow = {
+  _id: ObjectId
+  score10?: number | null
+  percent?: number | null
+  updatedAt?: Date | null
 }
 
 export async function GET() {
@@ -41,6 +57,7 @@ export async function GET() {
             name: 1,
             description: 1,
             subject: 1,
+            options: 1,
             createdAt: 1,
             updatedAt: 1,
           },
@@ -56,7 +73,7 @@ export async function GET() {
 
     const dueExpr = { $lte: [{ $ifNull: ["$dueAt", now] }, now] }
 
-    const [flashAgg, questionAgg, mcqAgg] = await Promise.all([
+    const [flashAggRaw, questionAggRaw, mcqAggRaw] = await Promise.all([
       flashcardsCol
         .aggregate([
           { $match: { deckId: { $in: deckIds } } },
@@ -99,13 +116,17 @@ export async function GET() {
         .toArray(),
     ])
 
-    const flashMap = new Map<string, any>(
+    const flashAgg = flashAggRaw as DueAggregateRow[]
+    const questionAgg = questionAggRaw as DueAggregateRow[]
+    const mcqAgg = mcqAggRaw as McqAggregateRow[]
+
+    const flashMap = new Map<string, DueAggregateRow>(
       flashAgg.map((item) => [item._id.toString(), item]),
     )
-    const questionMap = new Map<string, any>(
+    const questionMap = new Map<string, DueAggregateRow>(
       questionAgg.map((item) => [item._id.toString(), item]),
     )
-    const mcqMap = new Map<string, any>(
+    const mcqMap = new Map<string, McqAggregateRow>(
       mcqAgg.map((item) => [item._id.toString(), item]),
     )
 
@@ -114,6 +135,7 @@ export async function GET() {
       const flash = flashMap.get(id)
       const question = questionMap.get(id)
       const mcq = mcqMap.get(id)
+      const deckOptions = normalizeDeckOptions(deck.options ?? null)
 
       const lastFlash = flash?.lastReviewedAt instanceof Date ? flash.lastReviewedAt : null
       const lastQuestion =
@@ -133,6 +155,8 @@ export async function GET() {
         dueFlashcards: flash?.due ?? 0,
         totalQuestions: question?.total ?? 0,
         dueQuestions: question?.due ?? 0,
+        newPerDayLimit: deckOptions.newPerDay,
+        reviewPerDayLimit: deckOptions.reviewPerDay,
         lastReviewedAt: lastReviewedAt ? lastReviewedAt.toISOString() : null,
         lastMcqScore10:
           typeof mcq?.score10 === "number" ? mcq.score10 : null,
@@ -141,6 +165,70 @@ export async function GET() {
         lastMcqAt:
           mcq?.updatedAt instanceof Date ? mcq.updatedAt.toISOString() : null,
       }
+    })
+
+    type SubjectAggregate = {
+      name: string
+      isUnassigned: boolean
+      deckCount: number
+      totalFlashcards: number
+      dueFlashcards: number
+      totalQuestions: number
+      dueQuestions: number
+      newPerDayMin: number
+      newPerDayMax: number
+      reviewPerDayMin: number
+      reviewPerDayMax: number
+    }
+
+    const subjectMap = new Map<string, SubjectAggregate>()
+    for (const deck of decksSummary) {
+      const rawSubject =
+        typeof deck.subject === "string" ? deck.subject.trim() : ""
+      const isUnassigned = rawSubject.length === 0
+      const subjectName = isUnassigned ? "Chua gan mon" : rawSubject
+      const key = subjectName.toLowerCase()
+
+      const current = subjectMap.get(key)
+      if (!current) {
+        subjectMap.set(key, {
+          name: subjectName,
+          isUnassigned,
+          deckCount: 1,
+          totalFlashcards: deck.totalFlashcards,
+          dueFlashcards: deck.dueFlashcards,
+          totalQuestions: deck.totalQuestions,
+          dueQuestions: deck.dueQuestions,
+          newPerDayMin: deck.newPerDayLimit,
+          newPerDayMax: deck.newPerDayLimit,
+          reviewPerDayMin: deck.reviewPerDayLimit,
+          reviewPerDayMax: deck.reviewPerDayLimit,
+        })
+        continue
+      }
+
+      current.deckCount += 1
+      current.totalFlashcards += deck.totalFlashcards
+      current.dueFlashcards += deck.dueFlashcards
+      current.totalQuestions += deck.totalQuestions
+      current.dueQuestions += deck.dueQuestions
+      current.newPerDayMin = Math.min(current.newPerDayMin, deck.newPerDayLimit)
+      current.newPerDayMax = Math.max(current.newPerDayMax, deck.newPerDayLimit)
+      current.reviewPerDayMin = Math.min(
+        current.reviewPerDayMin,
+        deck.reviewPerDayLimit,
+      )
+      current.reviewPerDayMax = Math.max(
+        current.reviewPerDayMax,
+        deck.reviewPerDayLimit,
+      )
+    }
+
+    const subjects = Array.from(subjectMap.values()).sort((a, b) => {
+      const dueA = a.dueFlashcards + a.dueQuestions
+      const dueB = b.dueFlashcards + b.dueQuestions
+      if (dueA !== dueB) return dueB - dueA
+      return a.name.localeCompare(b.name, "vi")
     })
 
     const [
@@ -184,6 +272,7 @@ export async function GET() {
         reviewedQuestionsToday,
       },
       decks: decksSummary,
+      subjects,
     })
   } catch (error) {
     console.error("[DASHBOARD][GET] error", error)

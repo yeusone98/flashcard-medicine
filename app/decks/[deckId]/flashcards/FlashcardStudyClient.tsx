@@ -54,6 +54,12 @@ interface FlashcardStudyClientProps {
   mode: string
   subject?: string
   cards: FlashcardStudyItem[]
+  studyLimitInfo?: {
+    newPerDay: number
+    reviewPerDay: number
+    dueBeforeLimit: number
+    dueAfterLimit: number
+  } | null
 }
 
 interface CardState {
@@ -66,6 +72,7 @@ export default function FlashcardStudyClient({
   mode,
   subject,
   cards,
+  studyLimitInfo,
 }: FlashcardStudyClientProps) {
   const { toast } = useToast()
 
@@ -553,6 +560,12 @@ export default function FlashcardStudyClient({
             ? "No cards are due today. Switch to All or Mixed to review everything."
             : "Import or create flashcards before studying."}
         </p>
+        {mode === "due" && studyLimitInfo ? (
+          <p className="max-w-xl rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+            `Today` dùng giới hạn học: mới {studyLimitInfo.newPerDay}/ngày, ôn{" "}
+            {studyLimitInfo.reviewPerDay}/ngày.
+          </p>
+        ) : null}
       </div>
     )
   }
@@ -643,6 +656,29 @@ export default function FlashcardStudyClient({
               </Link>
             </Button>
           </div>
+          {mode === "due" && studyLimitInfo ? (
+            <p className="max-w-3xl rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
+              `Today` đang áp dụng giới hạn học: mới {studyLimitInfo.newPerDay}
+              /ngày, ôn {studyLimitInfo.reviewPerDay}/ngày. Hiện hiển thị{" "}
+              {studyLimitInfo.dueAfterLimit}/{studyLimitInfo.dueBeforeLimit} thẻ
+              đến hạn.
+              {studyLimitInfo.dueBeforeLimit > studyLimitInfo.dueAfterLimit
+                ? ` (${studyLimitInfo.dueBeforeLimit - studyLimitInfo.dueAfterLimit} thẻ đang bị giới hạn theo cài đặt).`
+                : ""}
+              {" "}
+              <Link
+                href={
+                  subject
+                    ? `/decks/${deckId}?subject=${encodeURIComponent(subject)}`
+                    : `/decks/${deckId}`
+                }
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                Chỉnh trong Tùy chọn học
+              </Link>
+              .
+            </p>
+          ) : null}
         </div>
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span>

@@ -1,4 +1,4 @@
-// app/import/manual-json/page.tsx
+﻿// app/import/manual-json/page.tsx
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
@@ -45,7 +45,7 @@ type ImportResponse =
     }
   | null
 
-// Giá trị đặc biệt cho Select
+// GiÃ¡ trá»‹ Ä‘áº·c biá»‡t cho Select
 const NONE_VALUE = "__NONE__"
 const NEW_VALUE = "__NEW__"
 const NEW_DECK_VALUE = "__NEW_DECK__"
@@ -70,7 +70,7 @@ export default function ImportManualJsonPage() {
 
   const { toast } = useToast()
 
-  // Lấy danh sách môn học (subject) từ API
+  // Láº¥y danh sÃ¡ch mÃ´n há»c (subject) tá»« API
   useEffect(() => {
     let cancelled = false
 
@@ -96,7 +96,7 @@ export default function ImportManualJsonPage() {
         }
       } catch (error) {
         if (cancelled) return
-        console.error("Lỗi gọi /api/deck-parents", error)
+        console.error("Lá»—i gá»i /api/deck-parents", error)
       }
     }
 
@@ -227,31 +227,31 @@ export default function ImportManualJsonPage() {
     try {
       parsed = JSON.parse(jsonText)
     } catch {
-      const desc = "JSON không hợp lệ. Vui lòng kiểm tra lại cú pháp."
+      const desc = "JSON khÃ´ng há»£p lá»‡. Vui lÃ²ng kiá»ƒm tra láº¡i cÃº phÃ¡p."
       setMessage(desc)
       toast({
         variant: "destructive",
-        title: "Lỗi JSON",
+        title: "Lá»—i JSON",
         description: desc,
       })
       return
     }
 
-    // 2. Chuẩn hoá payload
+    // 2. Chuáº©n hoÃ¡ payload
     let payload: ManualImportPayload
 
     if (Array.isArray(parsed)) {
-      // Người dùng chỉ dán mảng flashcards
+      // NgÆ°á»i dÃ¹ng chá»‰ dÃ¡n máº£ng flashcards
       payload = { flashcards: parsed }
     } else if (parsed && typeof parsed === "object") {
       payload = { ...(parsed as ManualImportPayload) }
     } else {
       const desc =
-        "JSON phải là object (chứa flashcards/questions) hoặc mảng flashcards."
+        "JSON pháº£i lÃ  object (chá»©a flashcards/questions) hoáº·c máº£ng flashcards."
       setMessage(desc)
       toast({
         variant: "destructive",
-        title: "Format JSON không đúng",
+        title: "Format JSON khÃ´ng Ä‘Ãºng",
         description: desc,
       })
       return
@@ -339,7 +339,7 @@ export default function ImportManualJsonPage() {
       const data = (await res.json().catch(() => null)) as ImportResponse
 
       if (!res.ok) {
-        throw new Error(data?.error || "Import thất bại")
+        throw new Error(data?.error || "Import tháº¥t báº¡i")
       }
 
       const flashcardCount = data?.flashcardCount ?? 0
@@ -399,7 +399,7 @@ export default function ImportManualJsonPage() {
     } catch (error) {
       console.error(error)
 
-      let desc = "Đã xảy ra lỗi, vui lòng thử lại."
+      let desc = "ÄÃ£ xáº£y ra lá»—i, vui lÃ²ng thá»­ láº¡i."
       if (error instanceof Error) {
         desc = error.message
       }
@@ -407,7 +407,7 @@ export default function ImportManualJsonPage() {
       setMessage(desc)
       toast({
         variant: "destructive",
-        title: "Import thất bại",
+        title: "Import tháº¥t báº¡i",
         description: desc,
       })
     } finally {
@@ -426,11 +426,11 @@ export default function ImportManualJsonPage() {
         </Button>
         <div>
           <h1 className="text-lg font-semibold tracking-tight md:text-xl">
-            Import manual từ JSON
+            Import manual tá»« JSON
           </h1>
           <p className="text-xs text-muted-foreground md:text-sm">
-            Dán JSON flashcard / câu hỏi trắc nghiệm, chọn môn học, hệ thống
-            sẽ tạo deck mới cho bạn.
+            DÃ¡n JSON flashcard / cÃ¢u há»i tráº¯c nghiá»‡m, chá»n mÃ´n há»c, há»‡ thá»‘ng
+            sáº½ táº¡o deck má»›i cho báº¡n.
           </p>
         </div>
       </div>
@@ -439,13 +439,13 @@ export default function ImportManualJsonPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Code2 className="h-5 w-5" />
-            Nội dung deck & JSON
+            Ná»™i dung deck & JSON
           </CardTitle>
           <CardDescription className="space-y-1 text-xs md:text-sm">
             <p>
-              Có thể để <code>deckName</code>, <code>description</code>,{" "}
-              <code>subject</code> trong JSON, nhưng nếu nhập ở form bên dưới
-              thì hệ thống sẽ ưu tiên dùng giá trị ở form.
+              CÃ³ thá»ƒ Ä‘á»ƒ <code>deckName</code>, <code>description</code>,{" "}
+              <code>subject</code> trong JSON, nhÆ°ng náº¿u nháº­p á»Ÿ form bÃªn dÆ°á»›i
+              thÃ¬ há»‡ thá»‘ng sáº½ Æ°u tiÃªn dÃ¹ng giÃ¡ trá»‹ á»Ÿ form.
             </p>
           </CardDescription>
         </CardHeader>
@@ -495,47 +495,47 @@ export default function ImportManualJsonPage() {
             )}
           </div>
 
-          {/* Tên deck */}
+          {/* TÃªn deck */}
           <div className="space-y-1">
             <label
               htmlFor="deckName"
               className="text-sm font-medium leading-none"
             >
-              Tên deck <span className="text-destructive">*</span>
+              TÃªn deck <span className="text-destructive">*</span>
             </label>
             <Input
               id="deckName"
-              placeholder='VD: "Theo dõi kiểm báo trong mổ – 5 yếu tố cơ bản"'
+              placeholder='VD: "Theo dÃµi kiá»ƒm bÃ¡o trong má»• â€“ 5 yáº¿u tá»‘ cÆ¡ báº£n"'
               value={deckName}
               onChange={(e) => setDeckName(e.target.value)}
               disabled={loading || isAppending}
             />
           </div>
 
-          {/* Mô tả deck */}
+          {/* MÃ´ táº£ deck */}
           <div className="space-y-1">
             <label
               htmlFor="deckDescription"
               className="text-sm font-medium leading-none"
             >
-              Mô tả deck (optional)
+              MÃ´ táº£ deck (optional)
             </label>
             <textarea
               id="deckDescription"
               rows={2}
               className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none ring-0 focus-visible:border-primary"
-              placeholder='VD: "Ôn tập 5 yếu tố theo dõi cơ bản trong mổ: nhiệt độ, SpO2, EtCO2, ECG và huyết áp động mạch..."'
+              placeholder='VD: "Ã”n táº­p 5 yáº¿u tá»‘ theo dÃµi cÆ¡ báº£n trong má»•: nhiá»‡t Ä‘á»™, SpO2, EtCO2, ECG vÃ  huyáº¿t Ã¡p Ä‘á»™ng máº¡ch..."'
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={loading || isAppending}
             />
           </div>
 
-          {/* Môn học / parent deck - dùng Select shadcn */}
+          {/* MÃ´n há»c / parent deck - dÃ¹ng Select shadcn */}
           <div className="space-y-1">
             <label className="flex items-center gap-2 text-sm font-medium leading-none">
               <Layers className="h-4 w-4 text-muted-foreground" />
-              Môn học / Parent deck (optional)
+              MÃ´n há»c / Parent deck (optional)
             </label>
 
             <Select
@@ -547,27 +547,27 @@ export default function ImportManualJsonPage() {
                 <SelectValue
                   placeholder={
                     hasParentOptions
-                      ? "Không chọn (deck lẻ, không thuộc môn nào)"
-                      : "Chưa có môn học nào"
+                      ? "KhÃ´ng chá»n (deck láº», khÃ´ng thuá»™c mÃ´n nÃ o)"
+                      : "ChÆ°a cÃ³ mÃ´n há»c nÃ o"
                   }
                 />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE_VALUE}>
-                  Không chọn (deck lẻ, không thuộc môn nào)
+                  KhÃ´ng chá»n (deck láº», khÃ´ng thuá»™c mÃ´n nÃ o)
                 </SelectItem>
                 {parentOptions.map((p) => (
                   <SelectItem key={p} value={p}>
                     {p}
                   </SelectItem>
                 ))}
-                <SelectItem value={NEW_VALUE}>+ Tạo môn học mới…</SelectItem>
+                <SelectItem value={NEW_VALUE}>+ Táº¡o mÃ´n há»c má»›iâ€¦</SelectItem>
               </SelectContent>
             </Select>
 
             <p className="text-xs text-muted-foreground">
-              Môn học dùng để nhóm deck ở trang <b>Môn học</b> (deck-parents).
-              Ví dụ: <i>Nội tim, Tiếng anh…</i>
+              MÃ´n há»c dÃ¹ng Ä‘á»ƒ nhÃ³m deck á»Ÿ trang <b>MÃ´n há»c</b> (deck-parents).
+              VÃ­ dá»¥: <i>Ná»™i tim, Tiáº¿ng anhâ€¦</i>
             </p>
           </div>
 
@@ -577,11 +577,11 @@ export default function ImportManualJsonPage() {
                 htmlFor="newParent"
                 className="text-sm font-medium leading-none"
               >
-                Tên môn học mới
+                TÃªn mÃ´n há»c má»›i
               </label>
               <Input
                 id="newParent"
-                placeholder='VD: "Nội tim", "Ngoại tiêu hoá", "TOEIC Listening"...'
+                placeholder='VD: "Ná»™i tim", "Ngoáº¡i tiÃªu hoÃ¡", "TOEIC Listening"...'
                 value={newParent}
                 onChange={(e) => setNewParent(e.target.value)}
                 disabled={loading || isAppending}
@@ -625,33 +625,33 @@ export default function ImportManualJsonPage() {
                 htmlFor="json"
                 className="text-sm font-medium leading-none"
               >
-                JSON nội dung deck
+                JSON ná»™i dung deck
               </label>
               <textarea
                 id="json"
                 className="mt-1 h-80 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs outline-none ring-0 focus-visible:border-primary"
                 placeholder={`{
   "deckName": "Cardiology basics",
-  "description": "Ôn tập tim mạch",
-  "subject": "Nội tim mạch",
+  "description": "Ã”n táº­p tim máº¡ch",
+  "subject": "Ná»™i tim máº¡ch",
   "flashcards": [
     {
-      "front": "Định nghĩa suy tim?",
-      "back": "Suy tim là...",
+      "front": "Äá»‹nh nghÄ©a suy tim?",
+      "back": "Suy tim lÃ ...",
       "frontImage": "https://.../front.png",
       "backImage": "https://.../back.png"
     },
-    { "front": "Có mấy độ NYHA?", "back": "4 độ: I, II, III, IV" }
+    { "front": "CÃ³ máº¥y Ä‘á»™ NYHA?", "back": "4 Ä‘á»™: I, II, III, IV" }
   ],
   "questions": [
     {
-      "question": "SpO2 bình thường khoảng bao nhiêu?",
+      "question": "SpO2 bÃ¬nh thÆ°á»ng khoáº£ng bao nhiÃªu?",
       "image": "https://.../question.png",
       "choices": [
-        { "text": "95-100%", "isCorrect": true, "image": "https://..." },
-        { "text": "80-85%", "isCorrect": false }
+        { "text": "Lựa chọn A", "isCorrect": true, "image": "https://..." },
+        { "text": "Lựa chọn B", "isCorrect": false }
       ],
-      "explanation": "Normal SpO2 is 95-100%."
+      "explanation": "Đây là đáp án minh họa."
     }
   ]
 }`}
@@ -660,13 +660,13 @@ export default function ImportManualJsonPage() {
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground">
-                Có thể chỉ cần <code>flashcards</code> hoặc chỉ{" "}
-                <code>questions</code>. Các field khác là optional.
+                CÃ³ thá»ƒ chá»‰ cáº§n <code>flashcards</code> hoáº·c chá»‰{" "}
+                <code>questions</code>. CÃ¡c field khÃ¡c lÃ  optional.
               </p>
             </div>
 
             <Button type="submit" disabled={loading || !jsonText.trim()}>
-              {loading ? "Đang import..." : "Import JSON"}
+              {loading ? "Äang import..." : "Import JSON"}
             </Button>
           </form>
         </CardContent>
@@ -678,10 +678,10 @@ export default function ImportManualJsonPage() {
             </p>
           )}
 
-          {/* Hướng dẫn nhanh format JSON */}
+          {/* HÆ°á»›ng dáº«n nhanh format JSON */}
           <div className="mt-2 w-full space-y-2 rounded-md border border-dashed border-border/70 bg-background/40 p-3 text-xs text-muted-foreground">
             <p className="font-semibold text-foreground">
-              Gợi ý format JSON:
+              Gá»£i Ã½ format JSON:
             </p>
             <ul className="list-disc space-y-1 pl-4">
               <li>
@@ -706,3 +706,4 @@ export default function ImportManualJsonPage() {
     </main>
   )
 }
+

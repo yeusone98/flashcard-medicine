@@ -89,8 +89,18 @@ export default async function DeckFlashcardsPage(
         .sort(sort)
         .toArray()
 
+    let studyLimitInfo:
+        | {
+            newPerDay: number
+            reviewPerDay: number
+            dueBeforeLimit: number
+            dueAfterLimit: number
+        }
+        | null = null
+
     if (mode === "due") {
         const deckOptions = normalizeDeckOptions(deck.options ?? null)
+        const dueBeforeLimit = flashcards.length
         const reviewLogsCol = await getReviewLogsCollection()
         const startOfDay = new Date(now)
         startOfDay.setHours(0, 0, 0, 0)
@@ -133,6 +143,12 @@ export default async function DeckFlashcardsPage(
         }
 
         flashcards = filtered
+        studyLimitInfo = {
+            newPerDay: deckOptions.newPerDay,
+            reviewPerDay: deckOptions.reviewPerDay,
+            dueBeforeLimit,
+            dueAfterLimit: filtered.length,
+        }
     }
 
     const cards = flashcards.map((c) => ({
@@ -172,6 +188,7 @@ export default async function DeckFlashcardsPage(
                 mode={mode}
                 subject={subject}
                 cards={displayCards}
+                studyLimitInfo={studyLimitInfo}
             />
         </main>
     )

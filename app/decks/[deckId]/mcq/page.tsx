@@ -69,6 +69,10 @@ function shuffle<T>(items: T[]): T[] {
 interface DeckSummary {
   _id: string
   name?: string
+  options?: {
+    newPerDay?: number
+    reviewPerDay?: number
+  }
 }
 
 interface McqResult {
@@ -99,6 +103,10 @@ export default function MCQPage() {
   const [answers, setAnswers] = useState<AnswerState[]>([])
   const [loading, setLoading] = useState(true)
   const [deckName, setDeckName] = useState("")
+  const [studyLimits, setStudyLimits] = useState<{
+    newPerDay: number
+    reviewPerDay: number
+  } | null>(null)
 
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [showSubmitModal, setShowSubmitModal] = useState(false)
@@ -123,7 +131,7 @@ export default function MCQPage() {
 
         const questionMode = studyMode === "due" ? "due" : "all"
         const [deckRes, questionsRes, resultRes] = await Promise.all([
-          fetch("/api/decks"),
+          fetch(`/api/decks/${deckId}`),
           fetch(`/api/questions?deckId=${deckId}&mode=${questionMode}`),
           fetch(`/api/mcq-results?deckId=${deckId}`),
         ])
@@ -135,9 +143,21 @@ export default function MCQPage() {
           throw new Error("Không thể tải câu hỏi trắc nghiệm")
         }
 
-        const deckList = (await deckRes.json()) as DeckSummary[]
-        const deck = deckList.find(d => d._id === deckId)
+        const deck = (await deckRes.json()) as DeckSummary
         setDeckName(deck?.name ?? "")
+        const parsedNewPerDay =
+          typeof deck?.options?.newPerDay === "number" && Number.isFinite(deck.options.newPerDay)
+            ? deck.options.newPerDay
+            : 20
+        const parsedReviewPerDay =
+          typeof deck?.options?.reviewPerDay === "number" &&
+          Number.isFinite(deck.options.reviewPerDay)
+            ? deck.options.reviewPerDay
+            : 200
+        setStudyLimits({
+          newPerDay: Math.max(0, Math.trunc(parsedNewPerDay)),
+          reviewPerDay: Math.max(0, Math.trunc(parsedReviewPerDay)),
+        })
 
         const questionsData = (await questionsRes.json()) as Question[]
         const normalizedQuestions = questionsData.map((q) => ({
@@ -193,6 +213,7 @@ export default function MCQPage() {
         console.error(error)
         setIsSubmitted(false)
         setSavedResult(null)
+        setStudyLimits(null)
       } finally {
         setLoading(false)
       }
@@ -681,6 +702,13 @@ export default function MCQPage() {
                 </Link>
               </Button>
             </div>
+            {studyMode === "due" && studyLimits ? (
+              <p className="mt-2 max-w-3xl rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
+                `Hôm nay` đang áp dụng giới hạn học: mới {studyLimits.newPerDay}
+                /ngày, ôn {studyLimits.reviewPerDay}/ngày. Nếu không thấy đủ số câu,
+                chuyển sang tab `Tất cả` hoặc tăng giới hạn trong Tùy chọn học.
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -815,11 +843,20 @@ export default function MCQPage() {
                       disabled={isSubmitted}
                       className={choiceClasses}
                     >
-                      <div className="flex items-start gap-3">
+                      <div
+                        className={cn(
+                          "flex gap-3",
+                          choice.image ? "items-start" : "items-center",
+                        )}
+                      >
                         <span className="flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold">
                           {String.fromCharCode(65 + i)}
                         </span>
-                        <div className="space-y-2">
+                        <div
+                          className={cn(
+                            choice.image ? "space-y-2" : "flex min-h-7 items-center",
+                          )}
+                        >
                           <RichContent
                             content={choice.text}
                             className="leading-relaxed"

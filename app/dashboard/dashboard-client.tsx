@@ -1,7 +1,7 @@
 // app/dashboard/dashboard-client.tsx
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { BookOpenCheck, ListChecks, RefreshCw, LifeBuoy } from "lucide-react"
 
@@ -41,9 +41,24 @@ interface DashboardDeck {
   lastMcqAt: string | null
 }
 
+interface DashboardSubject {
+  name: string
+  isUnassigned: boolean
+  deckCount: number
+  totalFlashcards: number
+  dueFlashcards: number
+  totalQuestions: number
+  dueQuestions: number
+  newPerDayMin: number
+  newPerDayMax: number
+  reviewPerDayMin: number
+  reviewPerDayMax: number
+}
+
 interface DashboardResponse {
   summary: DashboardSummary
   decks: DashboardDeck[]
+  subjects: DashboardSubject[]
 }
 
 export default function DashboardClient() {
@@ -51,7 +66,7 @@ export default function DashboardClient() {
   const [data, setData] = useState<DashboardResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch("/api/dashboard")
@@ -71,11 +86,11 @@ export default function DashboardClient() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
   useEffect(() => {
     void loadDashboard()
-  }, [])
+  }, [loadDashboard])
 
   const sortedDecks = useMemo(() => {
     if (!data?.decks) return []
@@ -85,6 +100,14 @@ export default function DashboardClient() {
       return dueB - dueA
     })
   }, [data])
+
+  const sortedSubjects = useMemo(() => {
+    if (!data?.subjects) return []
+    return [...data.subjects]
+  }, [data])
+
+  const formatLimit = (min: number, max: number) =>
+    min === max ? `${min}` : `${min}-${max}`
 
   if (loading) {
     return (
@@ -187,6 +210,96 @@ export default function DashboardClient() {
             </p>
           </CardContent>
         </Card>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">Tong quan theo mon</h2>
+          <Badge variant="outline" className="text-[11px]">
+            {sortedSubjects.length} mon
+          </Badge>
+        </div>
+
+        {sortedSubjects.length === 0 ? (
+          <Card>
+            <CardContent className="py-6 text-sm text-muted-foreground">
+              Chua co mon hoc nao.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {sortedSubjects.map((subject) => {
+              const dueTotal = subject.dueFlashcards + subject.dueQuestions
+              const totalItems = subject.totalFlashcards + subject.totalQuestions
+              return (
+                <Card key={subject.name} className="border-border/70 bg-card/80">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-base">{subject.name}</CardTitle>
+                      <Badge
+                        variant={dueTotal > 0 ? "default" : "outline"}
+                        className="text-[11px]"
+                      >
+                        {dueTotal > 0 ? `${dueTotal} can hoc` : "Khong co muc den han"}
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs text-muted-foreground">
+                      {subject.deckCount} deck - {totalItems} muc
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-xs text-muted-foreground">
+                    <div className="grid gap-1 sm:grid-cols-2">
+                      <div>
+                        Flashcards:{" "}
+                        <strong className="text-foreground">
+                          {subject.dueFlashcards}
+                        </strong>{" "}
+                        / {subject.totalFlashcards}
+                      </div>
+                      <div>
+                        MCQ:{" "}
+                        <strong className="text-foreground">
+                          {subject.dueQuestions}
+                        </strong>{" "}
+                        / {subject.totalQuestions}
+                      </div>
+                    </div>
+                    <p>
+                      Gioi han hoc dang ap dung (new/review):{" "}
+                      <strong className="text-foreground">
+                        {formatLimit(subject.newPerDayMin, subject.newPerDayMax)}
+                      </strong>
+                      {" / "}
+                      <strong className="text-foreground">
+                        {formatLimit(
+                          subject.reviewPerDayMin,
+                          subject.reviewPerDayMax,
+                        )}
+                      </strong>
+                      {subject.newPerDayMin !== subject.newPerDayMax ||
+                      subject.reviewPerDayMin !== subject.reviewPerDayMax
+                        ? " (cac deck trong mon dang khac nhau)"
+                        : ""}
+                    </p>
+                    <div className="pt-1">
+                      <Button asChild size="sm" variant="outline">
+                        <Link
+                          href={
+                            subject.isUnassigned
+                              ? "/decks"
+                              : `/decks?subject=${encodeURIComponent(subject.name)}`
+                          }
+                        >
+                          Xem deck theo mon
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        )}
       </section>
 
       <section className="space-y-3">
