@@ -1,7 +1,7 @@
 // app/profile/page.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 
@@ -11,17 +11,34 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
+import { Separator } from "@/components/ui/separator"
 
 export default function ProfilePage() {
     const { data: session, status, update } = useSession()
     const router = useRouter()
     const { toast } = useToast()
+
     const [file, setFile] = useState<File | null>(null)
-    const [loading, setLoading] = useState(false)
+    const [avatarLoading, setAvatarLoading] = useState(false)
+
+    const [name, setName] = useState("")
+    const [email, setEmail] = useState("")
+    const [profileLoading, setProfileLoading] = useState(false)
+
+    const [currentPassword, setCurrentPassword] = useState("")
+    const [newPassword, setNewPassword] = useState("")
+    const [passwordLoading, setPasswordLoading] = useState(false)
 
     const user = session?.user as
         | { name?: string | null; email?: string | null; image?: string | null }
         | undefined
+
+    useEffect(() => {
+        if (user) {
+            setName(user.name || "")
+            setEmail(user.email || "")
+        }
+    }, [user])
 
     const displayName = user?.name || user?.email || "Người dùng"
     const initials = (displayName || "?")
@@ -34,7 +51,7 @@ export default function ProfilePage() {
 
     const avatarSrc = user?.image || "/avatar-default.png"
 
-    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    async function handleAvatarSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         if (!file) {
             toast({
@@ -46,7 +63,7 @@ export default function ProfilePage() {
         }
 
         try {
-            setLoading(true)
+            setAvatarLoading(true)
             const formData = new FormData()
             formData.append("file", file)
 
@@ -70,7 +87,6 @@ export default function ProfilePage() {
                 description: "Ảnh đại diện mới đã được lưu.",
             })
 
-            // 🔥 Refresh session để navbar & profile dùng image mới
             await update()
             router.refresh()
         } catch (err) {
@@ -81,10 +97,90 @@ export default function ProfilePage() {
                 description: "Có lỗi xảy ra, vui lòng thử lại.",
             })
         } finally {
-            setLoading(false)
+            setAvatarLoading(false)
         }
     }
 
+    async function handleProfileSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault()
+        try {
+            setProfileLoading(true)
+
+            const body: Record<string, string> = {}
+            if (name.trim() !== (user?.name || "")) body.name = name.trim()
+            if (email.trim() !== (user?.email || "")) body.email = email.trim()
+
+            if (Object.keys(body).length === 0) {
+                toast({ title: "Không có thay đổi" })
+                return
+            }
+
+            const res = await fetch("/api/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            })
+
+            const data = await res.json()
+            if (!res.ok) {
+                toast({
+                    variant: "destructive",
+                    title: "Cập nhật thất bại",
+                    description: data.error || "Vui lòng thử lại.",
+                })
+                return
+            }
+
+            toast({ title: "Cập nhật hồ sơ thành công" })
+            await update()
+            router.refresh()
+        } catch (err) {
+            console.error(err)
+            toast({
+                variant: "destructive",
+                title: "Lỗi",
+                description: "Có lỗi xảy ra, vui lòng thử lại.",
+            })
+        } finally {
+            setProfileLoading(false)
+        }
+    }
+
+    async function handlePasswordSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault()
+        try {
+            setPasswordLoading(true)
+
+            const res = await fetch("/api/profile/password", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ currentPassword, newPassword }),
+            })
+
+            const data = await res.json()
+            if (!res.ok) {
+                toast({
+                    variant: "destructive",
+                    title: "Đổi mật khẩu thất bại",
+                    description: data.error || "Vui lòng thử lại.",
+                })
+                return
+            }
+
+            toast({ title: "Đổi mật khẩu thành công" })
+            setCurrentPassword("")
+            setNewPassword("")
+        } catch (err) {
+            console.error(err)
+            toast({
+                variant: "destructive",
+                title: "Lỗi",
+                description: "Có lỗi xảy ra, vui lòng thử lại.",
+            })
+        } finally {
+            setPasswordLoading(false)
+        }
+    }
 
     if (status === "loading") {
         return (
@@ -106,6 +202,7 @@ export default function ProfilePage() {
 
     return (
         <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col gap-6 px-4 py-6 stagger">
+            {/* Thông tin cá nhân */}
             <Card>
                 <CardHeader>
                     <CardTitle>Hồ sơ cá nhân</CardTitle>
@@ -128,9 +225,45 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <Separator />
+
+                    {/* Sửa thông tin */}
+                    <form onSubmit={handleProfileSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="avatar">Ảnh đại diện</Label>
+                            <Label htmlFor="name">Tên hiển thị</Label>
+                            <Input
+                                id="name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Nhập tên của bạn"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Nhập email"
+                            />
+                        </div>
+                        <Button type="submit" disabled={profileLoading}>
+                            {profileLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+
+            {/* Avatar */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Ảnh đại diện</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleAvatarSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="avatar">Chọn ảnh mới</Label>
                             <Input
                                 id="avatar"
                                 type="file"
@@ -144,9 +277,42 @@ export default function ProfilePage() {
                                 Chấp nhận file hình ảnh (tối đa 2MB).
                             </p>
                         </div>
+                        <Button type="submit" disabled={avatarLoading}>
+                            {avatarLoading ? "Đang upload..." : "Cập nhật avatar"}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
 
-                        <Button type="submit" disabled={loading}>
-                            {loading ? "Đang upload..." : "Cập nhật avatar"}
+            {/* Đổi mật khẩu */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Đổi mật khẩu</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
+                            <Input
+                                id="currentPassword"
+                                type="password"
+                                value={currentPassword}
+                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                placeholder="Nhập mật khẩu hiện tại"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="newPassword">Mật khẩu mới</Label>
+                            <Input
+                                id="newPassword"
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
+                            />
+                        </div>
+                        <Button type="submit" disabled={passwordLoading}>
+                            {passwordLoading ? "Đang xử lý..." : "Đổi mật khẩu"}
                         </Button>
                     </form>
                 </CardContent>

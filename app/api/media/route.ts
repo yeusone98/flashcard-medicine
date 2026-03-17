@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import type { Session } from "next-auth"
 import { auth } from "@/auth"
 import { getMediaCollection } from "@/lib/mongodb"
+import { getUserIdFromSession } from "@/lib/auth-helpers"
 
 export const runtime = "nodejs"
 
-function getUserIdFromSession(session: Session | null): string | undefined {
-  if (!session?.user) return undefined
-  if ("id" in session.user && typeof session.user.id === "string") {
-    return session.user.id
-  }
-  return undefined
-}
+
 
 export async function GET(req: NextRequest) {
   try {

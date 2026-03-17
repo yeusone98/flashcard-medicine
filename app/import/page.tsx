@@ -20,14 +20,14 @@ export default async function ImportHubPage() {
     <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-8 stagger">
       <section className="space-y-2">
         <Badge variant="outline" className="text-xs">
-          Import du lieu
+          Import dữ liệu
         </Badge>
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          Import Flashcard va MCQ
+          Import Flashcard và MCQ
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Moi loai deu co 2 cach: tao thu cong ngay tren trang import (giong
-          Edit set), hoac import JSON.
+          Mỗi loại đều có 2 cách: tạo thủ công ngay trên trang import (giống
+          Edit set), hoặc import JSON.
         </p>
       </section>
 
@@ -41,19 +41,19 @@ export default async function ImportHubPage() {
               Import Flashcard
             </CardTitle>
             <CardDescription>
-              Bat buoc chon mon hoc va bo the truoc khi tao flashcard.
+              Bắt buộc chọn môn học và bộ thẻ trước khi tạo flashcard.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 text-xs text-muted-foreground">
             <ul className="list-disc space-y-1 pl-4">
-              <li>Cach 1: Tao thu cong giong Edit set</li>
-              <li>Cach 2: Import JSON flashcard</li>
+              <li>Cách 1: Tạo thủ công giống Edit set</li>
+              <li>Cách 2: Import JSON flashcard</li>
             </ul>
           </CardContent>
           <CardFooter>
             <Button asChild className="w-full justify-between">
               <Link href="/import/flashcard">
-                Mo import Flashcard
+                Mở import Flashcard
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -69,19 +69,19 @@ export default async function ImportHubPage() {
               Import MCQ
             </CardTitle>
             <CardDescription>
-              Bat buoc chon mon hoc va bo the truoc khi tao MCQ.
+              Bắt buộc chọn môn học và bộ thẻ trước khi tạo MCQ.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 text-xs text-muted-foreground">
             <ul className="list-disc space-y-1 pl-4">
-              <li>Cach 1: Tao thu cong giong Edit set</li>
-              <li>Cach 2: Import JSON MCQ</li>
+              <li>Cách 1: Tạo thủ công giống Edit set</li>
+              <li>Cách 2: Import JSON MCQ</li>
             </ul>
           </CardContent>
           <CardFooter>
             <Button asChild className="w-full justify-between" variant="outline">
               <Link href="/import/mcq">
-                Mo import MCQ
+                Mở import MCQ
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

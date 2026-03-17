@@ -6,22 +6,28 @@ import {
   getReviewLogsCollection,
   ObjectId,
 } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
 import {
   buildFsrsCard,
-  mapFlashcardRating,
+  mapReviewRating,
   mapRatingToLabel,
   mapStateToLabel,
   normalizeDeckOptions,
   scheduleFsrsReview,
 } from "@/lib/fsrs"
 
-type SimpleRating = "hard" | "medium" | "easy"
+type ReviewRating = "again" | "hard" | "good" | "easy"
+
+const allowedRatings: ReviewRating[] = ["again", "hard", "good", "easy"]
 
 export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+
     const { id } = await props.params
 
     if (!ObjectId.isValid(id)) {
@@ -32,11 +38,11 @@ export async function POST(
     }
 
     const body = await req.json().catch(() => ({}))
-    const rating = String(body.rating ?? "") as SimpleRating
+    const rating = String(body.rating ?? "") as ReviewRating
 
-    if (!["hard", "medium", "easy"].includes(rating)) {
+    if (!allowedRatings.includes(rating)) {
       return NextResponse.json(
-        { error: "rating must be 'hard' | 'medium' | 'easy'" },
+        { error: "rating must be 'again' | 'hard' | 'good' | 'easy'" },
         { status: 400 },
       )
     }
@@ -61,7 +67,7 @@ export async function POST(
 
     const now = new Date()
     const fsrsCard = buildFsrsCard(card, now)
-    const fsrsRating = mapFlashcardRating(rating)
+    const fsrsRating = mapReviewRating(rating)
 
     const result = scheduleFsrsReview(fsrsCard, fsrsRating, now, deckOptions)
     const nextCard = result.card

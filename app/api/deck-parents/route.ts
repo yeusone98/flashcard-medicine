@@ -3,24 +3,30 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   getDeckParentsCollection,
   getDecksCollection,
+  ObjectId,
 } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
 
 export const runtime = "nodejs"
 
 export async function GET() {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
+
     const [decksCol, parentsCol] = await Promise.all([
       getDecksCollection(),
       getDeckParentsCollection(),
     ])
 
-    const rawSubjects = (await decksCol.distinct("subject")) as (
+    const rawSubjects = (await decksCol.distinct("subject", { userId: new ObjectId(userId) })) as (
       | string
       | null
     )[]
 
     const storedParents = await parentsCol
-      .find({}, { projection: { name: 1 } })
+      .find({ userId: new ObjectId(userId) }, { projection: { name: 1 } })
       .toArray()
 
     const merged = [
@@ -49,6 +55,10 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
+
     const body = await req.json().catch(() => ({}))
     const nameRaw = typeof body?.name === "string" ? body.name : ""
     const name = nameRaw.trim()
@@ -66,6 +76,7 @@ export async function POST(req: NextRequest) {
       value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
     const existing = await parentsCol.findOne({
+      userId: new ObjectId(userId),
       name: { $regex: `^${escapeRegex(name)}$`, $options: "i" },
     })
 
@@ -78,6 +89,7 @@ export async function POST(req: NextRequest) {
 
     const now = new Date()
     const insert = await parentsCol.insertOne({
+      userId: new ObjectId(userId),
       name,
       createdAt: now,
       updatedAt: now,

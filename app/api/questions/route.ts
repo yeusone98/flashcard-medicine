@@ -5,32 +5,18 @@ import {
     getReviewLogsCollection,
     ObjectId,
 } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
+import { normalizeImage, normalizeTags } from "@/lib/normalize"
 import { mapStateToQueue, normalizeDeckOptions } from "@/lib/fsrs"
 import { State } from "ts-fsrs"
 
-function normalizeImage(value: unknown): string | undefined {
-    if (typeof value !== "string") return undefined
-    const trimmed = value.trim()
-    return trimmed.length > 0 ? trimmed : undefined
-}
 
-function normalizeTags(value: unknown): string[] | undefined {
-    const raw =
-        Array.isArray(value)
-            ? value
-            : typeof value === "string"
-                ? value.split(",")
-                : []
-
-    const tags = raw
-        .map((tag) => (typeof tag === "string" ? tag.trim().toLowerCase() : ""))
-        .filter((tag) => tag.length > 0)
-
-    if (tags.length === 0) return undefined
-    return Array.from(new Set(tags))
-}
 
 export async function GET(req: NextRequest) {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
+
     const deckId = req.nextUrl.searchParams.get("deckId")
     const mode = req.nextUrl.searchParams.get("mode") ?? "all"
     if (!deckId || !ObjectId.isValid(deckId)) {
@@ -43,6 +29,12 @@ export async function GET(req: NextRequest) {
         getDecksCollection(),
         getReviewLogsCollection(),
     ])
+
+    // Verify deck ownership
+    const deckDoc = await decksCol.findOne({ _id: deckObjectId, userId: new ObjectId(userId) })
+    if (!deckDoc) {
+        return NextResponse.json({ error: "Deck not found" }, { status: 404 })
+    }
     const now = new Date()
 
     const query: any =
@@ -123,6 +115,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
+        const authResult = await requireAuth()
+        if (authResult instanceof NextResponse) return authResult
+        const { userId } = authResult
+
         const body = await req.json()
 
         const deckId = typeof body?.deckId === "string" ? body.deckId : ""
@@ -131,6 +127,13 @@ export async function POST(req: NextRequest) {
                 { error: "Missing or invalid deckId" },
                 { status: 400 },
             )
+        }
+
+        // Verify deck ownership
+        const decksCol = await getDecksCollection()
+        const deckDoc = await decksCol.findOne({ _id: new ObjectId(deckId), userId: new ObjectId(userId) })
+        if (!deckDoc) {
+            return NextResponse.json({ error: "Deck not found" }, { status: 404 })
         }
 
         const deckObjectId = new ObjectId(deckId)
@@ -170,13 +173,13 @@ export async function POST(req: NextRequest) {
                         typeof q?.explanation === "string"
                             ? q.explanation.trim()
                             : undefined,
-        tags: normalizeTags(q?.tags),
-        order: typeof q?.order === "number" ? q.order : baseOrder + index,
-        level: 0,
-        fsrsState: State.New,
-        createdAt: now,
-        updatedAt: now,
-      }
+                    tags: normalizeTags(q?.tags),
+                    order: typeof q?.order === "number" ? q.order : baseOrder + index,
+                    level: 0,
+                    fsrsState: State.New,
+                    createdAt: now,
+                    updatedAt: now,
+                }
             })
             .filter(
                 (q: { question: string; choices: { isCorrect: boolean }[] }) =>

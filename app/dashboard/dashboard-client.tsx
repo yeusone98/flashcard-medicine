@@ -214,16 +214,16 @@ export default function DashboardClient() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Tong quan theo mon</h2>
+          <h2 className="text-base font-semibold">Tổng quan theo môn</h2>
           <Badge variant="outline" className="text-[11px]">
-            {sortedSubjects.length} mon
+            {sortedSubjects.length} môn
           </Badge>
         </div>
 
         {sortedSubjects.length === 0 ? (
           <Card>
             <CardContent className="py-6 text-sm text-muted-foreground">
-              Chua co mon hoc nao.
+              Chưa có môn học nào.
             </CardContent>
           </Card>
         ) : (
@@ -240,7 +240,7 @@ export default function DashboardClient() {
                         variant={dueTotal > 0 ? "default" : "outline"}
                         className="text-[11px]"
                       >
-                        {dueTotal > 0 ? `${dueTotal} can hoc` : "Khong co muc den han"}
+                        {dueTotal > 0 ? `${dueTotal} cần học` : "Không có mục đến hạn"}
                       </Badge>
                     </div>
                     <CardDescription className="text-xs text-muted-foreground">
@@ -265,7 +265,7 @@ export default function DashboardClient() {
                       </div>
                     </div>
                     <p>
-                      Gioi han hoc dang ap dung (new/review):{" "}
+                      Giới hạn học đang áp dụng (new/review):{" "}
                       <strong className="text-foreground">
                         {formatLimit(subject.newPerDayMin, subject.newPerDayMax)}
                       </strong>
@@ -278,7 +278,7 @@ export default function DashboardClient() {
                       </strong>
                       {subject.newPerDayMin !== subject.newPerDayMax ||
                       subject.reviewPerDayMin !== subject.reviewPerDayMax
-                        ? " (cac deck trong mon dang khac nhau)"
+                        ? " (các deck trong môn đang khác nhau)"
                         : ""}
                     </p>
                     <div className="pt-1">
@@ -290,7 +290,7 @@ export default function DashboardClient() {
                               : `/decks?subject=${encodeURIComponent(subject.name)}`
                           }
                         >
-                          Xem deck theo mon
+                          Xem deck theo môn
                         </Link>
                       </Button>
                     </div>
@@ -375,7 +375,7 @@ export default function DashboardClient() {
                         </Link>
                       </Button>
                       <Button asChild size="sm" variant="ghost">
-                        <Link href={`/decks/${deck._id}/edit`}>Edit set</Link>
+                        <Link href={`/decks/${deck._id}/edit`}>Chỉnh sửa</Link>
                       </Button>
                     </div>
                   </CardContent>

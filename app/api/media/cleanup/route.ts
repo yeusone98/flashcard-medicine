@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import type { Session } from "next-auth"
 import { auth } from "@/auth"
+import { getUserIdFromSession } from "@/lib/auth-helpers"
 import cloudinary from "@/lib/cloudinary"
 import {
   getDecksCollection,
@@ -12,13 +12,7 @@ import {
 
 export const runtime = "nodejs"
 
-function getUserIdFromSession(session: Session | null): string | undefined {
-  if (!session?.user) return undefined
-  if ("id" in session.user && typeof session.user.id === "string") {
-    return session.user.id
-  }
-  return undefined
-}
+
 
 const URL_REGEX = /https?:\/\/[^\s"'<>]+/gi
 

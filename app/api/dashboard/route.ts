@@ -1,4 +1,3 @@
-// app/api/dashboard/route.ts
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import {
@@ -9,6 +8,7 @@ import {
   ObjectId,
 } from "@/lib/mongodb"
 import { normalizeDeckOptions } from "@/lib/fsrs"
+import { getUserIdFromSession } from "@/lib/auth-helpers"
 
 export const runtime = "nodejs"
 
@@ -37,7 +37,8 @@ type McqAggregateRow = {
 export async function GET() {
   try {
     const session = await auth()
-    if (!session?.user) {
+    const userId = getUserIdFromSession(session)
+    if (!userId) {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 })
     }
 
@@ -51,7 +52,7 @@ export async function GET() {
 
     const decks = (await decksCol
       .find(
-        {},
+        { userId: new ObjectId(userId) },
         {
           projection: {
             name: 1,

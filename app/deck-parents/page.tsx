@@ -1,6 +1,6 @@
 // app/deck-parents/page.tsx
 import { requireSession } from "@/lib/require-user"
-import { getDeckParentsCollection, getDecksCollection } from "@/lib/mongodb"
+import { getDeckParentsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
 
 interface ParentRow {
   _id: string | null
@@ -15,7 +15,7 @@ export interface ParentInfo {
 import { DeckParentsClient } from "./deck-parents-client"
 
 export default async function DeckParentsPage() {
-  await requireSession()
+  const { userId } = await requireSession()
 
   const [decksCol, parentsCol] = await Promise.all([
     getDecksCollection(),
@@ -24,6 +24,7 @@ export default async function DeckParentsPage() {
 
   const rows = (await decksCol
     .aggregate<ParentRow>([
+      { $match: { userId: new ObjectId(userId) } },
       {
         $group: {
           _id: "$subject",
@@ -35,7 +36,7 @@ export default async function DeckParentsPage() {
     .toArray()) as ParentRow[]
 
   const storedParents = await parentsCol
-    .find({}, { projection: { name: 1 } })
+    .find({ userId: new ObjectId(userId) }, { projection: { name: 1 } })
     .toArray()
 
   const deckCountByName = new Map(

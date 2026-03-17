@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import RichContent from "@/components/rich-content"
 
-type ReviewRating = "hard" | "medium" | "easy"
+type ReviewRating = "again" | "hard" | "good" | "easy"
 
 export interface FlashcardStudyItem {
   _id: string
@@ -205,16 +205,18 @@ export default function FlashcardStudyClient({
   )
 
   const ratingStats = useMemo(() => {
+    let again = 0
     let hard = 0
-    let medium = 0
+    let good = 0
     let easy = 0
     for (const c of cards) {
       const r = sessionRatings[c._id]
-      if (r === "hard") hard++
-      else if (r === "medium") medium++
+      if (r === "again") again++
+      else if (r === "hard") hard++
+      else if (r === "good") good++
       else if (r === "easy") easy++
     }
-    return { hard, medium, easy }
+    return { again, hard, good, easy }
   }, [cards, sessionRatings])
 
   const elapsedSeconds = Math.max(
@@ -356,25 +358,27 @@ export default function FlashcardStudyClient({
         }))
 
         const title =
-          rating === "hard"
-            ? "Marked: Hard"
-            : rating === "medium"
-              ? "Marked: Medium"
-              : "Marked: Easy"
+          rating === "again"
+            ? "Đã chấm: Lại"
+            : rating === "hard"
+              ? "Đã chấm: Khó"
+              : rating === "good"
+                ? "Đã chấm: Tốt"
+                : "Đã chấm: Dễ"
 
         const intervalLabel =
-          serverDays <= 1 ? "tomorrow" : `in ${serverDays} days`
+          serverDays <= 1 ? "ngày mai" : `sau ${serverDays} ngày`
 
         toast({
           title,
-          description: `This card will come back ${intervalLabel}.`,
+          description: `Thẻ này sẽ quay lại ${intervalLabel}.`,
         })
 
         if (willAllBeRated) {
           toast({
-            title: "Session complete",
+            title: "Hoàn thành phiên học",
             description:
-              "You rated all cards in this session. Due cards will return based on FSRS scheduling.",
+              "Bạn đã chấm tất cả thẻ trong phiên này. Thẻ đến hạn sẽ quay lại theo lịch FSRS.",
           })
         }
 
@@ -383,12 +387,12 @@ export default function FlashcardStudyClient({
         const error =
           err instanceof Error
             ? err
-            : new Error("Failed to rate card.")
+            : new Error("Không thể chấm thẻ.")
         console.error(error)
         toast({
           variant: "destructive",
-          title: "Rating error",
-          description: error.message || "Please try again.",
+          title: "Lỗi khi chấm thẻ",
+          description: error.message || "Vui lòng thử lại.",
         })
       } finally {
         setIsReviewing(false)
@@ -482,17 +486,23 @@ export default function FlashcardStudyClient({
 
       if (event.key === "1") {
         event.preventDefault()
-        void handleRating("hard")
+        void handleRating("again")
         return
       }
 
       if (event.key === "2") {
         event.preventDefault()
-        void handleRating("medium")
+        void handleRating("hard")
         return
       }
 
       if (event.key === "3") {
+        event.preventDefault()
+        void handleRating("good")
+        return
+      }
+
+      if (event.key === "4") {
         event.preventDefault()
         void handleRating("easy")
         return
@@ -554,15 +564,15 @@ export default function FlashcardStudyClient({
   if (total === 0) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
-        <p className="text-lg font-medium">No flashcards available.</p>
+        <p className="text-lg font-medium">Chưa có flashcard nào.</p>
         <p className="text-sm text-muted-foreground">
           {mode === "due"
-            ? "No cards are due today. Switch to All or Mixed to review everything."
-            : "Import or create flashcards before studying."}
+            ? "Hôm nay chưa có thẻ đến hạn. Chuyển sang Tất cả hoặc Tổng ôn để xem toàn bộ."
+            : "Hãy import hoặc tạo flashcard trước khi học."}
         </p>
         {mode === "due" && studyLimitInfo ? (
           <p className="max-w-xl rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-            `Today` dùng giới hạn học: mới {studyLimitInfo.newPerDay}/ngày, ôn{" "}
+            Chế độ Hôm nay dùng giới hạn học: mới {studyLimitInfo.newPerDay}/ngày, ôn{" "}
             {studyLimitInfo.reviewPerDay}/ngày.
           </p>
         ) : null}
@@ -608,7 +618,7 @@ export default function FlashcardStudyClient({
             <span className="text-primary">{deckName}</span>
           </h1>
           <p className="text-xs text-muted-foreground">
-            Space to flip. 1/2/3 to rate Hard / Medium / Easy.
+            Space = lật thẻ · 1 = Lại · 2 = Khó · 3 = Tốt · 4 = Dễ
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -619,7 +629,7 @@ export default function FlashcardStudyClient({
               <Link
                 href={`/decks/${deckId}/flashcards?mode=due${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`}
               >
-                Today
+                Hôm nay
               </Link>
             </Button>
             <Button
@@ -630,7 +640,7 @@ export default function FlashcardStudyClient({
               <Link
                 href={`/decks/${deckId}/flashcards?mode=all${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`}
               >
-                All
+                Tất cả
               </Link>
             </Button>
             <Button
@@ -641,7 +651,7 @@ export default function FlashcardStudyClient({
               <Link
                 href={`/decks/${deckId}/flashcards?mode=mix${subject ? `&subject=${encodeURIComponent(subject)}` : ""}`}
               >
-                Mixed review
+                Tổng ôn
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline">
@@ -652,7 +662,7 @@ export default function FlashcardStudyClient({
                     : `/decks/${deckId}/edit`
                 }
               >
-                Edit set
+                Chỉnh sửa
               </Link>
             </Button>
           </div>
@@ -682,13 +692,13 @@ export default function FlashcardStudyClient({
         </div>
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span>
-            Card: <span className="font-medium text-foreground">{currentNumber}/{total}</span>
+            Thẻ: <span className="font-medium text-foreground">{currentNumber}/{total}</span>
           </span>
           <span>
-            Rated: <span className="font-medium text-foreground">{ratedCount}/{total}</span>
+            Đã chấm: <span className="font-medium text-foreground">{ratedCount}/{total}</span>
           </span>
           <span className="hidden md:inline">
-            Time: <span className="font-medium text-foreground">{elapsedLabel}</span>
+            Thời gian: <span className="font-medium text-foreground">{elapsedLabel}</span>
           </span>
         </div>
       </header>
@@ -751,7 +761,7 @@ export default function FlashcardStudyClient({
             <CardContent className="relative px-0 py-0">
               <div className="h-[320px] w-full [perspective:1400px] md:h-[360px]">
                 <motion.div
-                  className="relative h-full w-full rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-slate-950 to-slate-950 shadow-2xl shadow-[0_30px_60px_-50px_hsl(var(--primary)/0.55)]"
+                  className="relative h-full w-full rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-slate-950 to-slate-950 shadow-2xl shadow-[0_30px_60px_-50px_hsl(var(--primary)/0.55)] dark:from-primary/15 dark:via-slate-950 dark:to-slate-950 from-primary/10 via-white to-slate-50"
                   style={{ transformStyle: "preserve-3d" }}
                   animate={{ rotateY: showBack ? 180 : 0 }}
                   initial={false}
@@ -761,13 +771,19 @@ export default function FlashcardStudyClient({
                       : { duration: 0 } // 👉 đổi thẻ: không animate
                   }
                   onClick={handleFlip}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={showBack ? "Lật về mặt trước" : "Lật xem mặt sau"}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleFlip()
+                  }}
                 >
                   {/* layer ánh sáng */}
                   <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top,_rgba(14,165,164,0.22),_transparent_55%),_radial-gradient(circle_at_bottom,_rgba(14,165,164,0.18),_transparent_55%)]" />
 
                   {/* FRONT */}
                   <div
-                    className="absolute inset-0 flex flex-col items-center justify-center px-6 py-8 text-center text-slate-50"
+                    className="absolute inset-0 flex flex-col items-center justify-center px-6 py-8 text-center text-foreground dark:text-slate-50"
                     style={{
                       backfaceVisibility: "hidden",
                       transform: "rotateY(0deg)",
@@ -810,7 +826,7 @@ export default function FlashcardStudyClient({
 
                   {/* BACK */}
                   <div
-                    className="absolute inset-0 flex flex-col items-center justify-center px-6 py-8 text-center text-slate-50"
+                    className="absolute inset-0 flex flex-col items-center justify-center px-6 py-8 text-center text-foreground dark:text-slate-50"
                     style={{
                       backfaceVisibility: "hidden",
                       transform: "rotateY(180deg)",
@@ -861,7 +877,16 @@ export default function FlashcardStudyClient({
             <span className="text-xs text-muted-foreground">
               Đánh giá thẻ:
             </span>
-            <div className="grid flex-1 grid-cols-3 gap-2 md:max-w-md">
+            <div className="grid flex-1 grid-cols-4 gap-2 md:max-w-lg">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isReviewing || !current}
+                className="justify-center border-red-500/60 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                onClick={() => void handleRating("again")}
+              >
+                Lại (1)
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -869,16 +894,16 @@ export default function FlashcardStudyClient({
                 className="justify-center border-destructive/60 bg-destructive/10 text-destructive hover:bg-destructive/20"
                 onClick={() => void handleRating("hard")}
               >
-                Khó (1)
+                Khó (2)
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={isReviewing || !current}
                 className="justify-center border-amber-400/70 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20"
-                onClick={() => void handleRating("medium")}
+                onClick={() => void handleRating("good")}
               >
-                Trung bình (2)
+                Tốt (3)
               </Button>
               <Button
                 size="sm"
@@ -886,12 +911,12 @@ export default function FlashcardStudyClient({
                 className="justify-center bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => void handleRating("easy")}
               >
-                Dễ (3)
+                Dễ (4)
               </Button>
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Phím tắt: Space = lật thẻ · 1 = Khó · 2 = Trung bình · 3 = Dễ · ← / → = lùi / tiến.
+            Phím tắt: Space = lật thẻ · 1 = Lại · 2 = Khó · 3 = Tốt · 4 = Dễ · ← / → = lùi / tiến.
           </p>
 
           {/* Ghi chú */}
@@ -963,10 +988,13 @@ export default function FlashcardStudyClient({
                     let ratingClasses =
                       "border-border/60 bg-background text-muted-foreground"
 
-                    if (rating === "hard") {
+                    if (rating === "again") {
+                      ratingClasses =
+                        "border-red-500/70 bg-red-500/10 text-red-400"
+                    } else if (rating === "hard") {
                       ratingClasses =
                         "border-destructive/70 bg-destructive/10 text-destructive-foreground"
-                    } else if (rating === "medium") {
+                    } else if (rating === "good") {
                       ratingClasses =
                         "border-amber-400/70 bg-amber-400/10 text-amber-100"
                     } else if (rating === "easy") {
@@ -1022,7 +1050,15 @@ export default function FlashcardStudyClient({
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-1">
+              <div className="grid grid-cols-4 gap-2 pt-1">
+                <div className="rounded-md bg-red-500/10 px-2 py-1">
+                  <p className="text-[10px] uppercase tracking-wide text-red-400">
+                    Lại
+                  </p>
+                  <p className="text-xs font-semibold text-red-300">
+                    {ratingStats.again}
+                  </p>
+                </div>
                 <div className="rounded-md bg-destructive/10 px-2 py-1">
                   <p className="text-[10px] uppercase tracking-wide text-destructive">
                     Khó
@@ -1033,10 +1069,10 @@ export default function FlashcardStudyClient({
                 </div>
                 <div className="rounded-md bg-amber-400/10 px-2 py-1">
                   <p className="text-[10px] uppercase tracking-wide text-amber-200">
-                    Trung bình
+                    Tốt
                   </p>
                   <p className="text-xs font-semibold text-amber-50">
-                    {ratingStats.medium}
+                    {ratingStats.good}
                   </p>
                 </div>
                 <div className="rounded-md bg-primary/10 px-2 py-1">
@@ -1077,7 +1113,7 @@ export default function FlashcardStudyClient({
         <DialogContent className="w-[95vw] max-w-5xl border-border/70 bg-background/95 backdrop-blur">
           <DialogHeader className="flex flex-row items-center justify-between space-y-0">
             <DialogTitle className="text-sm text-foreground">
-              {lightbox?.alt || "Image"}
+              {lightbox?.alt || "Hình ảnh"}
             </DialogTitle>
             <div className="flex items-center gap-2">
               <Button

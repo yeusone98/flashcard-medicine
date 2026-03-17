@@ -1,52 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getFlashcardsCollection, ObjectId } from "@/lib/mongodb"
+import { getFlashcardsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
+import { normalizeImage, normalizeTags, normalizeFields } from "@/lib/normalize"
 import { State } from "ts-fsrs"
 
-function normalizeImage(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
 
-function normalizeTags(value: unknown): string[] | undefined {
-  const raw =
-    Array.isArray(value)
-      ? value
-      : typeof value === "string"
-        ? value.split(",")
-        : []
-
-  const tags = raw
-    .map((tag) => (typeof tag === "string" ? tag.trim().toLowerCase() : ""))
-    .filter((tag) => tag.length > 0)
-
-  if (tags.length === 0) return undefined
-  return Array.from(new Set(tags))
-}
-
-function normalizeFields(
-  value: unknown,
-): Record<string, string> | undefined {
-  if (!value || typeof value !== "object") return undefined
-  const entries = Object.entries(value as Record<string, unknown>)
-  const output: Record<string, string> = {}
-  for (const [key, raw] of entries) {
-    const trimmedKey = String(key || "").trim()
-    if (!trimmedKey) continue
-    output[trimmedKey] =
-      typeof raw === "string"
-        ? raw
-        : raw === null || raw === undefined
-          ? ""
-          : String(raw)
-  }
-  return Object.keys(output).length > 0 ? output : undefined
-}
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireAuth()
+  if (authResult instanceof NextResponse) return authResult
+  const { userId } = authResult
+
   const deckId = req.nextUrl.searchParams.get("deckId")
   if (!deckId || !ObjectId.isValid(deckId)) {
     return NextResponse.json({ error: "Missing or invalid deckId" }, { status: 400 })
+  }
+
+  // Verify deck ownership
+  const decksCol = await getDecksCollection()
+  const deck = await decksCol.findOne({ _id: new ObjectId(deckId), userId: new ObjectId(userId) })
+  if (!deck) {
+    return NextResponse.json({ error: "Deck not found" }, { status: 404 })
   }
 
   const deckObjectId = new ObjectId(deckId)
@@ -68,6 +42,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
+
     const body = await req.json()
 
     const deckId = typeof body?.deckId === "string" ? body.deckId : ""
@@ -78,6 +56,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Verify deck ownership
+    const decksCol = await getDecksCollection()
+    const deck = await decksCol.findOne({ _id: new ObjectId(deckId), userId: new ObjectId(userId) })
+    if (!deck) {
+      return NextResponse.json({ error: "Deck not found" }, { status: 404 })
+    }
+
     const deckObjectId = new ObjectId(deckId)
     const flashcardsCol = await getFlashcardsCollection()
     const now = new Date()
@@ -85,13 +70,13 @@ export async function POST(req: NextRequest) {
     const items = Array.isArray(body?.flashcards)
       ? body.flashcards
       : [
-          {
-            front: body?.front,
-            back: body?.back,
-            frontImage: body?.frontImage,
-            backImage: body?.backImage,
-          },
-        ]
+        {
+          front: body?.front,
+          back: body?.back,
+          frontImage: body?.frontImage,
+          backImage: body?.backImage,
+        },
+      ]
 
     const docs = items
       .map((fc: any) => ({

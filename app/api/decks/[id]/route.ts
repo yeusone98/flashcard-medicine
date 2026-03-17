@@ -6,12 +6,17 @@ import {
   getQuestionsCollection,
   ObjectId,
 } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
 import { normalizeDeckOptions } from "@/lib/fsrs"
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireAuth()
+  if (authResult instanceof NextResponse) return authResult
+  const { userId } = authResult
+
   const { id } = await params
 
   if (!ObjectId.isValid(id)) {
@@ -22,7 +27,7 @@ export async function GET(
   }
 
   const decksCol = await getDecksCollection()
-  const deck = await decksCol.findOne({ _id: new ObjectId(id) })
+  const deck = await decksCol.findOne({ _id: new ObjectId(id), userId: new ObjectId(userId) })
 
   if (!deck) {
     return NextResponse.json(
@@ -41,6 +46,10 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireAuth()
+  if (authResult instanceof NextResponse) return authResult
+  const { userId } = authResult
+
   const { id } = await params
 
   if (!ObjectId.isValid(id)) {
@@ -58,6 +67,15 @@ export async function DELETE(
       getFlashcardsCollection(),
       getQuestionsCollection(),
     ])
+
+    // Verify ownership
+    const deck = await decksCol.findOne({ _id: deckObjectId, userId: new ObjectId(userId) })
+    if (!deck) {
+      return NextResponse.json(
+        { error: "Deck not found" },
+        { status: 404 },
+      )
+    }
 
     await Promise.all([
       flashcardsCol.deleteMany({ deckId: deckObjectId }),
@@ -79,6 +97,10 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireAuth()
+  if (authResult instanceof NextResponse) return authResult
+  const { userId } = authResult
+
   const { id } = await params
 
   if (!ObjectId.isValid(id)) {
@@ -91,7 +113,7 @@ export async function PATCH(
   const body = await req.json().catch(() => ({}))
   const deckObjectId = new ObjectId(id)
   const decksCol = await getDecksCollection()
-  const existing = await decksCol.findOne({ _id: deckObjectId })
+  const existing = await decksCol.findOne({ _id: deckObjectId, userId: new ObjectId(userId) })
 
   if (!existing) {
     return NextResponse.json(

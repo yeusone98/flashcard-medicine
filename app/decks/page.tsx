@@ -1,9 +1,7 @@
 // app/decks/page.tsx
 import type { Metadata } from "next"
-import type { ObjectId } from "mongodb"
-
 import { requireSession } from "@/lib/require-user"
-import { getDecksCollection } from "@/lib/mongodb"
+import { getDecksCollection, ObjectId } from "@/lib/mongodb"
 import { DecksPageClient, type DeckItem } from "./decks-page-client"
 
 interface DeckDoc {
@@ -20,13 +18,13 @@ export const metadata: Metadata = {
 }
 
 export default async function DeckListPage() {
-  await requireSession()
+  const { userId } = await requireSession()
 
   const decksCol = await getDecksCollection()
 
   const docs = (await decksCol
     .find(
-      {},
+      { userId: new ObjectId(userId) },
       {
         projection: {
           name: 1,

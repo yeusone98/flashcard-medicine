@@ -1,11 +1,16 @@
 // app/api/decks/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { getDecksCollection } from "@/lib/mongodb"
+import { getDecksCollection, ObjectId } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
 import { getDefaultDeckOptions } from "@/lib/fsrs"
 
 export async function GET() {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
+
     const decksCol = await getDecksCollection()
-    const decks = await decksCol.find({}).sort({ createdAt: -1 }).toArray()
+    const decks = await decksCol.find({ userId: new ObjectId(userId) }).sort({ createdAt: -1 }).toArray()
 
     // Chuyển ObjectId → string cho FE (giống Mongoose)
     const data = decks.map((d) => ({
@@ -18,6 +23,10 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
     try {
+        const authResult = await requireAuth()
+        if (authResult instanceof NextResponse) return authResult
+        const { userId } = authResult
+
         const body = await req.json().catch(() => ({}))
         const rawName = typeof body?.name === "string" ? body.name : ""
         const name = rawName.trim()
@@ -40,6 +49,7 @@ export async function POST(req: NextRequest) {
         const now = new Date()
 
         const deckInsert = await decksCol.insertOne({
+            userId: new ObjectId(userId),
             name,
             description: description || undefined,
             subject: subject || undefined,

@@ -88,7 +88,7 @@
   h2,
   h3,
   h4 {
-    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-family: var(--font-sans), var(--font-display), sans-serif;
     letter-spacing: -0.02em;
   }
 
@@ -185,7 +185,7 @@
   }
 
   .font-display {
-    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-family: var(--font-sans), var(--font-display), sans-serif;
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -73,17 +73,17 @@ export default function MediaLibraryPage() {
       const data = (await res.json()) as MediaResponse
 
       if (!res.ok) {
-        throw new Error((data as any)?.error || "Failed to load media")
+        throw new Error((data as any)?.error || "Không thể tải media")
       }
 
       setItems((prev) => (reset ? data.items : [...prev, ...data.items]))
       setTotal(data.total ?? 0)
       setPage(nextPage)
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Load failed"
+      const message = error instanceof Error ? error.message : "Tải thất bại"
       toast({
         variant: "destructive",
-        title: "Media load failed",
+        title: "Tải media thất bại",
         description: message,
       })
     } finally {
@@ -124,10 +124,10 @@ export default function MediaLibraryPage() {
         orphanCount: data.orphanCount ?? 0,
       })
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Scan failed"
+      const message = error instanceof Error ? error.message : "Quét thất bại"
       toast({
         variant: "destructive",
-        title: "Scan thất bại",
+        title: "Quét thất bại",
         description: message,
       })
     } finally {
@@ -150,7 +150,7 @@ export default function MediaLibraryPage() {
       setOrphanReport(null)
       void fetchMedia(true)
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Cleanup failed"
+      const message = error instanceof Error ? error.message : "Dọn dẹp thất bại"
       toast({
         variant: "destructive",
         title: "Cleanup thất bại",
@@ -169,7 +169,7 @@ export default function MediaLibraryPage() {
   return (
     <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6 stagger">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Media library</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Thư viện media</h1>
         <p className="text-sm text-muted-foreground">
           Quản lý ảnh/âm thanh đã upload, copy URL nhanh và dọn file không dùng.
         </p>

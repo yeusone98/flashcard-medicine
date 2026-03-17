@@ -1,26 +1,48 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getQuestionsCollection, ObjectId } from "@/lib/mongodb"
+import { getQuestionsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
+import { normalizeImage, normalizeTags } from "@/lib/normalize"
 
-function normalizeImage(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
+export async function GET(
+  _req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  const authResult = await requireAuth()
+  if (authResult instanceof NextResponse) return authResult
+  const { userId } = authResult
 
-function normalizeTags(value: unknown): string[] | undefined {
-  const raw =
-    Array.isArray(value)
-      ? value
-      : typeof value === "string"
-        ? value.split(",")
-        : []
+  const { id } = await props.params
 
-  const tags = raw
-    .map((tag) => (typeof tag === "string" ? tag.trim().toLowerCase() : ""))
-    .filter((tag) => tag.length > 0)
+  if (!ObjectId.isValid(id)) {
+    return NextResponse.json(
+      { error: "Invalid questionId" },
+      { status: 400 },
+    )
+  }
 
-  if (tags.length === 0) return []
-  return Array.from(new Set(tags))
+  const questionsCol = await getQuestionsCollection()
+  const question = await questionsCol.findOne({ _id: new ObjectId(id) })
+
+  if (!question) {
+    return NextResponse.json(
+      { error: "Question not found" },
+      { status: 404 },
+    )
+  }
+
+  // Verify deck ownership
+  const decksCol = await getDecksCollection()
+  const deck = await decksCol.findOne({ _id: question.deckId, userId: new ObjectId(userId) })
+  if (!deck) {
+    return NextResponse.json({ error: "Question not found" }, { status: 404 })
+  }
+
+  return NextResponse.json({
+    ...question,
+    _id: question._id.toString(),
+    deckId: question.deckId.toString(),
+    flashcardId: question.flashcardId?.toString(),
+  })
 }
 
 export async function PATCH(
@@ -28,6 +50,9 @@ export async function PATCH(
   props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+
     const { id } = await props.params
 
     if (!ObjectId.isValid(id)) {
@@ -105,6 +130,9 @@ export async function DELETE(
   props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+
     const { id } = await props.params
 
     if (!ObjectId.isValid(id)) {

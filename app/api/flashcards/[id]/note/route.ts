@@ -1,12 +1,16 @@
 // app/api/flashcards/[id]/note/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { getFlashcardsCollection, ObjectId } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
 
 export async function POST(
     req: NextRequest,
     props: { params: Promise<{ id: string }> },
 ) {
     try {
+        const authResult = await requireAuth()
+        if (authResult instanceof NextResponse) return authResult
+
         const { id } = await props.params
 
         if (!ObjectId.isValid(id)) {

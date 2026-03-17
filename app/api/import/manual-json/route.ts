@@ -6,7 +6,10 @@ import {
   getQuestionsCollection,
   ObjectId,
 } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
+import { normalizeImage, normalizeTags } from "@/lib/normalize"
 import { getDefaultDeckOptions } from "@/lib/fsrs"
+import { State } from "ts-fsrs"
 
 export const runtime = "nodejs"
 
@@ -42,30 +45,14 @@ interface ManualImportPayload {
   questions?: ManualQuestion[]
 }
 
-function normalizeImage(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
 
-function normalizeTags(value: unknown): string[] | undefined {
-  const raw =
-    Array.isArray(value)
-      ? value
-      : typeof value === "string"
-        ? value.split(",")
-        : []
-
-  const tags = raw
-    .map((tag) => (typeof tag === "string" ? tag.trim().toLowerCase() : ""))
-    .filter((tag) => tag.length > 0)
-
-  if (tags.length === 0) return undefined
-  return Array.from(new Set(tags))
-}
 
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
+
     const body = (await req.json()) as ManualImportPayload
 
     const deckIdRaw =
@@ -103,7 +90,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid deckId" }, { status: 400 })
       }
 
-      const existing = await decksCol.findOne({ _id: new ObjectId(deckIdRaw) })
+      const existing = await decksCol.findOne({ _id: new ObjectId(deckIdRaw), userId: new ObjectId(userId) })
       if (!existing) {
         return NextResponse.json(
           { error: "Deck not found for append" },
@@ -136,6 +123,7 @@ export async function POST(req: NextRequest) {
       }
 
       const deckInsert = await decksCol.insertOne({
+        userId: new ObjectId(userId),
         name: deckNameInput,
         description: body.description?.trim() || undefined,
         subject: body.subject?.trim() || undefined,
@@ -164,6 +152,7 @@ export async function POST(req: NextRequest) {
           tags: normalizeTags(fc.tags),
           order: baseOrder + index,
           level: 0,
+          fsrsState: State.New,
           createdAt: now,
           updatedAt: now,
         }))
@@ -204,6 +193,7 @@ export async function POST(req: NextRequest) {
             tags: normalizeTags(q.tags),
             order: baseOrder + index,
             level: 0,
+            fsrsState: State.New,
             createdAt: now,
             updatedAt: now,
           }

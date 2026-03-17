@@ -6,8 +6,11 @@ import {
   getDecksCollection,
   getFlashcardsCollection,
   getQuestionsCollection,
+  ObjectId,
 } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
 import { getDefaultDeckOptions } from "@/lib/fsrs"
+import { State } from "ts-fsrs"
 
 export const runtime = "nodejs"
 
@@ -23,6 +26,10 @@ function shuffle<T>(array: T[]): T[] {
 
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
+
     const formData = await req.formData()
     const file = formData.get("file") as File | null
     const deckName = formData.get("deckName")?.toString().trim() || ""
@@ -58,6 +65,7 @@ export async function POST(req: NextRequest) {
 
     // Tạo deck
     const deckInsert = await decksCol.insertOne({
+      userId: new ObjectId(userId),
       name: deckName || file.name.replace(/\.docx$/i, ""),
       description: deckDescription || undefined,
       options: getDefaultDeckOptions(),
@@ -73,6 +81,7 @@ export async function POST(req: NextRequest) {
       back: c.back,
       order: index,
       level: 0,
+      fsrsState: State.New,
       createdAt: now,
       updatedAt: now,
     }))
@@ -99,11 +108,12 @@ export async function POST(req: NextRequest) {
 
       return {
         deckId,
-        question: c.front, // câu hỏi = Q
+        question: c.front,
         choices,
-        explanation: c.back, // A làm giải thích ngắn
+        explanation: c.back,
         order: idx,
         level: 0,
+        fsrsState: State.New,
         createdAt: now,
         updatedAt: now,
       }

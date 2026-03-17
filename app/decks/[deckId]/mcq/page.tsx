@@ -605,6 +605,71 @@ export default function MCQPage() {
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (event: globalThis.KeyboardEvent) => {
+      // Bỏ qua nếu đang gõ vào input
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement
+      ) {
+        return
+      }
+
+      if (event.repeat) return
+
+      // Chọn đáp án 1, 2, 3, 4 (A, B, C, D)
+      if (["1", "2", "3", "4"].includes(event.key)) {
+        event.preventDefault()
+        const choiceIndex = parseInt(event.key, 10) - 1
+        if (current && choiceIndex < current.choices.length) {
+          handleSelect(choiceIndex)
+        }
+        return
+      }
+
+      // Enter để nộp bài hoặc chuyển câu tiếp
+      if (event.key === "Enter") {
+        event.preventDefault()
+        if (isSubmitted) {
+          if (!isNextDisabled) nextQuestion()
+        } else {
+          handleMainButton()
+        }
+        return
+      }
+      
+      // Mũi tên trái / phải
+      if (event.key === "ArrowLeft") {
+        event.preventDefault()
+        if (!isPrevDisabled) prevQuestion()
+        return
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault()
+        if (!isSubmitted && !isNextDisabled) {
+          handleMainButton()
+        } else if (isSubmitted && !isNextDisabled) {
+          nextQuestion()
+        }
+        return
+      }
+    }
+
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [
+    current,
+    isSubmitted,
+    isNextDisabled,
+    isPrevDisabled,
+    nextQuestion,
+    prevQuestion,
+    handleMainButton,
+    handleSelect,
+  ])
+
   return (
     <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl flex-col gap-6 px-4 py-6">
       <nav className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -698,7 +763,7 @@ export default function MCQPage() {
                       : `/decks/${deckId}/edit`
                   }
                 >
-                  Edit set
+                  Chỉnh sửa
                 </Link>
               </Button>
             </div>

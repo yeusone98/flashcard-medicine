@@ -5,8 +5,11 @@ import {
     getDecksCollection,
     getFlashcardsCollection,
     getQuestionsCollection,
+    ObjectId,
 } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
 import { getDefaultDeckOptions } from "@/lib/fsrs"
+import { State } from "ts-fsrs"
 
 export const runtime = "nodejs"
 
@@ -38,6 +41,10 @@ const openai = new OpenAI({
 
 export async function POST(req: NextRequest) {
     try {
+        const authResult = await requireAuth()
+        if (authResult instanceof NextResponse) return authResult
+        const { userId } = authResult
+
         const { deckName, notes } = await req.json()
 
         if (!deckName || !notes) {
@@ -64,6 +71,7 @@ export async function POST(req: NextRequest) {
 
         // 1. Tạo deck
         const deckInsert = await decksCol.insertOne({
+            userId: new ObjectId(userId),
             name: String(deckName).trim(),
             description: "Sinh tự động từ ghi chú (Notion / Markdown)",
             options: getDefaultDeckOptions(),
@@ -153,6 +161,7 @@ YÊU CẦU:
                         back,
                         order: index,
                         level: 0,
+                        fsrsState: State.New,
                         createdAt: now,
                         updatedAt: now,
                     }
@@ -188,6 +197,7 @@ YÊU CẦU:
                         explanation,
                         order: index,
                         level: 0,
+                        fsrsState: State.New,
                         createdAt: now,
                         updatedAt: now,
                     }

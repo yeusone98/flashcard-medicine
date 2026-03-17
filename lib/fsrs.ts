@@ -154,13 +154,7 @@ export const mapRatingToLabel = (
   }
 }
 
-export const mapFlashcardRating = (
-  rating: "hard" | "medium" | "easy",
-): Grade => {
-  if (rating === "hard") return Rating.Hard
-  if (rating === "medium") return Rating.Good
-  return Rating.Easy
-}
+
 
 export const mapReviewRating = (
   rating: "again" | "hard" | "good" | "easy",

@@ -1,45 +1,47 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getFlashcardsCollection, ObjectId } from "@/lib/mongodb"
+import { getFlashcardsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
+import { normalizeImage, normalizeTags, normalizeFields } from "@/lib/normalize"
 
-function normalizeImage(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
+export async function GET(
+  _req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
+  const authResult = await requireAuth()
+  if (authResult instanceof NextResponse) return authResult
+  const { userId } = authResult
 
-function normalizeTags(value: unknown): string[] | undefined {
-  const raw =
-    Array.isArray(value)
-      ? value
-      : typeof value === "string"
-        ? value.split(",")
-        : []
+  const { id } = await props.params
 
-  const tags = raw
-    .map((tag) => (typeof tag === "string" ? tag.trim().toLowerCase() : ""))
-    .filter((tag) => tag.length > 0)
-
-  if (tags.length === 0) return []
-  return Array.from(new Set(tags))
-}
-
-function normalizeFields(
-  value: unknown,
-): Record<string, string> | undefined {
-  if (!value || typeof value !== "object") return undefined
-  const entries = Object.entries(value as Record<string, unknown>)
-  const output: Record<string, string> = {}
-  for (const [key, raw] of entries) {
-    const trimmedKey = String(key || "").trim()
-    if (!trimmedKey) continue
-    output[trimmedKey] =
-      typeof raw === "string"
-        ? raw
-        : raw === null || raw === undefined
-          ? ""
-          : String(raw)
+  if (!ObjectId.isValid(id)) {
+    return NextResponse.json(
+      { error: "Invalid flashcardId" },
+      { status: 400 },
+    )
   }
-  return output
+
+  const flashcardsCol = await getFlashcardsCollection()
+  const card = await flashcardsCol.findOne({ _id: new ObjectId(id) })
+
+  if (!card) {
+    return NextResponse.json(
+      { error: "Flashcard not found" },
+      { status: 404 },
+    )
+  }
+
+  // Verify deck ownership
+  const decksCol = await getDecksCollection()
+  const deck = await decksCol.findOne({ _id: card.deckId, userId: new ObjectId(userId) })
+  if (!deck) {
+    return NextResponse.json({ error: "Flashcard not found" }, { status: 404 })
+  }
+
+  return NextResponse.json({
+    ...card,
+    _id: card._id.toString(),
+    deckId: card.deckId.toString(),
+  })
 }
 
 export async function PATCH(
@@ -47,6 +49,9 @@ export async function PATCH(
   props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+
     const { id } = await props.params
 
     if (!ObjectId.isValid(id)) {
@@ -120,6 +125,9 @@ export async function DELETE(
   props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+
     const { id } = await props.params
 
     if (!ObjectId.isValid(id)) {

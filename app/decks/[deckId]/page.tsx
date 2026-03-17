@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card"
 import DeckHeaderClient from "./deck-header-client"
 import DeckOptionsClient from "./deck-options-client"
+import DeckShareClient from "./deck-share-client"
 
 export default async function DeckOverviewPage(
   props: {
@@ -28,7 +29,7 @@ export default async function DeckOverviewPage(
     searchParams?: Promise<{ subject?: string }>
   },
 ) {
-  await requireSession()
+  const { userId } = await requireSession()
 
   const { deckId } = await props.params
   const searchParams = props.searchParams ? await props.searchParams : {}
@@ -48,7 +49,7 @@ export default async function DeckOverviewPage(
   ])
 
   const [deck, flashcardCount, questionCount] = await Promise.all([
-    decksCol.findOne({ _id }),
+    decksCol.findOne({ _id, userId: new ObjectId(userId) }),
     flashcardsCol.countDocuments({ deckId: _id }),
     questionsCol.countDocuments({ deckId: _id }),
   ])
@@ -97,7 +98,7 @@ export default async function DeckOverviewPage(
 
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href={buildHref(`/decks/${deckId}/edit`)}>Edit set</Link>
+            <Link href={buildHref(`/decks/${deckId}/edit`)}>Chỉnh sửa</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/import">
@@ -114,6 +115,33 @@ export default async function DeckOverviewPage(
             <CardTitle className="text-base">Flashcards</CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
               {flashcardCount} thẻ trong bộ này
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <Link href={buildHref(`/decks/${deckId}/flashcards`, { mode: "due" })}>
+                <BookOpenCheck className="mr-1 h-4 w-4" />
+                Học hôm nay
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href={buildHref(`/decks/${deckId}/flashcards`, { mode: "all" })}>
+                Tất cả
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href={buildHref(`/decks/${deckId}/flashcards`, { mode: "mix" })}>
+                Tổng ôn
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Trắc nghiệm (MCQ)</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              {questionCount} câu trong bộ này
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -135,7 +163,9 @@ export default async function DeckOverviewPage(
             </Button>
           </CardContent>
         </Card>
+      </section>
 
+      <section className="grid gap-4 sm:grid-cols-2">
         <DeckOptionsClient deckId={deckId} initialOptions={deckOptions} />
       </section>
 
@@ -151,9 +181,25 @@ export default async function DeckOverviewPage(
             <Button asChild variant="outline" size="sm">
               <Link href={buildHref(`/decks/${deckId}/edit`)}>
                 <Pencil className="mr-1 h-4 w-4" />
-                Mở Edit set
+                Mở chỉnh sửa
               </Link>
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Chia sẻ Deck</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Tạo link công khai để chia sẻ với người khác.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DeckShareClient
+              deckId={deckId}
+              initialIsPublic={deck.isPublic ?? false}
+              initialShareToken={deck.shareToken ?? null}
+            />
           </CardContent>
         </Card>
       </section>

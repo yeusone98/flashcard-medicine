@@ -6,6 +6,7 @@ import {
   getReviewLogsCollection,
   ObjectId,
 } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
 import {
   buildFsrsCard,
   mapRatingToLabel,
@@ -37,6 +38,9 @@ export async function POST(
   props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+
     const { id } = await props.params
 
     if (!ObjectId.isValid(id)) {

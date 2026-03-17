@@ -27,10 +27,40 @@ if (process.env.NODE_ENV === "development") {
   clientPromise = client.connect()
 }
 
+let indexesInitialized = false
+
 export async function getDb(): Promise<Db> {
   if (cachedDb) return cachedDb
   const c = await (clientPromise as Promise<MongoClient>)
   cachedDb = c.db("flashcard_medicine")
+  
+  if (!indexesInitialized) {
+    try {
+      indexesInitialized = true
+      
+      const decks = cachedDb.collection("decks")
+      void decks.createIndex({ userId: 1 })
+      void decks.createIndex({ isPublic: 1, userId: 1 })
+      void decks.createIndex({ shareToken: 1 }, { sparse: true, unique: true })
+      
+      const flashcards = cachedDb.collection("flashcards")
+      void flashcards.createIndex({ deckId: 1 })
+      void flashcards.createIndex({ userId: 1 })
+      
+      const questions = cachedDb.collection("questions")
+      void questions.createIndex({ deckId: 1 })
+      void questions.createIndex({ userId: 1 })
+      
+      const mcqResults = cachedDb.collection("mcq_results")
+      void mcqResults.createIndex({ deckId: 1 })
+      void mcqResults.createIndex({ userId: 1 })
+      
+      console.log("✅ MongoDB indexes initialized asynchronously")
+    } catch (error) {
+      console.error("❌ MongoDB index error:", error)
+    }
+  }
+
   return cachedDb
 }
 
@@ -42,10 +72,13 @@ export async function connectDB() {
 // ===== Kiểu dữ liệu server-side (TS interface, không bắt buộc nhưng đẹp) =====
 export interface DeckDoc {
   _id?: ObjectId
+  userId: ObjectId
   name: string
   description?: string
   subject?: string
   options?: DeckOptionsDoc
+  isPublic?: boolean
+  shareToken?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -72,9 +105,6 @@ export interface FlashcardDoc {
   level: number
   createdAt: Date
   updatedAt: Date
-  sm2Repetitions?: number
-  sm2Interval?: number
-  sm2Easiness?: number
   dueAt?: Date | null
   lastReviewedAt?: Date
   fsrsState?: number
@@ -85,9 +115,7 @@ export interface FlashcardDoc {
   fsrsLearningSteps?: number
   fsrsReps?: number
   fsrsLapses?: number
-
-  // mới thêm
-  reviewRating?: "hard" | "medium" | "easy"
+  reviewRating?: "again" | "hard" | "good" | "easy"
   reviewIntervalMinutes?: number
   note?: string
 }
@@ -106,9 +134,6 @@ export interface QuestionDoc {
   level: number
   createdAt: Date
   updatedAt: Date
-  sm2Repetitions?: number
-  sm2Interval?: number
-  sm2Easiness?: number
   dueAt?: Date | null
   lastReviewedAt?: Date
   fsrsState?: number
@@ -136,7 +161,7 @@ export interface McqResultDoc {
   correctCount: number
   percent: number
   score10: number
-  answers: McqAnswerDoc[]    
+  answers: McqAnswerDoc[]
   createdAt: Date
   updatedAt: Date
 }
@@ -174,6 +199,7 @@ export interface UserDoc {
 
 export interface DeckParentDoc {
   _id?: ObjectId
+  userId: ObjectId
   name: string
   createdAt: Date
   updatedAt: Date

@@ -9,6 +9,7 @@ import { useSession, signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
+import { CommandSearch } from "@/components/command-search"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ const links = [
   { href: "/", label: "Trang chủ" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/deck-parents", label: "Môn học" },
+  { href: "/explore", label: "Khám phá" },
   { href: "/import", label: "Import" },
   { href: "/media", label: "Media" },
   { href: "/help", label: "Hướng dẫn" },
@@ -56,10 +58,15 @@ export function MainNav() {
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
             <Layers className="h-4 w-4" />
           </span>
-          <span className="text-sm font-semibold tracking-tight md:text-base">
+          <span className="hidden text-sm font-semibold tracking-tight md:block md:text-base">
             Flashcard Medicine
           </span>
         </Link>
+        
+        {/* Search Bar */}
+        <div className="mx-2 flex-1 md:mx-6 md:max-w-xs">
+          <CommandSearch />
+        </div>
 
         {/* Nav + user + toggle theme */}
         <div className="flex items-center gap-2 md:gap-3">

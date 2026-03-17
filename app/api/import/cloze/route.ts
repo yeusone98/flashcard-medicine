@@ -6,7 +6,9 @@ import {
   getDecksCollection,
   getFlashcardsCollection,
   getQuestionsCollection,
+  ObjectId,
 } from "@/lib/mongodb"
+import { requireAuth } from "@/lib/auth-helpers"
 import { getDefaultDeckOptions } from "@/lib/fsrs"
 import { State } from "ts-fsrs"
 
@@ -24,6 +26,10 @@ function shuffle<T>(array: T[]): T[] {
 
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireAuth()
+    if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
+
     const formData = await req.formData()
     const file = formData.get("file") as File | null
     const deckName = formData.get("deckName")?.toString().trim() || ""
@@ -60,6 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Tạo deck
     const deckInsert = await decksCol.insertOne({
+      userId: new ObjectId(userId),
       name: deckName || file.name.replace(/\.docx$/i, ""),
       description: deckDescription || undefined,
       options: getDefaultDeckOptions(),
@@ -114,6 +121,7 @@ export async function POST(req: NextRequest) {
         explanation: c.answer || c.back,
         order: idx,
         level: 0,
+        fsrsState: State.New,
         createdAt: now,
         updatedAt: now,
       }

@@ -282,7 +282,7 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">Mô tả (optional)</label>
+              <label className="text-sm font-medium">Mô tả (tùy chọn)</label>
               <textarea
                 value={createDescription}
                 onChange={(event) => setCreateDescription(event.target.value)}
@@ -297,7 +297,7 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">Môn học (optional)</label>
+              <label className="text-sm font-medium">Môn học (tùy chọn)</label>
               <Input
                 value={createSubject}
                 onChange={(event) => setCreateSubject(event.target.value)}
@@ -370,18 +370,29 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
       {/* Nội dung */}
       <section className="flex-1">
         {displayDecks.length === 0 ? (
-          <div className="flex h-[40vh] flex-col items-center justify-center gap-3 text-center">
-            <p className="text-sm text-muted-foreground">
-              {hasSubject
-                ? "Không có bộ thẻ nào thuộc môn/chủ đề này."
-                : "Hiện chưa có deck nào trong hệ thống."}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Hãy vào trang Import để thêm flashcard hoặc câu hỏi trắc nghiệm.
-            </p>
-            <Button asChild size="sm">
-              <Link href="/import">Đi tới Import</Link>
-            </Button>
+          <div className="flex h-[40vh] flex-col items-center justify-center gap-4 text-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Layers className="h-8 w-8" />
+            </span>
+            <div className="space-y-1">
+              <p className="text-base font-medium">
+                {hasSubject
+                  ? "Không có bộ thẻ nào thuộc môn/chủ đề này."
+                  : "Hiện chưa có deck nào trong hệ thống."}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Hãy vào trang Import để thêm flashcard hoặc câu hỏi trắc nghiệm.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button asChild size="sm">
+                <Link href="/import">Đi tới Import</Link>
+              </Button>
+              <Button size="sm" variant="outline" onClick={openCreateDialog}>
+                <Plus className="mr-1 h-4 w-4" />
+                Tạo deck mới
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
@@ -447,11 +458,11 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
                   </CardHeader>
 
                   <CardContent className="pb-3 text-xs text-muted-foreground">
-                    <p>Chọn cách học bên dưới:</p>
-                    <ul className="mt-1 list-disc space-y-0.5 pl-4">
-                      <li>Ôn từng thẻ với hiệu ứng lật</li>
-                      <li>Làm trắc nghiệm, xem điểm và giải thích</li>
-                    </ul>
+                    <p className="line-clamp-2">
+                      {deck.description && deck.description.trim().length > 0
+                        ? deck.description
+                        : "Chưa có mô tả cho deck này."}
+                    </p>
                   </CardContent>
 
                   <CardFooter className="mt-auto border-t border-border/70 pt-4">

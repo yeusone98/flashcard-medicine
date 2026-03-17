@@ -24,6 +24,23 @@ const sora = Sora({
 export const metadata: Metadata = {
     title: "Flashcard Medicine",
     description: "Flashcard & MCQ cho sinh viên Y",
+    manifest: "/manifest.json",
+    applicationName: "Flashcard Medicine",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "Flashcard Medicine",
+    },
+    formatDetection: {
+      telephone: false,
+    },
+}
+
+export const viewport = {
+    themeColor: "#0ea5e9",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
 }
 
 export default function RootLayout({
