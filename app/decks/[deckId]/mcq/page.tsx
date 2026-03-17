@@ -885,12 +885,12 @@ export default function MCQPage() {
                     if (isCorrectChoice) {
                       choiceClasses = cn(
                         choiceClasses,
-                        "border-primary/50 bg-primary/10 text-primary",
+                        "border-green-500/50 bg-green-500/10 text-green-600 dark:border-green-400/50 dark:text-green-400",
                       )
                     } else if (isSelected && !isCorrectChoice) {
                       choiceClasses = cn(
                         choiceClasses,
-                        "border-destructive bg-destructive/10 text-destructive-foreground",
+                        "border-red-500/50 bg-red-500/10 text-red-600 dark:border-red-400/50 dark:text-red-400",
                       )
                     } else {
                       choiceClasses = cn(

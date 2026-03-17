@@ -404,26 +404,27 @@ export default function FlashcardStudyClient({
 
   // toggle chỉ thẻ Khó
   const handleToggleOnlyHard = () => {
-    setOnlyHard((prev) => {
-      const next = !prev
-      if (next) {
-        const firstHardIndex = cards.findIndex(
-          (c) => sessionRatings[c._id] === "hard",
-        )
-        if (firstHardIndex === -1) {
-          toast({
-            title: "Chưa có thẻ Khó",
-            description:
-              "Hãy học và đánh một số thẻ là Khó trước, sau đó bật chế độ này để ôn lại.",
-          })
-          return prev
-        }
-        setIndex(firstHardIndex)
-        setIsFlipAnimating(false)
-        setShowBack(false)
+    if (!onlyHard) {
+      // Đang bật chức năng lọc thẻ Khó
+      const firstHardIndex = cards.findIndex(
+        (c) => sessionRatings[c._id] === "hard",
+      )
+      if (firstHardIndex === -1) {
+        toast({
+          title: "Chưa có thẻ Khó",
+          description:
+            "Hãy học và đánh một số thẻ là Khó trước, sau đó bật chế độ này để ôn lại.",
+        })
+        return
       }
-      return next
-    })
+      setOnlyHard(true)
+      setIndex(firstHardIndex)
+      setIsFlipAnimating(false)
+      setShowBack(false)
+    } else {
+      // Tắt chức năng lọc
+      setOnlyHard(false)
+    }
   }
 
   // ghi chú
@@ -761,7 +762,7 @@ export default function FlashcardStudyClient({
             <CardContent className="relative px-0 py-0">
               <div className="h-[320px] w-full [perspective:1400px] md:h-[360px]">
                 <motion.div
-                  className="relative h-full w-full rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-slate-950 to-slate-950 shadow-2xl shadow-[0_30px_60px_-50px_hsl(var(--primary)/0.55)] dark:from-primary/15 dark:via-slate-950 dark:to-slate-950 from-primary/10 via-white to-slate-50"
+                  className="relative h-full w-full rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-white to-slate-50 shadow-2xl shadow-[0_30px_60px_-50px_hsl(var(--primary)/0.55)] dark:from-primary/15 dark:via-slate-950 dark:to-slate-950"
                   style={{ transformStyle: "preserve-3d" }}
                   animate={{ rotateY: showBack ? 180 : 0 }}
                   initial={false}
@@ -882,7 +883,7 @@ export default function FlashcardStudyClient({
                 variant="outline"
                 size="sm"
                 disabled={isReviewing || !current}
-                className="justify-center border-red-500/60 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                className="justify-center border-red-500/60 bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:border-red-500/50 dark:text-red-400"
                 onClick={() => void handleRating("again")}
               >
                 Lại (1)
@@ -900,7 +901,7 @@ export default function FlashcardStudyClient({
                 variant="outline"
                 size="sm"
                 disabled={isReviewing || !current}
-                className="justify-center border-amber-400/70 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20"
+                className="justify-center border-amber-500/60 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 dark:border-amber-400/70 dark:bg-amber-400/10 dark:text-amber-100"
                 onClick={() => void handleRating("good")}
               >
                 Tốt (3)
@@ -990,13 +991,13 @@ export default function FlashcardStudyClient({
 
                     if (rating === "again") {
                       ratingClasses =
-                        "border-red-500/70 bg-red-500/10 text-red-400"
+                        "border-red-500/70 bg-red-500/10 text-red-600 dark:text-red-400"
                     } else if (rating === "hard") {
                       ratingClasses =
-                        "border-destructive/70 bg-destructive/10 text-destructive-foreground"
+                        "border-destructive/70 bg-destructive/10 text-destructive dark:text-destructive-foreground"
                     } else if (rating === "good") {
                       ratingClasses =
-                        "border-amber-400/70 bg-amber-400/10 text-amber-100"
+                        "border-amber-500/70 bg-amber-500/10 text-amber-600 dark:border-amber-400/70 dark:text-amber-100"
                     } else if (rating === "easy") {
                       ratingClasses =
                         "border-primary/60 bg-primary/10 text-primary"
@@ -1052,31 +1053,31 @@ export default function FlashcardStudyClient({
 
               <div className="grid grid-cols-4 gap-2 pt-1">
                 <div className="rounded-md bg-red-500/10 px-2 py-1">
-                  <p className="text-[10px] uppercase tracking-wide text-red-400">
+                  <p className="text-[10px] uppercase tracking-wide text-red-600 dark:text-red-400">
                     Lại
                   </p>
-                  <p className="text-xs font-semibold text-red-300">
+                  <p className="text-xs font-semibold text-red-600 dark:text-red-300">
                     {ratingStats.again}
                   </p>
                 </div>
                 <div className="rounded-md bg-destructive/10 px-2 py-1">
-                  <p className="text-[10px] uppercase tracking-wide text-destructive">
+                  <p className="text-[10px] uppercase tracking-wide text-destructive dark:text-red-400">
                     Khó
                   </p>
-                  <p className="text-xs font-semibold text-destructive-foreground">
+                  <p className="text-xs font-semibold text-destructive dark:text-destructive-foreground">
                     {ratingStats.hard}
                   </p>
                 </div>
-                <div className="rounded-md bg-amber-400/10 px-2 py-1">
-                  <p className="text-[10px] uppercase tracking-wide text-amber-200">
+                <div className="rounded-md bg-amber-500/10 px-2 py-1">
+                  <p className="text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-200">
                     Tốt
                   </p>
-                  <p className="text-xs font-semibold text-amber-50">
+                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-50">
                     {ratingStats.good}
                   </p>
                 </div>
                 <div className="rounded-md bg-primary/10 px-2 py-1">
-                  <p className="text-[10px] uppercase tracking-wide text-primary/80">
+                  <p className="text-[10px] uppercase tracking-wide text-primary dark:text-primary/80">
                     Dễ
                   </p>
                   <p className="text-xs font-semibold text-primary">

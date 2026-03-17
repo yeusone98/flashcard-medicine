@@ -4,58 +4,95 @@
 
 @layer base {
   :root {
-    --background: 186 45% 98%;
-    --foreground: 192 32% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 192 32% 12%;
-    --popover: 186 45% 98%;
-    --popover-foreground: 192 32% 12%;
-    --primary: 186 78% 34%;
-    --primary-foreground: 180 100% 97%;
-    --secondary: 186 28% 94%;
-    --secondary-foreground: 192 28% 14%;
-    --muted: 186 22% 92%;
-    --muted-foreground: 191 15% 42%;
-    --accent: 186 30% 90%;
-    --accent-foreground: 192 28% 14%;
+    /* Nền chính: #FFF2EB */
+    --background: 21 100% 96.1%; 
+    --foreground: 24 45% 20%; /* Nâu Espresso cổ điển cho chữ */
+    
+    /* Thẻ card/Popover: #FFE8CD */
+    --card: 32.4 100% 90.2%; 
+    --card-foreground: 24 45% 20%;
+    
+    --popover: 32.4 100% 90.2%;
+    --popover-foreground: 24 45% 20%;
+    
+    /* Primary: Đổi sang cam đất (Terracotta) để chữ nổi bật trên nền sáng */
+    --primary: 15 56% 50%; 
+    --primary-foreground: 0 0% 100%; /* Chữ trắng trên nền cam đất */
+    
+    /* Secondary: #FFD6BA */
+    --secondary: 24.3 100% 86.5%; 
+    --secondary-foreground: 24 45% 20%;
+    
+    /* Muted (Vùng làm mờ / nền icon): #FFDCDC */
+    --muted: 0 100% 93.1%; 
+    --muted-foreground: 24 30% 45%;
+    
+    /* Accent (Hiệu ứng hover v.v): Sử dụng lại #FFD6BA */
+    --accent: 24.3 100% 86.5%; 
+    --accent-foreground: 24 45% 20%;
+    
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 98%;
-    --border: 186 22% 85%;
-    --input: 186 22% 85%;
-    --ring: 186 78% 36%;
+    
+    /* Border nhẹ nhàng tone nâu */
+    --border: 24 30% 82%; 
+    --input: 32.4 100% 90.2%; 
+    --ring: 15 56% 50%; 
     --radius: 0.9rem;
-    --chart-1: 186 74% 35%;
-    --chart-2: 162 52% 42%;
-    --chart-3: 202 42% 35%;
-    --chart-4: 38 72% 56%;
-    --chart-5: 10 70% 54%;
+    
+    --chart-1: 15 56% 50%;
+    --chart-2: 32.4 100% 90.2%;
+    --chart-3: 0 100% 93.1%;
+    --chart-4: 21 100% 96.1%;
+    --chart-5: 24.3 100% 86.5%;
   }
 
   .dark {
-    --background: 198 30% 8%;
-    --foreground: 180 24% 94%;
-    --card: 198 28% 11%;
-    --card-foreground: 180 24% 94%;
-    --popover: 198 30% 10%;
-    --popover-foreground: 180 24% 94%;
-    --primary: 186 70% 40%;
-    --primary-foreground: 198 55% 12%;
-    --secondary: 198 22% 16%;
-    --secondary-foreground: 180 20% 96%;
-    --muted: 198 20% 16%;
-    --muted-foreground: 186 12% 68%;
-    --accent: 198 22% 18%;
-    --accent-foreground: 180 20% 96%;
+    /* Nền chính: #18230F (Rất tối) */
+    --background: 90 40% 10%; 
+    /* Chữ chính: Để chữ màu sáng (Ngà nhạt) hoặc trắng để đọc được trên nền rất đậm này */
+    --foreground: 90 20% 90%; 
+    
+    /* Thẻ Card/Popover: #27391C */
+    --card: 92 34% 17%; 
+    --card-foreground: 90 20% 90%;
+    --popover: 92 34% 17%;
+    --popover-foreground: 90 20% 90%;
+    
+    /* Primary: #1F7D53 */
+    --primary: 153 60% 31%; 
+    --primary-foreground: 0 0% 100%; /* Chữ trắng trên nền xanh ngọc đậm */
+    
+    /* Secondary & Muted: #255F38 */
+    --secondary: 142 44% 26%; 
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Muted: Dùng #27391C để nền chìm */
+    --muted: 92 34% 17%; 
+    --muted-foreground: 90 20% 70%; 
+    
+    /* Accent: Khi hover các hàng, list (#255F38) */
+    --accent: 142 44% 26%; 
+    --accent-foreground: 0 0% 100%;
+    
     --destructive: 0 62% 38%;
     --destructive-foreground: 0 0% 98%;
-    --border: 198 18% 22%;
-    --input: 198 18% 22%;
-    --ring: 186 70% 40%;
-    --chart-1: 186 70% 40%;
-    --chart-2: 162 55% 45%;
-    --chart-3: 205 50% 50%;
-    --chart-4: 38 70% 55%;
+    
+    /* Viền và input field: Dùng #3F4F44 sáng hơn nền để nhận diện được khung nhập chữ */
+    --border: 139 11% 28%; 
+    --input: 139 11% 28%; 
+    /* Ring viền focus: #1F7D53 */
+    --ring: 153 60% 31%; 
+    
+    --chart-1: 153 60% 31%;
+    --chart-2: 142 44% 26%;
+    --chart-3: 92 34% 17%;
+    --chart-4: 90 40% 10%;
     --chart-5: 10 70% 55%;
+  }
+
+  .dark body {
+    background-image: none;
   }
 
   * {
@@ -70,15 +107,15 @@
       radial-gradient(circle at 12% 5%, hsl(var(--primary) / 0.12), transparent 45%),
       radial-gradient(circle at 88% 12%, hsl(var(--primary) / 0.08), transparent 48%),
       radial-gradient(circle at 80% 90%, hsl(var(--primary) / 0.06), transparent 50%),
-      linear-gradient(180deg, hsl(var(--background)), hsl(var(--secondary)) 45%, hsl(var(--background)) 100%),
+      linear-gradient(180deg, hsl(var(--background)), hsl(var(--secondary) / 0.15) 30%, hsl(var(--secondary) / 0.15) 70%, hsl(var(--background)) 100%),
       repeating-linear-gradient(
         90deg,
-        hsl(var(--border) / 0.22) 0 1px,
+        hsl(var(--border) / 0.1) 0 1px,
         transparent 1px 42px
       ),
       repeating-linear-gradient(
         180deg,
-        hsl(var(--border) / 0.22) 0 1px,
+        hsl(var(--border) / 0.1) 0 1px,
         transparent 1px 42px
       );
     background-attachment: fixed;

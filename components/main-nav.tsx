@@ -76,7 +76,7 @@ export function MainNav() {
               <button
                 className={cn(
                   buttonVariants({ variant: "outline", size: "icon" }),
-                  "h-8 w-8 md:hidden",
+                  "h-8 w-8 lg:hidden",
                 )}
                 aria-label="Mở điều hướng"
               >
@@ -110,7 +110,7 @@ export function MainNav() {
           </DropdownMenu>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-1 text-sm font-medium md:flex">
+          <nav className="hidden items-center gap-1 text-sm font-medium lg:flex">
             {links.map((link) => {
               const isActive =
                 link.href === "/"
@@ -126,7 +126,7 @@ export function MainNav() {
                       variant: isActive ? "secondary" : "ghost",
                       size: "sm",
                     }),
-                    "px-2 md:px-3",
+                    "px-2 md:px-3 text-[13px] xl:text-sm",
                   )}
                 >
                   {link.label}
@@ -148,24 +148,12 @@ export function MainNav() {
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden max-w-[140px] truncate text-sm font-medium md:inline">
+                  <span className="hidden max-w-[120px] truncate text-sm font-medium xl:inline">
                     {displayName}
                   </span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="space-y-1">
-                  <p className="flex items-center gap-2 text-sm font-medium">
-                    <UserIcon className="h-4 w-4" />
-                    {displayName}
-                  </p>
-                  {user.email && (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {user.email}
-                    </p>
-                  )}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/profile" className="cursor-pointer">
                     <UserIcon className="mr-2 h-4 w-4" />
