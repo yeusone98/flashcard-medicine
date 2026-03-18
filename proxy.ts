@@ -4,10 +4,23 @@ import { getToken } from "next-auth/jwt"
 
 const publicPaths = ["/login", "/register", "/api/auth", "/api/register"]
 
-export async function proxy(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+  
+  // Fetch token first so we can redirect authenticated users off auth pages
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
+  const token = await getToken({ req, secret })
 
-  // Allow public paths
+  const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register")
+
+  if (isAuthPage) {
+    if (token) {
+      return NextResponse.redirect(new URL("/decks", req.url))
+    }
+    return NextResponse.next()
+  }
+
+  // Allow public paths that aren't login/register
   if (publicPaths.some((p) => pathname.startsWith(p))) {
     return NextResponse.next()
   }
@@ -21,9 +34,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Check for JWT token — pass secret explicitly for edge runtime
-  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
-  const token = await getToken({ req, secret })
+  // Check for JWT token — already fetched above
 
   if (!token) {
     const loginUrl = new URL("/login", req.url)
