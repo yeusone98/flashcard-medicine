@@ -4,8 +4,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
+import { loginAction } from "@/actions/auth"
 
 import beLan from "@/app/assets/beLan.jpg"
 import { Input } from "@/components/ui/input"
@@ -14,7 +13,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 
 export function LoginForm() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -29,21 +27,13 @@ export function LoginForm() {
     if (!email || !password) return
 
     setLoading(true)
-    const res = await signIn("credentials", {
-      redirect: false, // tự điều hướng bằng router
-      email,
-      password,
-    })
-    setLoading(false)
+    const res = await loginAction(formData)
 
+    // Nếu res?.error có nghĩa là đăng nhập thất bại
     if (res?.error) {
-      setError("Email hoặc mật khẩu không đúng")
-      return
+      setError(res.error)
+      setLoading(false)
     }
-
-    // Đăng nhập thành công, dùng window.location.href để ép tải lại trang
-    // giúp Auth.js nhận cookie session mới nhất trên production Vercel.
-    window.location.href = "/decks"
   }
 
   return (

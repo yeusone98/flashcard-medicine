@@ -8,6 +8,7 @@ import { getUsersCollection, ObjectId } from "@/lib/mongodb"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig,
+    trustHost: true,
     session: {
         strategy: "jwt",
     },
