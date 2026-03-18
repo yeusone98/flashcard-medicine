@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { getActiveDeckFilter } from "@/lib/decks"
 import {
     getDecksCollection,
     getFlashcardsCollection,
@@ -62,7 +63,7 @@ export default async function DeckFlashcardsPage(
 
     const _id = new ObjectId(deckId)
 
-    const deck = await decksCol.findOne({ _id })
+    const deck = await decksCol.findOne(getActiveDeckFilter({ _id }))
     if (!deck) {
         return notFound()
     }

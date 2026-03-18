@@ -1,13 +1,10 @@
 // app/api/decks/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import {
-  getDecksCollection,
-  getFlashcardsCollection,
-  getQuestionsCollection,
-  ObjectId,
-} from "@/lib/mongodb"
+
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import { normalizeDeckOptions } from "@/lib/fsrs"
+import { getDecksCollection, ObjectId } from "@/lib/mongodb"
 
 export async function GET(
   _req: NextRequest,
@@ -18,22 +15,17 @@ export async function GET(
   const { userId } = authResult
 
   const { id } = await params
-
   if (!ObjectId.isValid(id)) {
-    return NextResponse.json(
-      { error: "Invalid deckId" },
-      { status: 400 },
-    )
+    return NextResponse.json({ error: "Invalid deckId" }, { status: 400 })
   }
 
   const decksCol = await getDecksCollection()
-  const deck = await decksCol.findOne({ _id: new ObjectId(id), userId: new ObjectId(userId) })
+  const deck = await decksCol.findOne(
+    getOwnedActiveDeckFilter(userId, { _id: new ObjectId(id) }),
+  )
 
   if (!deck) {
-    return NextResponse.json(
-      { error: "Deck not found" },
-      { status: 404 },
-    )
+    return NextResponse.json({ error: "Deck not found" }, { status: 404 })
   }
 
   return NextResponse.json({
@@ -51,37 +43,27 @@ export async function DELETE(
   const { userId } = authResult
 
   const { id } = await params
-
   if (!ObjectId.isValid(id)) {
-    return NextResponse.json(
-      { error: "Invalid deckId" },
-      { status: 400 },
-    )
+    return NextResponse.json({ error: "Invalid deckId" }, { status: 400 })
   }
 
-  const deckObjectId = new ObjectId(id)
-
   try {
-    const [decksCol, flashcardsCol, questionsCol] = await Promise.all([
-      getDecksCollection(),
-      getFlashcardsCollection(),
-      getQuestionsCollection(),
-    ])
+    const deckObjectId = new ObjectId(id)
+    const decksCol = await getDecksCollection()
+    const result = await decksCol.updateOne(
+      getOwnedActiveDeckFilter(userId, { _id: deckObjectId }),
+      {
+        $set: {
+          deletedAt: new Date(),
+          isPublic: false,
+          updatedAt: new Date(),
+        },
+      },
+    )
 
-    // Verify ownership
-    const deck = await decksCol.findOne({ _id: deckObjectId, userId: new ObjectId(userId) })
-    if (!deck) {
-      return NextResponse.json(
-        { error: "Deck not found" },
-        { status: 404 },
-      )
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ error: "Deck not found" }, { status: 404 })
     }
-
-    await Promise.all([
-      flashcardsCol.deleteMany({ deckId: deckObjectId }),
-      questionsCol.deleteMany({ deckId: deckObjectId }),
-      decksCol.deleteOne({ _id: deckObjectId }),
-    ])
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -102,24 +84,19 @@ export async function PATCH(
   const { userId } = authResult
 
   const { id } = await params
-
   if (!ObjectId.isValid(id)) {
-    return NextResponse.json(
-      { error: "Invalid deckId" },
-      { status: 400 },
-    )
+    return NextResponse.json({ error: "Invalid deckId" }, { status: 400 })
   }
 
   const body = await req.json().catch(() => ({}))
   const deckObjectId = new ObjectId(id)
   const decksCol = await getDecksCollection()
-  const existing = await decksCol.findOne({ _id: deckObjectId, userId: new ObjectId(userId) })
+  const existing = await decksCol.findOne(
+    getOwnedActiveDeckFilter(userId, { _id: deckObjectId }),
+  )
 
   if (!existing) {
-    return NextResponse.json(
-      { error: "Deck not found" },
-      { status: 404 },
-    )
+    return NextResponse.json({ error: "Deck not found" }, { status: 404 })
   }
 
   const update: Record<string, unknown> = {}
@@ -169,16 +146,21 @@ export async function PATCH(
   }
 
   if (Object.keys(update).length === 0) {
-    return NextResponse.json(
-      { error: "No fields to update" },
-      { status: 400 },
-    )
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 })
   }
 
   update.updatedAt = new Date()
 
   try {
-    await decksCol.updateOne({ _id: deckObjectId }, { $set: update })
+    const result = await decksCol.updateOne(
+      getOwnedActiveDeckFilter(userId, { _id: deckObjectId }),
+      { $set: update },
+    )
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ error: "Deck not found" }, { status: 404 })
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error updating deck", error)

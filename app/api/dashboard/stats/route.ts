@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth-helpers"
-import { getReviewLogsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
+import { getReviewLogsCollection, getDecksCollection } from "@/lib/mongodb"
 
 export async function GET() {
   const authResult = await requireAuth()
@@ -12,7 +13,7 @@ export async function GET() {
 
   // Get all user's deck IDs
   const userDecks = await decksCol
-    .find({ userId: new ObjectId(userId) }, { projection: { _id: 1 } })
+    .find(getOwnedActiveDeckFilter(userId), { projection: { _id: 1 } })
     .toArray()
   const deckIds = userDecks.map((d) => d._id)
 

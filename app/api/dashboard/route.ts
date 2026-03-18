@@ -7,6 +7,7 @@ import {
   getMcqResultsCollection,
   ObjectId,
 } from "@/lib/mongodb"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import { normalizeDeckOptions } from "@/lib/fsrs"
 import { getUserIdFromSession } from "@/lib/auth-helpers"
 
@@ -52,7 +53,7 @@ export async function GET() {
 
     const decks = (await decksCol
       .find(
-        { userId: new ObjectId(userId) },
+        getOwnedActiveDeckFilter(userId),
         {
           projection: {
             name: 1,
@@ -258,8 +259,14 @@ export async function GET() {
           { dueAt: { $lte: now } },
         ],
       }),
-      flashcardsCol.countDocuments({ lastReviewedAt: { $gte: startOfDay } }),
-      questionsCol.countDocuments({ lastReviewedAt: { $gte: startOfDay } }),
+      flashcardsCol.countDocuments({
+        deckId: { $in: deckIds },
+        lastReviewedAt: { $gte: startOfDay },
+      }),
+      questionsCol.countDocuments({
+        deckId: { $in: deckIds },
+        lastReviewedAt: { $gte: startOfDay },
+      }),
     ])
 
     return NextResponse.json({

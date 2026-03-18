@@ -7,6 +7,7 @@ import {
   ObjectId,
 } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import {
   buildFsrsCard,
   mapReviewRating,
@@ -27,6 +28,7 @@ export async function POST(
   try {
     const authResult = await requireAuth()
     if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
 
     const { id } = await props.params
 
@@ -62,7 +64,12 @@ export async function POST(
       )
     }
 
-    const deck = await decksCol.findOne({ _id: card.deckId })
+    const deck = await decksCol.findOne(
+      getOwnedActiveDeckFilter(userId, { _id: card.deckId }),
+    )
+    if (!deck) {
+      return NextResponse.json({ error: "Flashcard not found" }, { status: 404 })
+    }
     const deckOptions = normalizeDeckOptions(deck?.options ?? null)
 
     const now = new Date()

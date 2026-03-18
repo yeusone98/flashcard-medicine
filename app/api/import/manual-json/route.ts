@@ -7,7 +7,7 @@ import {
   ObjectId,
 } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
-import { createDeck } from "@/lib/decks"
+import { createDeck, getOwnedActiveDeckFilter } from "@/lib/decks"
 import { normalizeImage, normalizeTags } from "@/lib/normalize"
 import { State } from "ts-fsrs"
 
@@ -90,7 +90,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid deckId" }, { status: 400 })
       }
 
-      const existing = await decksCol.findOne({ _id: new ObjectId(deckIdRaw), userId: new ObjectId(userId) })
+      const existing = await decksCol.findOne(
+        getOwnedActiveDeckFilter(userId, { _id: new ObjectId(deckIdRaw) }),
+      )
       if (!existing) {
         return NextResponse.json(
           { error: "Deck not found for append" },

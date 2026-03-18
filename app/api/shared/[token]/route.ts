@@ -6,6 +6,7 @@ import {
   getQuestionsCollection,
   getUsersCollection,
 } from "@/lib/mongodb"
+import { getActiveDeckFilter } from "@/lib/decks"
 
 export const runtime = "nodejs"
 
@@ -27,7 +28,9 @@ export async function GET(
       getUsersCollection(),
     ])
 
-    const deck = await decksCol.findOne({ shareToken: token, isPublic: true })
+    const deck = await decksCol.findOne(
+      getActiveDeckFilter({ shareToken: token, isPublic: true }),
+    )
     if (!deck) {
       return NextResponse.json({ error: "Deck không tồn tại hoặc chưa được chia sẻ" }, { status: 404 })
     }

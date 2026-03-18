@@ -7,6 +7,7 @@ import {
   ObjectId,
 } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import {
   buildFsrsCard,
   mapRatingToLabel,
@@ -20,7 +21,7 @@ type ReviewRating = "again" | "hard" | "good" | "easy"
 
 const allowedRatings: ReviewRating[] = ["again", "hard", "good", "easy"]
 
-function resolveRating(body: any): ReviewRating | null {
+function resolveRating(body: Record<string, unknown>): ReviewRating | null {
   const ratingRaw = typeof body?.rating === "string" ? body.rating : ""
   if (allowedRatings.includes(ratingRaw as ReviewRating)) {
     return ratingRaw as ReviewRating
@@ -40,6 +41,7 @@ export async function POST(
   try {
     const authResult = await requireAuth()
     if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
 
     const { id } = await props.params
 
@@ -50,7 +52,7 @@ export async function POST(
       )
     }
 
-    const body = await req.json().catch(() => ({}))
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>
     const rating = resolveRating(body)
 
     if (!rating) {
@@ -75,7 +77,12 @@ export async function POST(
       )
     }
 
-    const deck = await decksCol.findOne({ _id: question.deckId })
+    const deck = await decksCol.findOne(
+      getOwnedActiveDeckFilter(userId, { _id: question.deckId }),
+    )
+    if (!deck) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 })
+    }
     const deckOptions = normalizeDeckOptions(deck?.options ?? null)
 
     const now = new Date()

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getFlashcardsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import { normalizeImage, normalizeTags, normalizeFields } from "@/lib/normalize"
 
 export async function GET(
@@ -32,7 +33,9 @@ export async function GET(
 
   // Verify deck ownership
   const decksCol = await getDecksCollection()
-  const deck = await decksCol.findOne({ _id: card.deckId, userId: new ObjectId(userId) })
+  const deck = await decksCol.findOne(
+    getOwnedActiveDeckFilter(userId, { _id: card.deckId }),
+  )
   if (!deck) {
     return NextResponse.json({ error: "Flashcard not found" }, { status: 404 })
   }
@@ -51,6 +54,7 @@ export async function PATCH(
   try {
     const authResult = await requireAuth()
     if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
 
     const { id } = await props.params
 
@@ -59,6 +63,20 @@ export async function PATCH(
         { error: "Invalid flashcardId" },
         { status: 400 },
       )
+    }
+
+    const flashcardsCol = await getFlashcardsCollection()
+    const card = await flashcardsCol.findOne({ _id: new ObjectId(id) })
+    if (!card) {
+      return NextResponse.json({ error: "Flashcard not found" }, { status: 404 })
+    }
+
+    const decksCol = await getDecksCollection()
+    const deck = await decksCol.findOne(
+      getOwnedActiveDeckFilter(userId, { _id: card.deckId }),
+    )
+    if (!deck) {
+      return NextResponse.json({ error: "Flashcard not found" }, { status: 404 })
     }
 
     const body = await req.json().catch(() => ({}))
@@ -97,7 +115,6 @@ export async function PATCH(
 
     update.updatedAt = new Date()
 
-    const flashcardsCol = await getFlashcardsCollection()
     const result = await flashcardsCol.updateOne(
       { _id: new ObjectId(id) },
       { $set: update },
@@ -127,6 +144,7 @@ export async function DELETE(
   try {
     const authResult = await requireAuth()
     if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
 
     const { id } = await props.params
 
@@ -138,6 +156,19 @@ export async function DELETE(
     }
 
     const flashcardsCol = await getFlashcardsCollection()
+    const card = await flashcardsCol.findOne({ _id: new ObjectId(id) })
+    if (!card) {
+      return NextResponse.json({ error: "Flashcard not found" }, { status: 404 })
+    }
+
+    const decksCol = await getDecksCollection()
+    const deck = await decksCol.findOne(
+      getOwnedActiveDeckFilter(userId, { _id: card.deckId }),
+    )
+    if (!deck) {
+      return NextResponse.json({ error: "Flashcard not found" }, { status: 404 })
+    }
+
     const result = await flashcardsCol.deleteOne({ _id: new ObjectId(id) })
 
     if (result.deletedCount === 0) {

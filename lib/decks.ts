@@ -1,4 +1,4 @@
-import type { Collection, InsertOneResult } from "mongodb"
+import type { Collection, Filter, InsertOneResult } from "mongodb"
 
 import { getDefaultDeckOptions } from "@/lib/fsrs"
 import {
@@ -20,10 +20,45 @@ type CreateDeckInput = {
   decksCol?: Collection<DeckDoc>
 }
 
+const ACTIVE_DECK_MATCH: Filter<DeckDoc> = { deletedAt: { $exists: false } }
+const DELETED_DECK_MATCH: Filter<DeckDoc> = { deletedAt: { $exists: true } }
+
 const normalizeOptionalString = (value?: string | null) => {
   if (typeof value !== "string") return undefined
   const trimmed = value.trim()
   return trimmed ? trimmed : undefined
+}
+
+export function getActiveDeckFilter(
+  filter: Filter<DeckDoc> = {},
+): Filter<DeckDoc> {
+  return { $and: [filter, ACTIVE_DECK_MATCH] }
+}
+
+export function getDeletedDeckFilter(
+  filter: Filter<DeckDoc> = {},
+): Filter<DeckDoc> {
+  return { $and: [filter, DELETED_DECK_MATCH] }
+}
+
+export function getOwnedActiveDeckFilter(
+  userId: string,
+  filter: Filter<DeckDoc> = {},
+): Filter<DeckDoc> {
+  return getActiveDeckFilter({
+    ...filter,
+    userId: new ObjectId(userId),
+  })
+}
+
+export function getOwnedDeletedDeckFilter(
+  userId: string,
+  filter: Filter<DeckDoc> = {},
+): Filter<DeckDoc> {
+  return getDeletedDeckFilter({
+    ...filter,
+    userId: new ObjectId(userId),
+  })
 }
 
 export async function createDeck(

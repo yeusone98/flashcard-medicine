@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDecksCollection, ObjectId } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 
 export const runtime = "nodejs"
 
@@ -21,10 +22,9 @@ export async function POST(
     }
 
     const decksCol = await getDecksCollection()
-    const deck = await decksCol.findOne({
-      _id: new ObjectId(id),
-      userId: new ObjectId(userId),
-    })
+    const deck = await decksCol.findOne(
+      getOwnedActiveDeckFilter(userId, { _id: new ObjectId(id) }),
+    )
 
     if (!deck) {
       return NextResponse.json({ error: "Deck not found" }, { status: 404 })
@@ -34,7 +34,7 @@ export async function POST(
     const shareToken = deck.shareToken ?? crypto.randomUUID()
 
     await decksCol.updateOne(
-      { _id: new ObjectId(id) },
+      getOwnedActiveDeckFilter(userId, { _id: new ObjectId(id) }),
       { $set: { isPublic: true, shareToken, updatedAt: new Date() } },
     )
 
@@ -62,7 +62,7 @@ export async function DELETE(
 
     const decksCol = await getDecksCollection()
     const result = await decksCol.updateOne(
-      { _id: new ObjectId(id), userId: new ObjectId(userId) },
+      getOwnedActiveDeckFilter(userId, { _id: new ObjectId(id) }),
       { $set: { isPublic: false, updatedAt: new Date() } },
     )
 

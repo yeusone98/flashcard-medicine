@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getFlashcardsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import { normalizeImage, normalizeTags, normalizeFields } from "@/lib/normalize"
 import { State } from "ts-fsrs"
+
+type FlashcardInput = {
+  front?: unknown
+  back?: unknown
+  frontImage?: unknown
+  backImage?: unknown
+  frontAudio?: unknown
+  backAudio?: unknown
+  fields?: unknown
+  tags?: unknown
+  order?: unknown
+}
 
 
 
@@ -18,7 +31,9 @@ export async function GET(req: NextRequest) {
 
   // Verify deck ownership
   const decksCol = await getDecksCollection()
-  const deck = await decksCol.findOne({ _id: new ObjectId(deckId), userId: new ObjectId(userId) })
+  const deck = await decksCol.findOne(
+    getOwnedActiveDeckFilter(userId, { _id: new ObjectId(deckId) }),
+  )
   if (!deck) {
     return NextResponse.json({ error: "Deck not found" }, { status: 404 })
   }
@@ -58,7 +73,9 @@ export async function POST(req: NextRequest) {
 
     // Verify deck ownership
     const decksCol = await getDecksCollection()
-    const deck = await decksCol.findOne({ _id: new ObjectId(deckId), userId: new ObjectId(userId) })
+    const deck = await decksCol.findOne(
+      getOwnedActiveDeckFilter(userId, { _id: new ObjectId(deckId) }),
+    )
     if (!deck) {
       return NextResponse.json({ error: "Deck not found" }, { status: 404 })
     }
@@ -78,8 +95,8 @@ export async function POST(req: NextRequest) {
         },
       ]
 
-    const docs = items
-      .map((fc: any) => ({
+    const docs = (items as FlashcardInput[])
+      .map((fc) => ({
         deckId: deckObjectId,
         front: typeof fc?.front === "string" ? fc.front.trim() : "",
         back: typeof fc?.back === "string" ? fc.back.trim() : "",

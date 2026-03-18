@@ -7,7 +7,7 @@ import {
   ObjectId,
 } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
-import { createDeck } from "@/lib/decks"
+import { createDeck, getActiveDeckFilter } from "@/lib/decks"
 
 export const runtime = "nodejs"
 
@@ -33,10 +33,12 @@ export async function POST(
     ])
 
     // Deck phải public mới clone được
-    const sourceDeck = await decksCol.findOne({
-      _id: new ObjectId(id),
-      isPublic: true,
-    })
+    const sourceDeck = await decksCol.findOne(
+      getActiveDeckFilter({
+        _id: new ObjectId(id),
+        isPublic: true,
+      }),
+    )
 
     if (!sourceDeck) {
       return NextResponse.json(

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import {
   getDecksCollection,
   getFlashcardsCollection,
@@ -29,7 +30,7 @@ export async function GET(
     getQuestionsCollection(),
   ])
 
-  const deck = await decksCol.findOne({ _id, userId: new ObjectId(userId) })
+  const deck = await decksCol.findOne(getOwnedActiveDeckFilter(userId, { _id }))
   if (!deck) {
     return NextResponse.json({ error: "Không tìm thấy deck" }, { status: 404 })
   }

@@ -1,4 +1,3 @@
-// components/login-form.tsx
 "use client"
 
 import Image from "next/image"
@@ -39,7 +38,7 @@ export function LoginForm() {
       })
 
       if (!result || result.error) {
-        setError("Email hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng")
+        setError("Email hoặc mật khẩu không đúng")
         return
       }
 
@@ -48,7 +47,7 @@ export function LoginForm() {
       router.refresh()
     } catch (err) {
       console.error(err)
-      setError("ÄÃ£ cÃ³ lá»—i xáº£y ra. HÃ£y thá»­ láº¡i sau.")
+      setError("Đã có lỗi xảy ra. Hãy thử lại sau.")
     } finally {
       setLoading(false)
     }
@@ -56,16 +55,16 @@ export function LoginForm() {
 
   return (
     <Card className="overflow-hidden border-border/70 bg-card/90 shadow-[0_20px_60px_-40px_rgba(8,60,60,0.45)] backdrop-blur-lg">
-      {/* 2 cá»™t, cao tá»‘i thiá»ƒu Ä‘á»ƒ form & áº£nh cÃ¢n nhau */}
+      {/* 2 cột, cao tối thiểu để form và ảnh cân nhau */}
       <div className="grid min-h-[430px] md:grid-cols-[1.1fr,0.9fr]">
-        {/* Cá»˜T FORM â€“ cÄƒn giá»¯a theo chiá»u dá»c */}
+        {/* Cột form */}
         <CardContent className="flex flex-col justify-center gap-6 p-8 md:p-10">
           <div className="space-y-2">
             <h1 className="text-3xl font-semibold tracking-tight">
-              ÄÄƒng nháº­p
+              Đăng nhập
             </h1>
             <p className="text-sm text-muted-foreground">
-              VÃ o Flashcard Medicine Ä‘á»ƒ lÆ°u tiáº¿n Ä‘á»™ há»c vÃ  káº¿t quáº£ lÃ m bÃ i.
+              Vào Flashcard Medicine để lưu tiến độ học và kết quả làm bài.
             </p>
           </div>
 
@@ -83,7 +82,7 @@ export function LoginForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Máº­t kháº©u</Label>
+              <Label htmlFor="password">Mật khẩu</Label>
               <Input
                 id="password"
                 name="password"
@@ -97,24 +96,24 @@ export function LoginForm() {
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button type="submit" className="h-11 w-full" disabled={loading}>
-              {loading ? "Äang Ä‘Äƒng nháº­p..." : "ÄÄƒng nháº­p"}
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </Button>
 
             <p className="text-xs text-muted-foreground">
-              ChÆ°a cÃ³ tÃ i khoáº£n?{" "}
+              Chưa có tài khoản?{" "}
               <Link href="/register" className="font-medium underline">
-                ÄÄƒng kÃ½
+                Đăng ký
               </Link>
             </p>
           </form>
         </CardContent>
 
-        {/* Cá»˜T áº¢NH â€“ full viá»n, khá»›p card */}
+        {/* Cột ảnh */}
         <div className="relative hidden md:block">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-primary/25" />
           <Image
             src={beLan}
-            alt="Láº¡i BÃ¹i Kim Lan"
+            alt="Lại Bùi Kim Lan"
             fill
             className="object-cover"
             priority

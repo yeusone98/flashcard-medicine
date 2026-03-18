@@ -6,9 +6,25 @@ import {
     ObjectId,
 } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import { normalizeImage, normalizeTags } from "@/lib/normalize"
 import { mapStateToQueue, normalizeDeckOptions } from "@/lib/fsrs"
 import { State } from "ts-fsrs"
+
+type QuestionChoiceInput = {
+    text?: unknown
+    isCorrect?: unknown
+    image?: unknown
+}
+
+type QuestionInput = {
+    question?: unknown
+    choices?: unknown
+    explanation?: unknown
+    image?: unknown
+    tags?: unknown
+    order?: unknown
+}
 
 
 
@@ -31,13 +47,15 @@ export async function GET(req: NextRequest) {
     ])
 
     // Verify deck ownership
-    const deckDoc = await decksCol.findOne({ _id: deckObjectId, userId: new ObjectId(userId) })
+    const deckDoc = await decksCol.findOne(
+        getOwnedActiveDeckFilter(userId, { _id: deckObjectId }),
+    )
     if (!deckDoc) {
         return NextResponse.json({ error: "Deck not found" }, { status: 404 })
     }
     const now = new Date()
 
-    const query: any =
+    const query: Record<string, unknown> =
         mode === "due"
             ? {
                 deckId: deckObjectId,
@@ -58,8 +76,7 @@ export async function GET(req: NextRequest) {
         .toArray()
 
     if (mode === "due") {
-        const deck = await decksCol.findOne({ _id: deckObjectId })
-        const deckOptions = normalizeDeckOptions(deck?.options ?? null)
+        const deckOptions = normalizeDeckOptions(deckDoc.options ?? null)
         const startOfDay = new Date(now)
         startOfDay.setHours(0, 0, 0, 0)
 
@@ -131,7 +148,9 @@ export async function POST(req: NextRequest) {
 
         // Verify deck ownership
         const decksCol = await getDecksCollection()
-        const deckDoc = await decksCol.findOne({ _id: new ObjectId(deckId), userId: new ObjectId(userId) })
+        const deckDoc = await decksCol.findOne(
+            getOwnedActiveDeckFilter(userId, { _id: new ObjectId(deckId) }),
+        )
         if (!deckDoc) {
             return NextResponse.json({ error: "Deck not found" }, { status: 404 })
         }
@@ -152,12 +171,12 @@ export async function POST(req: NextRequest) {
             ]
 
         const baseOrder = await questionsCol.countDocuments({ deckId: deckObjectId })
-        const docs = items
-            .map((q: any, index: number) => {
+        const docs = (items as QuestionInput[])
+            .map((q, index: number) => {
                 const question = typeof q?.question === "string" ? q.question.trim() : ""
                 const rawChoices = Array.isArray(q?.choices) ? q.choices : []
                 const choices = rawChoices
-                    .map((c: any) => ({
+                    .map((c: QuestionChoiceInput) => ({
                         text: typeof c?.text === "string" ? c.text.trim() : "",
                         isCorrect: Boolean(c?.isCorrect),
                         image: normalizeImage(c?.image),

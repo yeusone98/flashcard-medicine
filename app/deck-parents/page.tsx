@@ -1,5 +1,6 @@
 // app/deck-parents/page.tsx
 import { requireSession } from "@/lib/require-user"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import { getDeckParentsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
 
 interface ParentRow {
@@ -24,7 +25,7 @@ export default async function DeckParentsPage() {
 
   const rows = (await decksCol
     .aggregate<ParentRow>([
-      { $match: { userId: new ObjectId(userId) } },
+      { $match: getOwnedActiveDeckFilter(userId) },
       {
         $group: {
           _id: "$subject",

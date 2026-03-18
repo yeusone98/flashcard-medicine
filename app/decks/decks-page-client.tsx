@@ -6,25 +6,26 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import {
-  Layers,
   BookOpenCheck,
+  Layers,
+  LayoutDashboard,
   ListChecks,
-  Trash2,
   Loader2,
   Pencil,
-  LayoutDashboard,
   Plus,
+  RotateCcw,
+  Trash2,
 } from "lucide-react"
 
 import { useToast } from "@/hooks/use-toast"
 
 import {
   Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -49,7 +50,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-// Kiểu deck dùng chung với server
 export type DeckItem = {
   _id: string
   name: string
@@ -57,60 +57,97 @@ export type DeckItem = {
   subject?: string
   createdAt: string
   updatedAt: string
+  deletedAt?: string
 }
 
-export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) {
+type ViewMode = "active" | "trash"
+
+const NAME_MAX = 80
+const DESC_MAX = 500
+
+const deletedAtFormatter = new Intl.DateTimeFormat("vi-VN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+})
+
+export function DecksPageClient({
+  initialDecks,
+  initialView,
+}: {
+  initialDecks: DeckItem[]
+  initialView: ViewMode
+}) {
   const [decks, setDecks] = useState<DeckItem[]>(initialDecks ?? [])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [restoringId, setRestoringId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [createName, setCreateName] = useState("")
   const [createDescription, setCreateDescription] = useState("")
   const [createSubject, setCreateSubject] = useState("")
   const [creating, setCreating] = useState(false)
+
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
 
-  // 🔹 Đọc ?subject=... từ URL ở client
-  const searchParams = useSearchParams()
   const subject = (searchParams.get("subject") ?? "").trim()
+  const currentView =
+    (searchParams.get("view") ?? initialView).trim() === "trash"
+      ? "trash"
+      : "active"
+  const isTrashView = currentView === "trash"
+  const hasSubject = subject.length > 0
 
-  // 🔹 Filter theo subject (nếu có)
   const displayDecks = useMemo(
     () =>
       subject
-        ? decks.filter(
-            (d) => (d.subject ?? "").trim() === subject,
-          )
+        ? decks.filter((deck) => (deck.subject ?? "").trim() === subject)
         : decks,
     [decks, subject],
   )
 
-  const hasSubject = subject.length > 0
-
-  const buildHref = (base: string, params?: Record<string, string | undefined>) => {
+  const buildDeckHref = (
+    base: string,
+    params?: Record<string, string | undefined>,
+  ) => {
     const search = new URLSearchParams()
     if (subject) {
       search.set("subject", subject)
     }
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value) search.set(key, value)
+        if (value) {
+          search.set(key, value)
+        }
       })
     }
     const query = search.toString()
     return query ? `${base}?${query}` : base
   }
 
-  const title = hasSubject
-    ? `Bộ thẻ – ${subject}`
-    : "Chọn một deck để bắt đầu học"
+  const buildDeckListHref = (view: ViewMode) => {
+    const search = new URLSearchParams()
+    if (subject) {
+      search.set("subject", subject)
+    }
+    if (view === "trash") {
+      search.set("view", "trash")
+    }
+    const query = search.toString()
+    return query ? `/decks?${query}` : "/decks"
+  }
 
-  const descriptionText = hasSubject
-    ? "Chỉ hiển thị các bộ thẻ thuộc môn/chủ đề được chọn."
-    : "Mỗi deck có thể dùng để học Flashcard hoặc làm Trắc nghiệm. Bạn có thể import thêm dữ liệu ở màn hình Import."
+  const title = isTrashView
+    ? "Thùng rác deck"
+    : hasSubject
+      ? `Bộ thẻ - ${subject}`
+      : "Chọn một deck để bắt đầu học"
 
-  const NAME_MAX = 80
-  const DESC_MAX = 500
+  const descriptionText = isTrashView
+    ? "Deck đã xóa mềm sẽ nằm ở đây và có thể khôi phục lại khi cần."
+    : hasSubject
+      ? "Chỉ hiển thị các bộ thẻ thuộc môn hoặc chủ đề đang được lọc."
+      : "Mỗi deck có thể dùng để học Flashcard hoặc làm Trắc nghiệm. Bạn có thể import thêm dữ liệu ở màn hình Import."
 
   const openCreateDialog = () => {
     setCreateName("")
@@ -157,7 +194,6 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
       })
 
       const data = await res.json().catch(() => null)
-
       if (!res.ok) {
         throw new Error(data?.error || "Tạo deck thất bại")
       }
@@ -175,7 +211,7 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
 
       const nowIso = new Date().toISOString()
       setDecks((prev) => {
-        if (prev.some((d) => d._id === deckId)) return prev
+        if (prev.some((deck) => deck._id === deckId)) return prev
         return [
           {
             _id: deckId,
@@ -189,62 +225,83 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
         ]
       })
 
-      const subjectQuery = subjectValue
-        ? `?subject=${encodeURIComponent(subjectValue)}`
-        : ""
-
       setCreateOpen(false)
-      router.push(`/decks/${deckId}/edit${subjectQuery}`)
+      router.push(
+        subjectValue
+          ? `/decks/${deckId}/edit?subject=${encodeURIComponent(subjectValue)}`
+          : `/decks/${deckId}/edit`,
+      )
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Tạo deck thất bại"
       toast({
         variant: "destructive",
         title: "Tạo deck thất bại",
-        description: message,
+        description:
+          error instanceof Error ? error.message : "Tạo deck thất bại",
       })
     } finally {
       setCreating(false)
     }
   }
 
-  async function handleDeleteDeck(deck: DeckItem) {
+  const handleDeleteDeck = async (deck: DeckItem) => {
     try {
       setDeletingId(deck._id)
 
       const res = await fetch(`/api/decks/${deck._id}`, {
         method: "DELETE",
       })
-
       const body = await res.json().catch(() => null)
 
       if (!res.ok) {
-        throw new Error(body?.error || "Xoá deck thất bại")
+        throw new Error(body?.error || "Xóa deck thất bại")
       }
 
-      setDecks((prev) => prev.filter((d) => d._id !== deck._id))
-
+      setDecks((prev) => prev.filter((item) => item._id !== deck._id))
       toast({
-        title: "Đã xoá bộ thẻ",
-        description: `Bộ thẻ "${deck.name}" đã được xoá thành công.`,
+        title: "Đã chuyển deck vào thùng rác",
+        description: `Bộ thẻ "${deck.name}" có thể được khôi phục lại sau này.`,
       })
     } catch (error) {
       console.error(error)
-      let message = "Vui lòng thử lại sau."
-
-      if (error instanceof Error) {
-        message = error.message
-      } else if (typeof error === "string") {
-        message = error
-      }
-
       toast({
         variant: "destructive",
-        title: "Xoá deck thất bại",
-        description: message,
+        title: "Xóa deck thất bại",
+        description:
+          error instanceof Error ? error.message : "Vui lòng thử lại sau.",
       })
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const handleRestoreDeck = async (deck: DeckItem) => {
+    try {
+      setRestoringId(deck._id)
+
+      const res = await fetch(`/api/decks/${deck._id}/restore`, {
+        method: "POST",
+      })
+      const body = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        throw new Error(body?.error || "Khôi phục deck thất bại")
+      }
+
+      setDecks((prev) => prev.filter((item) => item._id !== deck._id))
+      toast({
+        title: "Đã khôi phục deck",
+        description: `Bộ thẻ "${deck.name}" đã trở lại danh sách chính.`,
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        variant: "destructive",
+        title: "Khôi phục deck thất bại",
+        description:
+          error instanceof Error ? error.message : "Vui lòng thử lại sau.",
+      })
+    } finally {
+      setRestoringId(null)
     }
   }
 
@@ -305,7 +362,7 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
               />
               {hasSubject ? (
                 <p className="text-[11px] text-muted-foreground">
-                  Đang lọc theo môn "{subject}". Bạn có thể đổi môn cho deck mới.
+                  Đang lọc theo môn <span className="font-medium">{subject}</span>. Bạn có thể đổi môn cho deck mới.
                 </p>
               ) : null}
             </div>
@@ -332,14 +389,13 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
         </DialogContent>
       </Dialog>
 
-      {/* Header */}
       <section className="flex items-start justify-between gap-3">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] text-muted-foreground">
             <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Layers className="h-3 w-3" />
             </span>
-            <span>{hasSubject ? "Bộ thẻ theo môn học" : "Danh sách bộ thẻ"}</span>
+            <span>{isTrashView ? "Thùng rác deck" : "Danh sách bộ thẻ"}</span>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {title}
@@ -349,10 +405,17 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={openCreateDialog}>
-            <Plus className="h-4 w-4" />
-            Tạo deck
+        <div className="flex flex-wrap items-center gap-2">
+          {!isTrashView ? (
+            <Button size="sm" onClick={openCreateDialog}>
+              <Plus className="h-4 w-4" />
+              Tạo deck
+            </Button>
+          ) : null}
+          <Button asChild variant="outline" size="sm">
+            <Link href={buildDeckListHref(isTrashView ? "active" : "trash")}>
+              {isTrashView ? "Quay lại deck" : "Thùng rác"}
+            </Link>
           </Button>
           <Button
             asChild
@@ -367,7 +430,6 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
         </div>
       </section>
 
-      {/* Nội dung */}
       <section className="flex-1">
         {displayDecks.length === 0 ? (
           <div className="flex h-[40vh] flex-col items-center justify-center gap-4 text-center">
@@ -376,22 +438,34 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
             </span>
             <div className="space-y-1">
               <p className="text-base font-medium">
-                {hasSubject
-                  ? "Không có bộ thẻ nào thuộc môn/chủ đề này."
-                  : "Hiện chưa có deck nào trong hệ thống."}
+                {isTrashView
+                  ? "Thùng rác hiện đang trống."
+                  : hasSubject
+                    ? "Không có bộ thẻ nào thuộc môn hoặc chủ đề này."
+                    : "Hiện chưa có deck nào trong hệ thống."}
               </p>
               <p className="text-sm text-muted-foreground">
-                Hãy vào trang Import để thêm flashcard hoặc câu hỏi trắc nghiệm.
+                {isTrashView
+                  ? "Khi bạn xóa deck, bộ thẻ sẽ được chuyển vào đây để có thể khôi phục."
+                  : "Hãy vào trang Import để thêm flashcard hoặc câu hỏi trắc nghiệm."}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button asChild size="sm">
-                <Link href="/import">Đi tới Import</Link>
-              </Button>
-              <Button size="sm" variant="outline" onClick={openCreateDialog}>
-                <Plus className="mr-1 h-4 w-4" />
-                Tạo deck mới
-              </Button>
+              {isTrashView ? (
+                <Button asChild size="sm">
+                  <Link href={buildDeckListHref("active")}>Xem deck hiện có</Link>
+                </Button>
+              ) : (
+                <>
+                  <Button asChild size="sm">
+                    <Link href="/import">Đi tới Import</Link>
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={openCreateDialog}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Tạo deck mới
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -409,137 +483,162 @@ export function DecksPageClient({ initialDecks }: { initialDecks: DeckItem[] }) 
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <CardTitle className="text-base md:text-lg">
-                            <Link
-                              href={buildHref(`/decks/${deck._id}`)}
-                              className="hover:text-primary"
-                            >
-                              {deck.name}
-                            </Link>
+                            {isTrashView ? (
+                              <span>{deck.name}</span>
+                            ) : (
+                              <Link
+                                href={buildDeckHref(`/decks/${deck._id}`)}
+                                className="hover:text-primary"
+                              >
+                                {deck.name}
+                              </Link>
+                            )}
                           </CardTitle>
-                          {deck.subject && (
+                          {deck.subject ? (
                             <Badge
                               variant="outline"
                               className="text-[11px] uppercase tracking-tight"
                             >
                               {deck.subject}
                             </Badge>
-                          )}
+                          ) : null}
                         </div>
                         <CardDescription className="text-xs md:text-sm">
-                          {deck.description && deck.description.trim().length > 0
+                          {deck.description?.trim()
                             ? deck.description
                             : "Chưa có mô tả cho deck này."}
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          asChild
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-[11px]"
-                        >
-                          <Link href={buildHref(`/decks/${deck._id}`)}>
-                            <LayoutDashboard className="mr-1 h-3.5 w-3.5" />
-                            Tổng quan
-                          </Link>
-                        </Button>
-                        <Button
-                          asChild
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                        >
-                          <Link href={buildHref(`/decks/${deck._id}/edit`)}>
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </div>
+
+                      {!isTrashView ? (
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-[11px]"
+                          >
+                            <Link href={buildDeckHref(`/decks/${deck._id}`)}>
+                              <LayoutDashboard className="mr-1 h-3.5 w-3.5" />
+                              Tổng quan
+                            </Link>
+                          </Button>
+                          <Button
+                            asChild
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                          >
+                            <Link href={buildDeckHref(`/decks/${deck._id}/edit`)}>
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                   </CardHeader>
 
                   <CardContent className="pb-3 text-xs text-muted-foreground">
                     <p className="line-clamp-2">
-                      {deck.description && deck.description.trim().length > 0
+                      {deck.description?.trim()
                         ? deck.description
                         : "Chưa có mô tả cho deck này."}
                     </p>
+                    {isTrashView && deck.deletedAt ? (
+                      <p className="mt-3 text-[11px]">
+                        Đã xóa lúc {deletedAtFormatter.format(new Date(deck.deletedAt))}
+                      </p>
+                    ) : null}
                   </CardContent>
 
                   <CardFooter className="mt-auto border-t border-border/70 pt-4">
-                    <div className="flex items-center gap-3">
-                      {/* Nút học flashcard */}
+                    {isTrashView ? (
                       <Button
-                        asChild
-                        size="default"
-                        className="flex-1 justify-center gap-2"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => void handleRestoreDeck(deck)}
+                        disabled={restoringId === deck._id}
                       >
-                        <Link
-                          href={buildHref(`/decks/${deck._id}/flashcards`, {
-                            mode: "due",
-                          })}
-                        >
-                          <BookOpenCheck className="h-4 w-4" />
-                          Học flashcard
-                        </Link>
+                        {restoringId === deck._id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                        )}
+                        Khôi phục deck
                       </Button>
-
-                      {/* Nút làm trắc nghiệm */}
-                      <Button
-                        asChild
-                        size="default"
-                        variant="outline"
-                        className="flex-1 justify-center gap-2"
-                      >
-                        <Link
-                          href={buildHref(`/decks/${deck._id}/mcq`, {
-                            mode: "due",
-                          })}
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <Button
+                          asChild
+                          size="default"
+                          className="flex-1 justify-center gap-2"
                         >
-                          <ListChecks className="h-4 w-4" />
-                          Làm trắc nghiệm
-                        </Link>
-                      </Button>
-
-                      {/* Nút xoá deck + popup xác nhận */}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="ml-1 shrink-0"
-                            disabled={deletingId === deck._id}
-                            aria-label={`Xoá deck ${deck.name}`}
+                          <Link
+                            href={buildDeckHref(`/decks/${deck._id}/flashcards`, {
+                              mode: "due",
+                            })}
                           >
-                            {deletingId === deck._id ? (
-                              <Loader2 className="h-4 w-4 animate-spin text-destructive dark:text-white" />
-                            ) : (
-                              <Trash2 className="h-4 w-4 text-destructive dark:text-white" />
-                            )}
-                          </Button>
-                        </AlertDialogTrigger>
+                            <BookOpenCheck className="h-4 w-4" />
+                            Học flashcard
+                          </Link>
+                        </Button>
 
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Xoá bộ thẻ {deck.name}?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tất cả flashcard và câu hỏi trắc nghiệm liên quan
-                              cũng sẽ bị xoá. Hành động này không thể hoàn tác.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Huỷ</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              onClick={() => handleDeleteDeck(deck)}
+                        <Button
+                          asChild
+                          size="default"
+                          variant="outline"
+                          className="flex-1 justify-center gap-2"
+                        >
+                          <Link
+                            href={buildDeckHref(`/decks/${deck._id}/mcq`, {
+                              mode: "due",
+                            })}
+                          >
+                            <ListChecks className="h-4 w-4" />
+                            Làm trắc nghiệm
+                          </Link>
+                        </Button>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="ml-1 shrink-0"
+                              disabled={deletingId === deck._id}
+                              aria-label={`Xóa deck ${deck.name}`}
                             >
-                              Xoá
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                              {deletingId === deck._id ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-destructive dark:text-white" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 text-destructive dark:text-white" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Chuyển bộ thẻ {deck.name} vào thùng rác?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Deck sẽ bị ẩn khỏi danh sách học nhưng vẫn có thể
+                                khôi phục lại trong thùng rác.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Huỷ</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => void handleDeleteDeck(deck)}
+                              >
+                                Chuyển vào thùng rác
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
                   </CardFooter>
                 </Card>
               </motion.div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getQuestionsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import { normalizeImage, normalizeTags } from "@/lib/normalize"
 
 export async function GET(
@@ -32,7 +33,9 @@ export async function GET(
 
   // Verify deck ownership
   const decksCol = await getDecksCollection()
-  const deck = await decksCol.findOne({ _id: question.deckId, userId: new ObjectId(userId) })
+  const deck = await decksCol.findOne(
+    getOwnedActiveDeckFilter(userId, { _id: question.deckId }),
+  )
   if (!deck) {
     return NextResponse.json({ error: "Question not found" }, { status: 404 })
   }
@@ -52,6 +55,7 @@ export async function PATCH(
   try {
     const authResult = await requireAuth()
     if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
 
     const { id } = await props.params
 
@@ -60,6 +64,20 @@ export async function PATCH(
         { error: "Invalid questionId" },
         { status: 400 },
       )
+    }
+
+    const questionsCol = await getQuestionsCollection()
+    const existing = await questionsCol.findOne({ _id: new ObjectId(id) })
+    if (!existing) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 })
+    }
+
+    const decksCol = await getDecksCollection()
+    const deck = await decksCol.findOne(
+      getOwnedActiveDeckFilter(userId, { _id: existing.deckId }),
+    )
+    if (!deck) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 })
     }
 
     const body = await req.json().catch(() => ({}))
@@ -81,7 +99,7 @@ export async function PATCH(
 
     if (Array.isArray(body.choices)) {
       const choices = body.choices
-        .map((c: any) => ({
+        .map((c: Record<string, unknown>) => ({
           text: typeof c?.text === "string" ? c.text.trim() : "",
           isCorrect: Boolean(c?.isCorrect),
           image: normalizeImage(c?.image),
@@ -102,7 +120,6 @@ export async function PATCH(
 
     update.updatedAt = new Date()
 
-    const questionsCol = await getQuestionsCollection()
     const result = await questionsCol.updateOne(
       { _id: new ObjectId(id) },
       { $set: update },
@@ -132,6 +149,7 @@ export async function DELETE(
   try {
     const authResult = await requireAuth()
     if (authResult instanceof NextResponse) return authResult
+    const { userId } = authResult
 
     const { id } = await props.params
 
@@ -143,6 +161,19 @@ export async function DELETE(
     }
 
     const questionsCol = await getQuestionsCollection()
+    const question = await questionsCol.findOne({ _id: new ObjectId(id) })
+    if (!question) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 })
+    }
+
+    const decksCol = await getDecksCollection()
+    const deck = await decksCol.findOne(
+      getOwnedActiveDeckFilter(userId, { _id: question.deckId }),
+    )
+    if (!deck) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 })
+    }
+
     const result = await questionsCol.deleteOne({ _id: new ObjectId(id) })
 
     if (result.deletedCount === 0) {

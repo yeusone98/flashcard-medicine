@@ -6,6 +6,7 @@ import {
   getQuestionsCollection,
   getUsersCollection,
 } from "@/lib/mongodb"
+import { getActiveDeckFilter } from "@/lib/decks"
 
 export const runtime = "nodejs"
 
@@ -28,12 +29,12 @@ export async function GET(req: NextRequest) {
     ])
 
     // Build filter
-    const filter: Record<string, unknown> = { isPublic: true }
+    const filter = getActiveDeckFilter({ isPublic: true })
     if (search) {
-      filter.name = { $regex: search, $options: "i" }
+      filter.$and?.push({ name: { $regex: search, $options: "i" } })
     }
     if (subject) {
-      filter.subject = subject
+      filter.$and?.push({ subject })
     }
 
     const [decks, total] = await Promise.all([
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
     ])
 
     if (decks.length === 0) {
-      const subjects = (await decksCol.distinct("subject", { isPublic: true })).filter(Boolean) as string[]
+      const subjects = (await decksCol.distinct("subject", getActiveDeckFilter({ isPublic: true }))).filter(Boolean) as string[]
       return NextResponse.json({ decks: [], total, page, limit, subjects })
     }
 
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
     }))
 
     // Distinct subjects for filter UI
-    const subjects = (await decksCol.distinct("subject", { isPublic: true })).filter(Boolean)
+    const subjects = (await decksCol.distinct("subject", getActiveDeckFilter({ isPublic: true }))).filter(Boolean)
 
     return NextResponse.json({ decks: result, total, page, limit, subjects })
   } catch (err) {

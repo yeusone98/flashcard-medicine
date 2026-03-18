@@ -6,6 +6,7 @@ import {
   ObjectId,
 } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 
 export const runtime = "nodejs"
 
@@ -20,7 +21,7 @@ export async function GET() {
       getDeckParentsCollection(),
     ])
 
-    const rawSubjects = (await decksCol.distinct("subject", { userId: new ObjectId(userId) })) as (
+    const rawSubjects = (await decksCol.distinct("subject", getOwnedActiveDeckFilter(userId))) as (
       | string
       | null
     )[]
@@ -183,7 +184,9 @@ export async function DELETE(req: NextRequest) {
     ])
 
     // Safety: check if there are decks in this subject
-    const deckCount = await decksCol.countDocuments({ userId: new ObjectId(userId), subject: name })
+    const deckCount = await decksCol.countDocuments(
+      getOwnedActiveDeckFilter(userId, { subject: name }),
+    )
     if (deckCount > 0) {
       return NextResponse.json(
         { error: "Không thể xóa môn học đang chứa bộ thẻ. Hãy chuyển hoặc xóa các bộ thẻ trước." },

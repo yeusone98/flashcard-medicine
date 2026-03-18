@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getReviewLogsCollection, getDecksCollection, ObjectId } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,7 +31,9 @@ export async function GET(req: NextRequest) {
 
     // Verify deck ownership
     const decksCol = await getDecksCollection()
-    const deck = await decksCol.findOne({ _id: new ObjectId(deckId), userId: new ObjectId(authResult.userId) })
+    const deck = await decksCol.findOne(
+      getOwnedActiveDeckFilter(authResult.userId, { _id: new ObjectId(deckId) }),
+    )
     if (!deck) {
       return NextResponse.json({ error: "Deck not found" }, { status: 404 })
     }

@@ -12,7 +12,6 @@ let clientPromise: Promise<MongoClient> | null = null
 let cachedDb: Db | null = null
 
 declare global {
-  // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined
 }
 
@@ -40,6 +39,7 @@ export async function getDb(): Promise<Db> {
       
       const decks = cachedDb.collection("decks")
       void decks.createIndex({ userId: 1 })
+      void decks.createIndex({ userId: 1, deletedAt: 1, createdAt: -1 })
       void decks.createIndex({ isPublic: 1, userId: 1 })
       void decks.createIndex({ shareToken: 1 }, { sparse: true, unique: true })
       
@@ -79,6 +79,7 @@ export interface DeckDoc {
   options?: DeckOptionsDoc
   isPublic?: boolean
   shareToken?: string
+  deletedAt?: Date
   createdAt: Date
   updatedAt: Date
 }

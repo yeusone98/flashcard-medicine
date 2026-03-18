@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { BookOpenCheck, Download, ListChecks, Pencil, Upload } from "lucide-react"
 
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import { requireSession } from "@/lib/require-user"
 import {
   getDecksCollection,
@@ -49,7 +50,7 @@ export default async function DeckOverviewPage(
   ])
 
   const [deck, flashcardCount, questionCount] = await Promise.all([
-    decksCol.findOne({ _id, userId: new ObjectId(userId) }),
+    decksCol.findOne(getOwnedActiveDeckFilter(userId, { _id })),
     flashcardsCol.countDocuments({ deckId: _id }),
     questionsCol.countDocuments({ deckId: _id }),
   ])
