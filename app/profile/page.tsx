@@ -2,7 +2,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,7 +14,6 @@ import { Separator } from "@/components/ui/separator"
 
 export default function ProfilePage() {
     const { data: session, status, update } = useSession()
-    const router = useRouter()
     const { toast } = useToast()
 
     const [file, setFile] = useState<File | null>(null)
@@ -87,8 +85,12 @@ export default function ProfilePage() {
                 description: "Ảnh đại diện mới đã được lưu.",
             })
 
-            await update()
-            router.refresh()
+            await update({
+                name: user?.name ?? null,
+                email: user?.email ?? null,
+                image: data.imageUrl ?? null,
+            })
+            setFile(null)
         } catch (err) {
             console.error(err)
             toast({
@@ -132,8 +134,11 @@ export default function ProfilePage() {
             }
 
             toast({ title: "Cập nhật hồ sơ thành công" })
-            await update()
-            router.refresh()
+            await update({
+                name: name.trim() || null,
+                email: email.trim().toLowerCase(),
+                image: user?.image ?? null,
+            })
         } catch (err) {
             console.error(err)
             toast({

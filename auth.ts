@@ -6,7 +6,7 @@ import type { JWT } from "next-auth/jwt"
 import bcrypt from "bcryptjs"
 
 import { authConfig } from "./auth.config"
-import { getUsersCollection, ObjectId } from "@/lib/mongodb"
+import { getUsersCollection } from "@/lib/mongodb"
 
 type AppJWT = JWT & {
     id?: string
@@ -14,6 +14,12 @@ type AppJWT = JWT & {
 
 type SessionUserWithId = NonNullable<Session["user"]> & {
     id?: string
+}
+
+type SessionUpdatePayload = {
+    name?: string | null
+    email?: string | null
+    image?: string | null
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -67,11 +73,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ],
     callbacks: {
         ...authConfig.callbacks,
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
             if (user) {
-                // lưu id user vào token
+                // Lưu toàn bộ thông tin cần thiết vào JWT để tránh query DB ở mỗi lần đọc session.
                 ; (token as AppJWT).id = user.id
+                token.name = user.name
+                token.email = user.email
+                token.picture = user.image ?? null
             }
+
+            if (trigger === "update") {
+                const sessionUpdate = session as SessionUpdatePayload | undefined
+
+                if (sessionUpdate && "name" in sessionUpdate) {
+                    token.name = sessionUpdate.name ?? null
+                }
+                if (sessionUpdate && "email" in sessionUpdate) {
+                    token.email = sessionUpdate.email ?? null
+                }
+                if (sessionUpdate && "image" in sessionUpdate) {
+                    token.picture = sessionUpdate.image ?? null
+                }
+            }
+
             return token
         },
         async session({ session, token }) {
@@ -80,17 +104,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const userId = (token as AppJWT).id
             if (!userId) return session
 
-            const users = await getUsersCollection()
-            const dbUser = await users.findOne({ _id: new ObjectId(userId) })
-
             const sessionUser = session.user as SessionUserWithId
             sessionUser.id = userId
-
-            if (dbUser) {
-                session.user.name = dbUser.name ?? session.user.name
-                session.user.email = dbUser.email ?? session.user.email
-                sessionUser.image = dbUser.image ?? sessionUser.image ?? null
+            session.user.name = typeof token.name === "string" ? token.name : null
+            if (typeof token.email === "string") {
+                session.user.email = token.email
             }
+            sessionUser.image = typeof token.picture === "string" ? token.picture : null
 
             return session
         },

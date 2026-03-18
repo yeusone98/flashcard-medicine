@@ -54,7 +54,7 @@ export function MainNav() {
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl shadow-[0_10px_30px_-24px_rgba(8,60,60,0.35)] relative after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-primary/40 after:to-transparent">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-3 md:h-16 md:px-4">
         {/* Logo + tên app */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" prefetch={false} className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
             <Layers className="h-4 w-4" />
           </span>
@@ -96,6 +96,7 @@ export function MainNav() {
                   <DropdownMenuItem key={link.href} asChild>
                     <Link
                       href={link.href}
+                      prefetch={false}
                       className={cn(
                         "w-full cursor-pointer",
                         isActive && "font-semibold text-primary",
@@ -121,6 +122,7 @@ export function MainNav() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={false}
                   className={cn(
                     buttonVariants({
                       variant: isActive ? "secondary" : "ghost",
@@ -155,7 +157,7 @@ export function MainNav() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" className="cursor-pointer">
+                  <Link href="/profile" prefetch={false} className="cursor-pointer">
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Trang cá nhân</span>
                   </Link>
@@ -173,6 +175,7 @@ export function MainNav() {
           ) : (
             <Link
               href="/login"
+              prefetch={false}
               className={cn(
                 buttonVariants({ variant: "outline", size: "sm" }),
                 "px-3 text-xs md:text-sm",
