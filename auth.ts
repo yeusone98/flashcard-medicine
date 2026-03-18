@@ -1,10 +1,20 @@
 // auth.ts
 import NextAuth from "next-auth"
+import type { Session } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
+import type { JWT } from "next-auth/jwt"
 import bcrypt from "bcryptjs"
 
 import { authConfig } from "./auth.config"
 import { getUsersCollection, ObjectId } from "@/lib/mongodb"
+
+type AppJWT = JWT & {
+    id?: string
+}
+
+type SessionUserWithId = NonNullable<Session["user"]> & {
+    id?: string
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig,
@@ -56,29 +66,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
     callbacks: {
+        ...authConfig.callbacks,
         async jwt({ token, user }) {
             if (user) {
                 // lưu id user vào token
-                ; (token as any).id = (user as any).id
+                ; (token as AppJWT).id = user.id
             }
             return token
         },
         async session({ session, token }) {
             if (!session.user) return session
 
-            const userId = (token as any).id as string | undefined
+            const userId = (token as AppJWT).id
             if (!userId) return session
 
             const users = await getUsersCollection()
             const dbUser = await users.findOne({ _id: new ObjectId(userId) })
 
-                ; (session.user as any).id = userId
+            const sessionUser = session.user as SessionUserWithId
+            sessionUser.id = userId
 
             if (dbUser) {
                 session.user.name = dbUser.name ?? session.user.name
                 session.user.email = dbUser.email ?? session.user.email
-                    ; (session.user as any).image =
-                        dbUser.image ?? (session.user as any).image ?? null
+                sessionUser.image = dbUser.image ?? sessionUser.image ?? null
             }
 
             return session
