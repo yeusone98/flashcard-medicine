@@ -1,10 +1,18 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Copy, FolderSync, Loader2, RefreshCcw } from "lucide-react"
+import { Copy, FolderSync, Loader2, RefreshCcw, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
@@ -53,6 +61,8 @@ export default function MediaLibraryPage() {
     orphanCount: number
   } | null>(null)
   const [cleaning, setCleaning] = useState(false)
+  const [deletingMedia, setDeletingMedia] = useState<MediaItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchMedia = async (reset: boolean) => {
     try {
@@ -158,6 +168,39 @@ export default function MediaLibraryPage() {
       })
     } finally {
       setCleaning(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deletingMedia) return
+
+    try {
+      setIsDeleting(true)
+      const res = await fetch(`/api/media/${deletingMedia.id}`, {
+        method: "DELETE",
+      })
+
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(data?.error || "Không thể xoá media")
+      }
+
+      setItems((prev) => prev.filter((item) => item.id !== deletingMedia.id))
+      setTotal((prev) => Math.max(0, prev - 1))
+
+      toast({
+        title: "Thành công",
+        description: "Đã xoá tập tin media.",
+      })
+      setDeletingMedia(null)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Xóa thất bại",
+        description: error instanceof Error ? error.message : "Đã có lỗi xảy ra",
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -301,14 +344,27 @@ export default function MediaLibraryPage() {
                   <span className="truncate text-xs text-muted-foreground">
                     {item.url}
                   </span>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleCopy(item.url)}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleCopy(item.url)}
+                      title="Copy URL"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setDeletingMedia(item)}
+                      title="Xóa tập tin"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -331,6 +387,39 @@ export default function MediaLibraryPage() {
           </Button>
         </div>
       )}
+
+      <Dialog open={!!deletingMedia} onOpenChange={(open) => !open && setDeletingMedia(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa vĩnh viễn tập tin media này không? Hành động này không thể hoàn tác và nếu tập tin đang được sử dụng trong bộ thẻ, nó sẽ bị lỗi hiển thị.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center py-4 bg-muted/30 rounded-lg">
+            {deletingMedia?.kind === "image" ? (
+              <img
+                src={deletingMedia.url}
+                alt="Preview"
+                className="max-h-32 rounded-lg border border-border object-contain"
+              />
+            ) : deletingMedia?.kind === "audio" ? (
+               <audio controls className="w-full max-w-sm">
+                 <source src={deletingMedia.url} />
+               </audio>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingMedia(null)} disabled={isDeleting}>
+              Hủy
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Xác nhận xóa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

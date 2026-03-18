@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { BookOpenCheck, ListChecks, RefreshCw, LifeBuoy } from "lucide-react"
+import { BarChart3, BookOpenCheck, ListChecks, RefreshCw, LifeBuoy } from "lucide-react"
 
 import {
   Card,
@@ -148,6 +148,12 @@ export default function DashboardClient() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/stats">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Thống kê
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/help">
               <LifeBuoy className="mr-2 h-4 w-4" />

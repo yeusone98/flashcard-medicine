@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Layers, Plus, Search, SortAsc } from "lucide-react"
+import { Layers, Plus, Search, SortAsc, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -14,6 +14,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 
@@ -32,6 +46,13 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
   const [sortBy, setSortBy] = useState<SortBy>("name")
   const [newSubject, setNewSubject] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+
+  const [editingSubject, setEditingSubject] = useState<ParentInfo | null>(null)
+  const [editName, setEditName] = useState("")
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  const [deletingSubject, setDeletingSubject] = useState<ParentInfo | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const totalDecks = useMemo(
     () => items.reduce((sum, p) => sum + (p.deckCount ?? 0), 0),
@@ -114,9 +135,104 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
       setIsCreating(false)
     }
   }
+  const handleRename = async () => {
+    if (!editingSubject) return
+    const newName = editName.trim()
 
+    if (!newName) {
+      toast({
+        variant: "destructive",
+        title: "Thiếu thông tin",
+        description: "Vui lòng nhập tên mới",
+      })
+      return
+    }
+
+    if (newName.toLowerCase() === editingSubject.name.toLowerCase()) {
+      setEditingSubject(null)
+      return
+    }
+
+    if (items.some((p) => p.name.toLowerCase() === newName.toLowerCase())) {
+      toast({
+        variant: "destructive",
+        title: "Trùng tên",
+        description: "Tên môn học này đã tồn tại trong danh sách.",
+      })
+      return
+    }
+
+    try {
+      setIsUpdating(true)
+      const res = await fetch("/api/deck-parents", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldName: editingSubject.name, newName }),
+      })
+
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(data?.error || "Không thể đổi tên môn học")
+      }
+
+      setItems((prev) =>
+        prev.map((p) =>
+          p.name === editingSubject.name ? { ...p, name: newName } : p
+        )
+      )
+
+      toast({
+        title: "Thành công",
+        description: `Đã đổi tên thành ${newName}`,
+      })
+      setEditingSubject(null)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Đổi tên thất bại",
+        description: error instanceof Error ? error.message : "Đã có lỗi xảy ra",
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deletingSubject) return
+
+    try {
+      setIsDeleting(true)
+      const res = await fetch("/api/deck-parents", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: deletingSubject.name }),
+      })
+
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(data?.error || "Không thể xóa môn học")
+      }
+
+      setItems((prev) => prev.filter((p) => p.name !== deletingSubject.name))
+
+      toast({
+        title: "Thành công",
+        description: `Đã xóa môn học ${deletingSubject.name}`,
+      })
+      setDeletingSubject(null)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Xóa thất bại",
+        description: error instanceof Error ? error.message : "Đã có lỗi xảy ra",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
   return (
-    <main className="container mx-auto max-w-5xl space-y-6 py-8 stagger">
+    <>
+      <main className="container mx-auto max-w-5xl space-y-6 py-8 stagger">
       <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -241,12 +357,44 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
               >
                 <Card className="flex h-full flex-col border-border/70 bg-card/80 transition-colors group-hover:border-primary/60 group-hover:bg-card/95">
                   <CardHeader className="pb-2">
-                    <CardTitle className="line-clamp-2 text-base font-semibold">
-                      {parent.name}
-                    </CardTitle>
-                    <CardDescription className="mt-1 text-xs text-muted-foreground">
-                      {parent.deckCount} bộ thẻ trong môn này
-                    </CardDescription>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <CardTitle className="line-clamp-2 text-base font-semibold">
+                          {parent.name}
+                        </CardTitle>
+                        <CardDescription className="mt-1 text-xs text-muted-foreground">
+                          {parent.deckCount} bộ thẻ trong môn này
+                        </CardDescription>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-2 text-muted-foreground">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setEditingSubject(parent)
+                              setEditName(parent.name)
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" /> Đổi tên
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                            disabled={parent.deckCount > 0}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              if (parent.deckCount === 0) setDeletingSubject(parent)
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Xóa
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </CardHeader>
                   <CardContent className="flex-1 pt-1">
                     <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[11px] text-primary/80">
@@ -261,5 +409,57 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
         </section>
       )}
     </main>
+
+      <Dialog open={!!editingSubject} onOpenChange={(open) => !open && setEditingSubject(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Đổi tên môn học</DialogTitle>
+            <DialogDescription>
+              Tên mới sẽ được cập nhật cho tất cả bộ thẻ thuộc môn này.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Tên môn học mới"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRename()
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSubject(null)} disabled={isUpdating}>
+              Hủy
+            </Button>
+            <Button onClick={handleRename} disabled={isUpdating}>
+              {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Lưu thay đổi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deletingSubject} onOpenChange={(open) => !open && setDeletingSubject(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xóa môn học</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa môn học <strong className="text-foreground">{deletingSubject?.name}</strong> không?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeletingSubject(null)} disabled={isDeleting}>
+              Hủy
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Xác nhận xóa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

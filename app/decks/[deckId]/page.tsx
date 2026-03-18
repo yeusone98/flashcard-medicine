@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { BookOpenCheck, ListChecks, Pencil, Upload } from "lucide-react"
+import { BookOpenCheck, Download, ListChecks, Pencil, Upload } from "lucide-react"
 
 import { requireSession } from "@/lib/require-user"
 import {
@@ -183,6 +183,29 @@ export default async function DeckOverviewPage(
                 <Pencil className="mr-1 h-4 w-4" />
                 Mở chỉnh sửa
               </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-dashed">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Export dữ liệu</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Tải deck ra file để backup hoặc chia sẻ.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <a href={`/api/decks/${deckId}/export?format=json`} download>
+                <Download className="mr-1 h-4 w-4" />
+                JSON
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <a href={`/api/decks/${deckId}/export?format=csv`} download>
+                <Download className="mr-1 h-4 w-4" />
+                CSV
+              </a>
             </Button>
           </CardContent>
         </Card>
