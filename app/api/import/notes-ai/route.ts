@@ -1,19 +1,14 @@
 // app/api/import/notes-ai/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
-import {
-    getDecksCollection,
-    getFlashcardsCollection,
-    getQuestionsCollection,
-    ObjectId,
-} from "@/lib/mongodb"
+import { getFlashcardsCollection, getQuestionsCollection } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
-import { getDefaultDeckOptions } from "@/lib/fsrs"
+import { createDeck } from "@/lib/decks"
 import { State } from "ts-fsrs"
 
 export const runtime = "nodejs"
 
-// ==== KIỂU DỮ LIỆU AI TRẢ VỀ ==== //
+// ==== KIá»‚U Dá»® LIá»†U AI TRáº¢ Vá»€ ==== //
 type AiFlashcard = {
     front?: unknown
     back?: unknown
@@ -49,38 +44,36 @@ export async function POST(req: NextRequest) {
 
         if (!deckName || !notes) {
             return NextResponse.json(
-                { error: "Thiếu deckName hoặc notes" },
+                { error: "Thiáº¿u deckName hoáº·c notes" },
                 { status: 400 },
             )
         }
 
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json(
-                { error: "Thiếu OPENAI_API_KEY trong môi trường" },
+                { error: "Thiáº¿u OPENAI_API_KEY trong mÃ´i trÆ°á»ng" },
                 { status: 500 },
             )
         }
 
-        const [decksCol, flashcardsCol, questionsCol] = await Promise.all([
-            getDecksCollection(),
+        const [flashcardsCol, questionsCol] = await Promise.all([
             getFlashcardsCollection(),
             getQuestionsCollection(),
         ])
 
         const now = new Date()
 
-        // 1. Tạo deck
-        const deckInsert = await decksCol.insertOne({
-            userId: new ObjectId(userId),
+        // 1. Táº¡o deck
+        const deckInsert = await createDeck({
+            userId,
             name: String(deckName).trim(),
-            description: "Sinh tự động từ ghi chú (Notion / Markdown)",
-            options: getDefaultDeckOptions(),
+            description: "Sinh tá»± Ä‘á»™ng tá»« ghi chÃº (Notion / Markdown)",
             createdAt: now,
             updatedAt: now,
         })
         const deckId = deckInsert.insertedId
 
-        // 2. Gọi AI
+        // 2. Gá»i AI
         const completion = await openai.chat.completions.create({
             model: "gpt-4.1-mini",
             response_format: { type: "json_object" },
@@ -88,12 +81,12 @@ export async function POST(req: NextRequest) {
                 {
                     role: "system",
                     content: `
-Bạn là trợ lý cho sinh viên Y.
-Từ đoạn ghi chú (notes) tiếng Việt, hãy trích xuất:
+Báº¡n lÃ  trá»£ lÃ½ cho sinh viÃªn Y.
+Tá»« Ä‘oáº¡n ghi chÃº (notes) tiáº¿ng Viá»‡t, hÃ£y trÃ­ch xuáº¥t:
 1) flashcard (front/back),
-2) câu hỏi trắc nghiệm nhiều lựa chọn (MCQ).
+2) cÃ¢u há»i tráº¯c nghiá»‡m nhiá»u lá»±a chá»n (MCQ).
 
-TRẢ VỀ JSON DUY NHẤT THEO CẤU TRÚC:
+TRáº¢ Vá»€ JSON DUY NHáº¤T THEO Cáº¤U TRÃšC:
 
 {
   "flashcards": [
@@ -110,11 +103,11 @@ TRẢ VỀ JSON DUY NHẤT THEO CẤU TRÚC:
   ]
 }
 
-YÊU CẦU:
-- Flashcards: 8–15 thẻ, hỏi các ý quan trọng trong notes (định nghĩa, phân loại, ngưỡng, ưu/nhược điểm...).
-- MCQ: 6–12 câu, mỗi câu có 4 lựa chọn, đúng 1 đáp án.
-- Dùng tiếng Việt, ngắn gọn, dễ ôn thi.
-- Không thêm text ngoài JSON.`,
+YÃŠU Cáº¦U:
+- Flashcards: 8â€“15 tháº», há»i cÃ¡c Ã½ quan trá»ng trong notes (Ä‘á»‹nh nghÄ©a, phÃ¢n loáº¡i, ngÆ°á»¡ng, Æ°u/nhÆ°á»£c Ä‘iá»ƒm...).
+- MCQ: 6â€“12 cÃ¢u, má»—i cÃ¢u cÃ³ 4 lá»±a chá»n, Ä‘Ãºng 1 Ä‘Ã¡p Ã¡n.
+- DÃ¹ng tiáº¿ng Viá»‡t, ngáº¯n gá»n, dá»… Ã´n thi.
+- KhÃ´ng thÃªm text ngoÃ i JSON.`,
                 },
                 {
                     role: "user",
@@ -126,7 +119,7 @@ YÊU CẦU:
         const content = completion.choices[0].message.content
         if (!content) {
             return NextResponse.json(
-                { error: "AI không trả về dữ liệu" },
+                { error: "AI khÃ´ng tráº£ vá» dá»¯ liá»‡u" },
                 { status: 500 },
             )
         }
@@ -137,7 +130,7 @@ YÊU CẦU:
         } catch (e) {
             console.error("JSON parse error:", e, content)
             return NextResponse.json(
-                { error: "Dữ liệu AI trả về không phải JSON hợp lệ" },
+                { error: "Dá»¯ liá»‡u AI tráº£ vá» khÃ´ng pháº£i JSON há»£p lá»‡" },
                 { status: 500 },
             )
         }
@@ -149,7 +142,7 @@ YÊU CẦU:
             ? parsed.questions
             : []
 
-        // 3. Lưu flashcards
+        // 3. LÆ°u flashcards
         if (flashcards.length > 0) {
             const docs = flashcards
                 .map((fc: AiFlashcard, index: number) => {
@@ -173,7 +166,7 @@ YÊU CẦU:
             }
         }
 
-        // 4. Lưu MCQ
+        // 4. LÆ°u MCQ
         if (questions.length > 0) {
             const qDocs = questions
                 .map((q: AiQuestion, index: number) => {
@@ -223,7 +216,7 @@ YÊU CẦU:
     } catch (error) {
         console.error("Error in /api/import/notes-ai", error)
         return NextResponse.json(
-            { error: "Không thể generate từ notes" },
+            { error: "KhÃ´ng thá»ƒ generate tá»« notes" },
             { status: 500 },
         )
     }

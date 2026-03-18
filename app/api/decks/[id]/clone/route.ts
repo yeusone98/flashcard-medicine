@@ -7,7 +7,7 @@ import {
   ObjectId,
 } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
-import { getDefaultDeckOptions } from "@/lib/fsrs"
+import { createDeck } from "@/lib/decks"
 
 export const runtime = "nodejs"
 
@@ -48,15 +48,16 @@ export async function POST(
     const now = new Date()
 
     // Tạo deck mới cho user
-    const newDeckInsert = await decksCol.insertOne({
-      userId: new ObjectId(userId),
+    const newDeckInsert = await createDeck({
+      userId,
       name: `[Clone] ${sourceDeck.name}`,
       description: sourceDeck.description,
       subject: sourceDeck.subject,
-      options: sourceDeck.options ?? getDefaultDeckOptions(),
+      options: sourceDeck.options,
       isPublic: false,
       createdAt: now,
       updatedAt: now,
+      decksCol,
     })
 
     const newDeckId = newDeckInsert.insertedId
@@ -68,24 +69,29 @@ export async function POST(
 
     if (flashcards.length > 0) {
       await flashcardsCol.insertMany(
-        flashcards.map(({ _id: _unused, ...card }) => ({
-          ...card,
-          deckId: newDeckId,
-          // Reset FSRS state
-          level: 0,
-          dueAt: null,
-          lastReviewedAt: undefined,
-          fsrsState: undefined,
-          fsrsStability: undefined,
-          fsrsDifficulty: undefined,
-          fsrsElapsedDays: undefined,
-          fsrsScheduledDays: undefined,
-          fsrsReps: undefined,
-          fsrsLapses: undefined,
-          reviewRating: undefined,
-          createdAt: now,
-          updatedAt: now,
-        })),
+        flashcards.map((card) => {
+          const { _id, ...rest } = card
+          void _id
+
+          return {
+            ...rest,
+            deckId: newDeckId,
+            // Reset FSRS state
+            level: 0,
+            dueAt: null,
+            lastReviewedAt: undefined,
+            fsrsState: undefined,
+            fsrsStability: undefined,
+            fsrsDifficulty: undefined,
+            fsrsElapsedDays: undefined,
+            fsrsScheduledDays: undefined,
+            fsrsReps: undefined,
+            fsrsLapses: undefined,
+            reviewRating: undefined,
+            createdAt: now,
+            updatedAt: now,
+          }
+        }),
       )
     }
 
@@ -96,25 +102,30 @@ export async function POST(
 
     if (questions.length > 0) {
       await questionsCol.insertMany(
-        questions.map(({ _id: _unused, ...q }) => ({
-          ...q,
-          deckId: newDeckId,
-          flashcardId: undefined,
-          // Reset FSRS state
-          level: 0,
-          dueAt: null,
-          lastReviewedAt: undefined,
-          fsrsState: undefined,
-          fsrsStability: undefined,
-          fsrsDifficulty: undefined,
-          fsrsElapsedDays: undefined,
-          fsrsScheduledDays: undefined,
-          fsrsReps: undefined,
-          fsrsLapses: undefined,
-          reviewRating: undefined,
-          createdAt: now,
-          updatedAt: now,
-        })),
+        questions.map((question) => {
+          const { _id, ...rest } = question
+          void _id
+
+          return {
+            ...rest,
+            deckId: newDeckId,
+            flashcardId: undefined,
+            // Reset FSRS state
+            level: 0,
+            dueAt: null,
+            lastReviewedAt: undefined,
+            fsrsState: undefined,
+            fsrsStability: undefined,
+            fsrsDifficulty: undefined,
+            fsrsElapsedDays: undefined,
+            fsrsScheduledDays: undefined,
+            fsrsReps: undefined,
+            fsrsLapses: undefined,
+            reviewRating: undefined,
+            createdAt: now,
+            updatedAt: now,
+          }
+        }),
       )
     }
 

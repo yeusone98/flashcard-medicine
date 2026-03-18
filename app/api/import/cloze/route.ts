@@ -3,13 +3,11 @@ import { NextRequest, NextResponse } from "next/server"
 import mammoth from "mammoth"
 import { parseClozeFlashcards } from "@/lib/parsers"
 import {
-  getDecksCollection,
   getFlashcardsCollection,
   getQuestionsCollection,
-  ObjectId,
 } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
-import { getDefaultDeckOptions } from "@/lib/fsrs"
+import { createDeck } from "@/lib/decks"
 import { State } from "ts-fsrs"
 
 export const runtime = "nodejs" // để dùng Buffer/mammoth
@@ -56,8 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Lấy collection
-    const [decksCol, flashcardsCol, questionsCol] = await Promise.all([
-      getDecksCollection(),
+    const [flashcardsCol, questionsCol] = await Promise.all([
       getFlashcardsCollection(),
       getQuestionsCollection(),
     ])
@@ -65,11 +62,10 @@ export async function POST(req: NextRequest) {
     const now = new Date()
 
     // Tạo deck
-    const deckInsert = await decksCol.insertOne({
-      userId: new ObjectId(userId),
+    const deckInsert = await createDeck({
+      userId,
       name: deckName || file.name.replace(/\.docx$/i, ""),
-      description: deckDescription || undefined,
-      options: getDefaultDeckOptions(),
+      description: deckDescription,
       createdAt: now,
       updatedAt: now,
     })

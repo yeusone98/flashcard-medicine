@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDecksCollection, ObjectId } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
-import { getDefaultDeckOptions } from "@/lib/fsrs"
+import { createDeck } from "@/lib/decks"
 
 export async function GET() {
     const authResult = await requireAuth()
@@ -45,17 +45,11 @@ export async function POST(req: NextRequest) {
         const subject =
             typeof body?.subject === "string" ? body.subject.trim() : ""
 
-        const decksCol = await getDecksCollection()
-        const now = new Date()
-
-        const deckInsert = await decksCol.insertOne({
-            userId: new ObjectId(userId),
+        const deckInsert = await createDeck({
+            userId,
             name,
-            description: description || undefined,
-            subject: subject || undefined,
-            options: getDefaultDeckOptions(),
-            createdAt: now,
-            updatedAt: now,
+            description,
+            subject,
         })
 
         return NextResponse.json({

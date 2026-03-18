@@ -7,8 +7,8 @@ import {
   ObjectId,
 } from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
+import { createDeck } from "@/lib/decks"
 import { normalizeImage, normalizeTags } from "@/lib/normalize"
-import { getDefaultDeckOptions } from "@/lib/fsrs"
 import { State } from "ts-fsrs"
 
 export const runtime = "nodejs"
@@ -122,14 +122,14 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      const deckInsert = await decksCol.insertOne({
-        userId: new ObjectId(userId),
+      const deckInsert = await createDeck({
+        userId,
         name: deckNameInput,
-        description: body.description?.trim() || undefined,
-        subject: body.subject?.trim() || undefined,
-        options: getDefaultDeckOptions(),
+        description: body.description,
+        subject: body.subject,
         createdAt: now,
         updatedAt: now,
+        decksCol,
       })
       deckId = deckInsert.insertedId
       deckName = deckNameInput

@@ -1,11 +1,14 @@
 // app/layout.tsx
 import type { Metadata } from "next"
 import { Be_Vietnam_Pro, Sora } from "next/font/google"
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+
+import { auth } from "@/auth"
+import { AuthSessionProvider } from "@/components/auth-session-provider"
 import { MainNav } from "@/components/main-nav"
+import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { AuthSessionProvider } from "@/components/auth-session-provider" // 👈 thêm
+
+import "./globals.css"
 
 const beVietnamPro = Be_Vietnam_Pro({
     subsets: ["latin", "vietnamese"],
@@ -23,7 +26,7 @@ const sora = Sora({
 
 export const metadata: Metadata = {
     title: "Flashcard Medicine",
-    description: "Flashcard & MCQ cho sinh viên Y",
+    description: "Flashcard & MCQ cho sinh viÃªn Y",
     manifest: "/manifest.json",
     applicationName: "Flashcard Medicine",
     icons: {
@@ -53,17 +56,19 @@ export const viewport = {
     maximumScale: 1,
 }
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
+    const session = await auth()
+
     return (
         <html lang="vi" suppressHydrationWarning>
             <body
                 className={`${beVietnamPro.variable} ${sora.variable} min-h-screen bg-background text-foreground antialiased`}
             >
-                <AuthSessionProvider>
+                <AuthSessionProvider session={session}>
                     <ThemeProvider>
                         <div className="flex min-h-screen flex-col">
                             <MainNav />
