@@ -41,9 +41,9 @@ export function LoginForm() {
       return
     }
 
-    // Đăng nhập thành công
-    router.push("/decks")
-    router.refresh() // 🔥 refresh lại để SessionProvider lấy session mới
+    // Đăng nhập thành công, dùng window.location.href để ép tải lại trang
+    // giúp Auth.js nhận cookie session mới nhất trên production Vercel.
+    window.location.href = "/decks"
   }
 
   return (
