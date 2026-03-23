@@ -8,6 +8,7 @@ import {
   getOwnedDeletedDeckFilter,
 } from "@/lib/decks"
 import { getDecksCollection } from "@/lib/mongodb"
+import type { Sort } from "mongodb"
 
 export async function GET(req: NextRequest) {
   const authResult = await requireAuth()
@@ -20,10 +21,10 @@ export async function GET(req: NextRequest) {
     status === "deleted"
       ? getOwnedDeletedDeckFilter(userId)
       : getOwnedActiveDeckFilter(userId)
-  const sort =
+  const sort: Sort =
     status === "deleted"
-      ? ({ deletedAt: -1, updatedAt: -1 } as const)
-      : ({ createdAt: -1 } as const)
+      ? { deletedAt: -1, updatedAt: -1 }
+      : { createdAt: -1 }
 
   const decks = await decksCol.find(query).sort(sort).toArray()
 
