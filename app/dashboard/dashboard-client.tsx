@@ -250,7 +250,7 @@ export default function DashboardClient() {
                       </Badge>
                     </div>
                     <CardDescription className="text-xs text-muted-foreground">
-                      {subject.deckCount} deck - {totalItems} muc
+                      {subject.deckCount} deck - {totalItems} mục
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2 text-xs text-muted-foreground">
