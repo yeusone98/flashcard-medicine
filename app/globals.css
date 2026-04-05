@@ -125,8 +125,8 @@
   h2,
   h3,
   h4 {
-    font-family: var(--font-sans), var(--font-display), sans-serif;
-    letter-spacing: -0.02em;
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    letter-spacing: -0.03em;
   }
 
   ::selection {
@@ -137,7 +137,8 @@
 
 @layer components {
   .rich-content {
-    @apply text-inherit;
+    @apply text-inherit break-words;
+    overflow-wrap: anywhere;
   }
 
   .rich-content p {
@@ -222,7 +223,18 @@
   }
 
   .font-display {
-    font-family: var(--font-sans), var(--font-display), sans-serif;
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    letter-spacing: -0.03em;
+  }
+
+  .font-reading {
+    font-family:
+      "Iowan Old Style",
+      "Palatino Linotype",
+      "Book Antiqua",
+      Georgia,
+      serif;
+    letter-spacing: -0.01em;
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -66,6 +66,50 @@ interface CardState {
   nextAvailableAt: number
 }
 
+type CardFaceDensity = "balanced" | "dense" | "compact"
+
+const HTML_TAG_REGEX = /<[^>]+>/g
+const MULTI_SPACE_REGEX = /\s+/g
+
+function getFaceDensity(
+  content: string | null | undefined,
+  options?: { hasImage?: boolean; hasAudio?: boolean },
+): CardFaceDensity {
+  const raw = String(content ?? "")
+  const plainText = raw
+    .replace(HTML_TAG_REGEX, " ")
+    .replace(MULTI_SPACE_REGEX, " ")
+    .trim()
+  const lineBreaks = raw.split(/\r?\n/).length - 1
+  const score =
+    plainText.length +
+    lineBreaks * 28 +
+    (options?.hasImage ? 160 : 0) +
+    (options?.hasAudio ? 110 : 0)
+
+  if (score > 780) return "compact"
+  if (score > 360) return "dense"
+  return "balanced"
+}
+
+function getFaceContentClassName(density: CardFaceDensity) {
+  if (density === "compact") {
+    return "font-reading max-w-[56rem] text-left text-[0.95rem] font-medium leading-[1.78] md:text-[1.08rem]"
+  }
+
+  if (density === "dense") {
+    return "font-reading max-w-[52rem] text-left text-[1rem] font-medium leading-[1.72] md:text-[1.18rem]"
+  }
+
+  return "font-reading max-w-3xl text-center text-[1.12rem] font-medium leading-[1.68] md:text-[1.55rem]"
+}
+
+function getFaceStackClassName(density: CardFaceDensity) {
+  return density === "balanced"
+    ? "justify-center"
+    : "justify-start pt-1 md:pt-2"
+}
+
 export default function FlashcardStudyClient({
   deckId,
   deckName,
@@ -168,6 +212,24 @@ export default function FlashcardStudyClient({
     if (total === 0) return null
     return cards[index]
   }, [cards, index, total])
+
+  const frontDensity = useMemo(
+    () =>
+      getFaceDensity(current?.front, {
+        hasImage: Boolean(current?.frontImage),
+        hasAudio: Boolean(current?.frontAudio),
+      }),
+    [current?.front, current?.frontAudio, current?.frontImage],
+  )
+
+  const backDensity = useMemo(
+    () =>
+      getFaceDensity(current?.back, {
+        hasImage: Boolean(current?.backImage),
+        hasAudio: Boolean(current?.backAudio),
+      }),
+    [current?.back, current?.backAudio, current?.backImage],
+  )
 
   useEffect(() => {
     if (!current?._id) return
@@ -760,7 +822,7 @@ export default function FlashcardStudyClient({
           {/* CARD + FLIP 3D */}
           <Card className="relative overflow-visible border-none bg-transparent shadow-none">
             <CardContent className="relative px-0 py-0">
-              <div className="h-[320px] w-full [perspective:1400px] md:h-[360px]">
+              <div className="h-[380px] w-full [perspective:1400px] md:h-[440px] xl:h-[470px]">
                 <motion.div
                   className="relative h-full w-full rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-white to-slate-50 shadow-2xl shadow-[0_30px_60px_-50px_hsl(var(--primary)/0.55)] dark:from-primary/15 dark:via-slate-950 dark:to-slate-950"
                   style={{ transformStyle: "preserve-3d" }}
@@ -784,87 +846,105 @@ export default function FlashcardStudyClient({
 
                   {/* FRONT */}
                   <div
-                    className="absolute inset-0 flex flex-col items-center justify-center px-6 py-8 text-center text-foreground dark:text-slate-50"
+                    className="absolute inset-0 flex flex-col px-5 py-6 text-foreground dark:text-slate-50 md:px-7 md:py-7"
                     style={{
                       backfaceVisibility: "hidden",
                       transform: "rotateY(0deg)",
                     }}
                   >
-                    <p className="mb-3 text-[11px] uppercase tracking-[0.25em] text-primary/80">
+                    <p className="mb-3 shrink-0 text-center text-[11px] uppercase tracking-[0.25em] text-primary/80">
                       Mặt trước
                     </p>
-                    {current?.frontImage ? (
-                      <button
-                        type="button"
-                        className="group"
-                        onClick={() =>
-                          openImage(current.frontImage || "", "Flashcard front")
-                        }
+                    <div className="min-h-0 flex-1 overflow-y-auto px-1">
+                      <div
+                        className={cn(
+                          "mx-auto flex min-h-full w-full flex-col items-center gap-4",
+                          getFaceStackClassName(frontDensity),
+                        )}
                       >
-                        <img
-                          src={current.frontImage}
-                          alt="Flashcard front"
-                          className="mb-4 max-h-40 w-auto max-w-full rounded-xl border border-primary/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
+                        {current?.frontImage ? (
+                          <button
+                            type="button"
+                            className="group shrink-0"
+                            onClick={() =>
+                              openImage(current.frontImage || "", "Flashcard front")
+                            }
+                          >
+                            <img
+                              src={current.frontImage}
+                              alt="Flashcard front"
+                              className="max-h-32 w-auto max-w-full rounded-xl border border-primary/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in md:max-h-40"
+                            />
+                          </button>
+                        ) : null}
+                        <RichContent
+                          content={current?.front}
+                          fields={current?.fields ?? undefined}
+                          className={getFaceContentClassName(frontDensity)}
                         />
-                      </button>
-                    ) : null}
-                    <RichContent
-                      content={current?.front}
-                      fields={current?.fields ?? undefined}
-                      className="text-lg font-medium leading-relaxed md:text-xl"
-                    />
-                    {current?.frontAudio ? (
-                      <div className="mt-3 w-full max-w-sm">
-                        <audio controls className="w-full">
-                          <source src={current.frontAudio} />
-                        </audio>
+                        {current?.frontAudio ? (
+                          <div className="w-full max-w-sm shrink-0">
+                            <audio controls className="w-full">
+                              <source src={current.frontAudio} />
+                            </audio>
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                    <p className="mt-4 text-[11px] text-primary/70">
+                    </div>
+                    <p className="mt-4 shrink-0 text-center text-[11px] text-primary/70">
                       Nhấn vào thẻ hoặc Space để lật
                     </p>
                   </div>
 
                   {/* BACK */}
                   <div
-                    className="absolute inset-0 flex flex-col items-center justify-center px-6 py-8 text-center text-foreground dark:text-slate-50"
+                    className="absolute inset-0 flex flex-col px-5 py-6 text-foreground dark:text-slate-50 md:px-7 md:py-7"
                     style={{
                       backfaceVisibility: "hidden",
                       transform: "rotateY(180deg)",
                     }}
                   >
-                    <p className="mb-3 text-[11px] uppercase tracking-[0.25em] text-primary/80">
+                    <p className="mb-3 shrink-0 text-center text-[11px] uppercase tracking-[0.25em] text-primary/80">
                       Mặt sau
                     </p>
-                    {current?.backImage ? (
-                      <button
-                        type="button"
-                        className="group"
-                        onClick={() =>
-                          openImage(current.backImage || "", "Flashcard back")
-                        }
+                    <div className="min-h-0 flex-1 overflow-y-auto px-1">
+                      <div
+                        className={cn(
+                          "mx-auto flex min-h-full w-full flex-col items-center gap-4",
+                          getFaceStackClassName(backDensity),
+                        )}
                       >
-                        <img
-                          src={current.backImage}
-                          alt="Flashcard back"
-                          className="mb-4 max-h-40 w-auto max-w-full rounded-xl border border-primary/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in"
+                        {current?.backImage ? (
+                          <button
+                            type="button"
+                            className="group shrink-0"
+                            onClick={() =>
+                              openImage(current.backImage || "", "Flashcard back")
+                            }
+                          >
+                            <img
+                              src={current.backImage}
+                              alt="Flashcard back"
+                              className="max-h-32 w-auto max-w-full rounded-xl border border-primary/30 object-contain shadow-lg transition group-hover:opacity-90 cursor-zoom-in md:max-h-40"
+                            />
+                          </button>
+                        ) : null}
+                        <RichContent
+                          content={current?.back}
+                          fields={current?.fields ?? undefined}
+                          revealCloze
+                          className={getFaceContentClassName(backDensity)}
                         />
-                      </button>
-                    ) : null}
-                    <RichContent
-                      content={current?.back}
-                      fields={current?.fields ?? undefined}
-                      revealCloze
-                      className="text-lg font-medium leading-relaxed md:text-xl"
-                    />
-                    {current?.backAudio ? (
-                      <div className="mt-3 w-full max-w-sm">
-                        <audio controls className="w-full">
-                          <source src={current.backAudio} />
-                        </audio>
+                        {current?.backAudio ? (
+                          <div className="w-full max-w-sm shrink-0">
+                            <audio controls className="w-full">
+                              <source src={current.backAudio} />
+                            </audio>
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                    <p className="mt-4 text-[11px] text-primary/70">
+                    </div>
+                    <p className="mt-4 shrink-0 text-center text-[11px] text-primary/70">
                       Nhấn vào thẻ hoặc Space để lật lại
                     </p>
                   </div>
