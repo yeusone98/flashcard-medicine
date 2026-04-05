@@ -228,13 +228,8 @@
   }
 
   .font-reading {
-    font-family:
-      "Iowan Old Style",
-      "Palatino Linotype",
-      "Book Antiqua",
-      Georgia,
-      serif;
-    letter-spacing: -0.01em;
+    font-family: var(--font-sans), var(--font-display), sans-serif;
+    letter-spacing: -0.015em;
   }
 
   @media (prefers-reduced-motion: reduce) {
