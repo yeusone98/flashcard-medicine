@@ -9,6 +9,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -84,10 +85,10 @@ export function CommandSearch() {
   }
 
   return (
-    <>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
       <button
         aria-label="Tìm kiếm bộ thẻ"
-        onClick={() => setOpen(true)}
         className="relative flex min-w-0 items-center justify-between gap-2 rounded-full border border-border/70 bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/80 w-full max-w-full min-h-10"
       >
         <span className="flex min-w-0 items-center gap-2">
@@ -99,8 +100,7 @@ export function CommandSearch() {
           <span className="text-xs">⌘</span>K
         </kbd>
       </button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
+      </DialogTrigger>
         <DialogContent className="overflow-hidden p-0 max-w-xl">
           <DialogTitle className="sr-only">Tìm kiếm nâng cao</DialogTitle>
           <div className="flex items-center border-b px-3">
@@ -146,7 +146,6 @@ export function CommandSearch() {
             )}
           </ScrollArea>
         </DialogContent>
-      </Dialog>
-    </>
+    </Dialog>
   )
 }

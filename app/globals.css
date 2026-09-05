@@ -3,96 +3,60 @@
 @tailwind utilities;
 
 @layer base {
+  /* Warm neutrals keep reading surfaces quiet; primary marks actions. */
   :root {
-    /* Nền chính: #FFF2EB */
-    --background: 21 100% 96.1%; 
-    --foreground: 24 45% 20%; /* Nâu Espresso cổ điển cho chữ */
-    
-    /* Thẻ card/Popover: #FFE8CD */
-    --card: 30 60% 97%;
-    --card-foreground: 24 45% 20%;
-    
-    --popover: 32.4 100% 90.2%;
-    --popover-foreground: 24 45% 20%;
-    
-    /* Primary: Đổi sang cam đất (Terracotta) để chữ nổi bật trên nền sáng */
-    --primary: 15 56% 40%;
-    --primary-foreground: 0 0% 100%; /* Chữ trắng trên nền cam đất */
-    
-    /* Secondary: #FFD6BA */
-    --secondary: 24.3 100% 86.5%; 
-    --secondary-foreground: 24 45% 20%;
-    
-    /* Muted (Vùng làm mờ / nền icon): #FFDCDC */
-    --muted: 0 100% 93.1%; 
-    --muted-foreground: 24 24% 35%;
-    
-    /* Accent (Hiệu ứng hover v.v): Sử dụng lại #FFD6BA */
-    --accent: 24.3 100% 86.5%; 
-    --accent-foreground: 24 45% 20%;
-    
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 0 0% 98%;
-    
-    /* Border nhẹ nhàng tone nâu */
-    --border: 24 30% 82%; 
-    --input: 32.4 100% 90.2%; 
-    --ring: 15 56% 50%; 
-    --radius: 0.9rem;
-    
-    --chart-1: 15 56% 50%;
-    --chart-2: 32.4 100% 90.2%;
-    --chart-3: 0 100% 93.1%;
-    --chart-4: 21 100% 96.1%;
-    --chart-5: 24.3 100% 86.5%;
+    --background: 48.00 23.81% 95.88%;
+    --foreground: 36.00 6.49% 15.10%;
+    --card: 48.00 100.00% 99.02%;
+    --card-foreground: 36.00 6.49% 15.10%;
+    --popover: 48.00 100.00% 99.02%;
+    --popover-foreground: 36.00 6.49% 15.10%;
+    --primary: 12.20 56.19% 41.18%;
+    --primary-foreground: 0.00 0.00% 100.00%;
+    --secondary: 36.92 27.66% 90.78%;
+    --secondary-foreground: 30.00 9.80% 20.00%;
+    --muted: 45.00 19.05% 91.76%;
+    --muted-foreground: 32.73 5.53% 39.02%;
+    --accent: 26.40 47.17% 89.61%;
+    --accent-foreground: 14.46 57.24% 28.43%;
+    --destructive: 353.81 54.31% 45.49%;
+    --destructive-foreground: 0.00 0.00% 100.00%;
+    --border: 40.00 15.38% 84.71%;
+    --input: 35.29 7.17% 53.53%;
+    --ring: 12.20 56.19% 41.18%;
+    --chart-1: 12.20 56.19% 41.18%;
+    --chart-2: 175.89 47.71% 30.00%;
+    --chart-3: 258.81 27.13% 51.57%;
+    --chart-4: 35.61 66.49% 36.27%;
+    --chart-5: 211.08 38.60% 42.16%;
+    --radius: 0.75rem;
   }
 
   .dark {
-    /* Nền chính: #18230F (Rất tối) */
-    --background: 90 40% 10%; 
-    /* Chữ chính: Để chữ màu sáng (Ngà nhạt) hoặc trắng để đọc được trên nền rất đậm này */
-    --foreground: 90 20% 90%; 
-    
-    /* Thẻ Card/Popover: #27391C */
-    --card: 92 34% 17%; 
-    --card-foreground: 90 20% 90%;
-    --popover: 92 34% 17%;
-    --popover-foreground: 90 20% 90%;
-    
-    /* Primary: #1F7D53 */
-    --primary: 153 60% 31%; 
-    --primary-foreground: 0 0% 100%; /* Chữ trắng trên nền xanh ngọc đậm */
-    
-    /* Secondary & Muted: #255F38 */
-    --secondary: 142 44% 26%; 
-    --secondary-foreground: 0 0% 100%;
-    
-    /* Muted: Dùng #27391C để nền chìm */
-    --muted: 92 34% 17%; 
-    --muted-foreground: 90 20% 70%; 
-    
-    /* Accent: Khi hover các hàng, list (#255F38) */
-    --accent: 142 44% 26%; 
-    --accent-foreground: 0 0% 100%;
-    
-    --destructive: 0 62% 38%;
-    --destructive-foreground: 0 0% 98%;
-    
-    /* Viền và input field: Dùng #3F4F44 sáng hơn nền để nhận diện được khung nhập chữ */
-    --border: 139 11% 28%; 
-    --input: 139 11% 28%; 
-    /* Ring viền focus: #1F7D53 */
-    --ring: 153 60% 31%; 
-    
-    --chart-1: 153 60% 31%;
-    --chart-2: 142 44% 26%;
-    --chart-3: 92 34% 17%;
-    --chart-4: 90 40% 10%;
-    --chart-5: 10 70% 55%;
-  }
-
-  .dark body {
-    background-image: none;
+    --background: 210.00 3.85% 10.20%;
+    --foreground: 40.00 20.00% 91.18%;
+    --card: 210.00 5.56% 14.12%;
+    --card-foreground: 40.00 20.00% 91.18%;
+    --popover: 210.00 4.65% 16.86%;
+    --popover-foreground: 40.00 20.00% 91.18%;
+    --primary: 20.97 76.30% 73.53%;
+    --primary-foreground: 24.44 39.13% 13.53%;
+    --secondary: 216.00 4.95% 19.80%;
+    --secondary-foreground: 36.92 18.84% 86.47%;
+    --muted: 216.00 5.49% 17.84%;
+    --muted-foreground: 35.00 7.23% 67.45%;
+    --accent: 20.00 17.65% 20.00%;
+    --accent-foreground: 21.63 79.63% 78.82%;
+    --destructive: 358.22 80.80% 75.49%;
+    --destructive-foreground: 352.80 33.33% 14.71%;
+    --border: 216.00 3.70% 26.47%;
+    --input: 222.86 2.81% 48.82%;
+    --ring: 20.97 76.30% 73.53%;
+    --chart-1: 20.97 76.30% 73.53%;
+    --chart-2: 169.86 34.63% 59.80%;
+    --chart-3: 260.95 49.61% 75.10%;
+    --chart-4: 37.11 56.73% 66.47%;
+    --chart-5: 208.89 55.10% 71.18%;
   }
 
   * {
@@ -103,23 +67,11 @@
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans), sans-serif;
     background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(circle at 12% 5%, hsl(var(--primary) / 0.12), transparent 45%),
-      radial-gradient(circle at 88% 12%, hsl(var(--primary) / 0.08), transparent 48%),
-      radial-gradient(circle at 80% 90%, hsl(var(--primary) / 0.06), transparent 50%),
-      linear-gradient(180deg, hsl(var(--background)), hsl(var(--secondary) / 0.15) 30%, hsl(var(--secondary) / 0.15) 70%, hsl(var(--background)) 100%),
-      repeating-linear-gradient(
-        90deg,
-        hsl(var(--border) / 0.1) 0 1px,
-        transparent 1px 42px
-      ),
-      repeating-linear-gradient(
-        180deg,
-        hsl(var(--border) / 0.1) 0 1px,
-        transparent 1px 42px
-      );
-    background-attachment: fixed;
+    background-image: none;
+    color-scheme: light;
   }
+
+  .dark body { color-scheme: dark; }
 
   h1,
   h2,
@@ -195,8 +147,8 @@
 
   .auth-shell {
     background-image:
-      radial-gradient(circle at 15% 10%, hsl(var(--primary) / 0.2), transparent 45%),
-      radial-gradient(circle at 85% 85%, hsl(var(--primary) / 0.18), transparent 50%),
+      radial-gradient(circle at 15% 10%, hsl(var(--primary) / 0.05), transparent 45%),
+      radial-gradient(circle at 85% 85%, hsl(var(--primary) / 0.03), transparent 50%),
       linear-gradient(160deg, hsl(var(--background)), hsl(var(--secondary)) 55%, hsl(var(--background)) 100%);
   }
 
@@ -218,36 +170,10 @@
   }
 }
 
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Study surfaces keep the warm theme while giving long-form text a quiet canvas. */
 .study-reading {
-  background: #fffdfa;
-  color: #38291f;
-}
-.dark .study-reading {
-  background: #19231b;
-  color: #f1f0e9;
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
 }
 .study-page .rich-content { line-height: 1.75; }
 .study-page[data-study-focus="true"] { max-width: 52rem; margin-inline: auto; width: 100%; }
@@ -287,4 +213,75 @@ body:has(.study-page[data-study-focus="true"]) [data-main-nav] { display: none; 
   .study-page *, .study-page *::before, .study-page *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
-.dark .study-page h1 .text-primary { color: #a0dfbb; }
+
+
+/* Flashcard workspace: one surface per section and bounded rich content. */
+body:has(.flashcard-workspace) { background-image: none; }
+.flashcard-workspace .study-sidebar .study-disclosure > div { padding: 0 16px 16px; }
+.flashcard-workspace .study-sidebar .study-disclosure > div > div {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.flashcard-workspace .study-sidebar .study-disclosure > div > div + div {
+  border-top: 1px solid hsl(var(--border));
+  padding-top: 16px;
+}
+.flashcard-workspace .study-sidebar .study-disclosure > div > div > div { padding: 0 0 12px; }
+.flashcard-workspace .rich-content { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.flashcard-workspace .rich-content img,
+.flashcard-workspace .rich-content video { max-width: 100%; height: auto; }
+.flashcard-workspace .rich-content pre { max-width: 100%; overflow: auto; }
+.flashcard-workspace .rich-content table { display: block; max-width: 100%; overflow-x: auto; }
+.flashcard-workspace .study-ratings { min-width: 0; box-shadow: none; }
+.flashcard-workspace .rating-button { min-width: 0; padding-inline: 4px; }
+
+.dark .rating-again:hover { background: #4b2b32; }
+.dark .rating-hard:hover { background: #453b25; }
+.dark .rating-good:hover { background: #294a39; }
+.dark .rating-easy:hover { background: #2c5961; }
+
+/* Shared motion: immediate feedback, short transitions, no staggered waiting. */
+:root {
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.motion-button {
+  transition-timing-function: var(--motion-ease);
+}
+.motion-button:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: scale(0.98);
+  transition-duration: 70ms;
+}
+.motion-overlay {
+  animation-duration: 160ms;
+  animation-timing-function: var(--motion-ease);
+}
+.motion-overlay[data-state="closed"] { animation-duration: 110ms; }
+.motion-content[data-state="active"],
+.study-disclosure[open] > .motion-content {
+  animation: content-reveal 160ms var(--motion-ease);
+}
+.study-disclosure > summary svg { transition: transform 160ms var(--motion-ease); }
+@keyframes content-reveal {
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .motion-card { transition: transform 160ms var(--motion-ease), border-color 160ms ease; }
+  .group:hover .motion-card { transform: translateY(-2px); border-color: hsl(var(--primary) / 0.5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .motion-button:active:not(:disabled),
+  .group:hover .motion-card { transform: none; }
+}

@@ -46,6 +46,6 @@ export function StudyDisclosure({ title, children, defaultOpen = false }: { titl
     <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       {title}<ChevronDown aria-hidden className="h-4 w-4 shrink-0 transition-transform" />
     </summary>
-    <div className="space-y-4 px-3 pb-3">{children}</div>
+    <div className="motion-content space-y-4 px-3 pb-3">{children}</div>
   </details>
 }

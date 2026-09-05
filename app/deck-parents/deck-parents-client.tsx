@@ -3,7 +3,6 @@
 
 import { useMemo, useState } from "react"
 import Link from "@/components/navigation-link"
-import { motion } from "framer-motion"
 import { Layers, Plus, Search, SortAsc, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -344,12 +343,9 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
         </section>
       ) : (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredParents.map((parent, index) => (
-            <motion.div
+          {filteredParents.map((parent) => (
+            <div
               key={parent.name}
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.18, delay: index * 0.03 }}
             >
               <Link
                 href={`/decks?subject=${encodeURIComponent(parent.name)}`}
@@ -404,7 +400,7 @@ export function DeckParentsClient({ parents }: DeckParentsClientProps) {
                   </CardContent>
                 </Card>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </section>
       )}

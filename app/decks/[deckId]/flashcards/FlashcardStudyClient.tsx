@@ -28,7 +28,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { reviewIntervalLabel } from "@/lib/study-time"
@@ -654,14 +653,14 @@ export default function FlashcardStudyClient({
   const seenCount = seenIds.size
 
   return (
-    <div data-study-focus={focused} className="study-page flex flex-col gap-5 pb-8">
+    <div data-study-focus={focused} className="study-page flashcard-workspace min-w-0 flex flex-col gap-5 pb-8">
       <div className="flex items-center justify-between gap-3">
         <Link href={`/decks/${deckId}`} className="text-sm font-medium text-muted-foreground hover:text-foreground">← Bộ thẻ</Link>
         <StudyFocusToggle focused={focused} onToggle={toggle} />
       </div>
       {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-2">
+      <header className="flex min-w-0 flex-col gap-4">
+        <div className="min-w-0 space-y-3">
           <nav className="study-secondary flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
             <Link
               href={
@@ -687,13 +686,11 @@ export default function FlashcardStudyClient({
             <span>/</span>
             <span className="text-foreground">Thẻ ghi nhớ</span>
           </nav>
-          <h1 className="text-xl font-semibold tracking-tight">
+          <h1 className="text-xl font-semibold tracking-tight [overflow-wrap:anywhere]">
             Ôn thẻ ·{" "}
             <span className="text-primary">{deckName}</span>
           </h1>
-          <p className="study-secondary hidden text-xs text-muted-foreground sm:block">
-            Space = lật thẻ · 1 = Lại · 2 = Khó · 3 = Tốt · 4 = Dễ
-          </p>
+
           <div className="study-secondary flex flex-wrap items-center gap-2">
             <Button
               asChild
@@ -741,7 +738,7 @@ export default function FlashcardStudyClient({
             </Button>
           </div>
           {mode === "due" && studyLimitInfo ? (
-            <p className="study-secondary max-w-3xl rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
+            <p className="study-secondary rounded-lg bg-muted/30 px-3 py-2 leading-relaxed text-[11px] text-muted-foreground">
               Hôm nay đang áp dụng giới hạn học: mới {studyLimitInfo.newPerDay}
               /ngày, ôn {studyLimitInfo.reviewPerDay}/ngày. Hiện hiển thị{" "}
               {studyLimitInfo.dueAfterLimit}/{studyLimitInfo.dueBeforeLimit} thẻ
@@ -764,7 +761,7 @@ export default function FlashcardStudyClient({
             </p>
           ) : null}
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs tabular-nums text-muted-foreground">
           <span>
             Thẻ: <span className="font-medium text-foreground">{currentNumber}/{total}</span>
           </span>
@@ -787,9 +784,9 @@ export default function FlashcardStudyClient({
       </div>
 
       {/* Layout 2 cột */}
-      <div className={cn("study-columns grid gap-5", !focused && "lg:grid-cols-[minmax(0,2.1fr)_minmax(260px,1fr)]")}>
+      <div className={cn("study-columns grid min-w-0 items-start gap-5", !focused && "lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px]")}>
         {/* Cột trái */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Điều khiển trên card */}
           <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
@@ -835,9 +832,9 @@ export default function FlashcardStudyClient({
           {/* CARD + FLIP 3D */}
           <Card className="relative overflow-visible border-none bg-transparent shadow-none">
             <CardContent className="relative px-0 py-0">
-              <div className="study-flashcard h-[360px] w-full [perspective:1400px] md:h-[440px] xl:h-[470px]">
+              <div className="study-flashcard h-[360px] min-w-0 w-full [perspective:1400px] md:h-[400px] xl:h-[420px]">
                 <motion.div
-                  className="study-reading relative h-full w-full rounded-3xl border border-border shadow-sm"
+                  className="study-reading relative h-full w-full rounded-2xl border border-border shadow-sm"
                   style={{ transformStyle: "preserve-3d" }}
                   animate={{ rotateY: showBack ? 180 : 0 }}
                   initial={false}
@@ -867,7 +864,7 @@ export default function FlashcardStudyClient({
                     <p className="mb-3 shrink-0 text-center text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
                       Mặt trước
                     </p>
-                    <div className="min-h-0 flex-1 overflow-y-auto px-1">
+                    <div className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain px-1">
                       <div
                         className={cn(
                           "mx-auto flex min-h-full w-full flex-col items-center gap-4",
@@ -919,7 +916,7 @@ export default function FlashcardStudyClient({
                     <p className="mb-3 shrink-0 text-center text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
                       Mặt sau
                     </p>
-                    <div className="min-h-0 flex-1 overflow-y-auto px-1">
+                    <div className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain px-1">
                       <div
                         className={cn(
                           "mx-auto flex min-h-full w-full flex-col items-center gap-4",
@@ -1037,12 +1034,12 @@ export default function FlashcardStudyClient({
         </div>
 
         {/* Sidebar phải */}
-        <aside className={cn("space-y-4", focused && "hidden")}>
+        <aside className={cn("study-sidebar min-w-0 space-y-4", focused && "hidden")}>
           <StudyDisclosure title="Danh sách thẻ & thống kê" defaultOpen>
           {/* Danh sách thẻ */}
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <CardTitle className="text-sm">Danh sách thẻ</CardTitle>
                   <p className="text-[11px] text-muted-foreground">
@@ -1067,14 +1064,14 @@ export default function FlashcardStudyClient({
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[260px] pr-1">
-                <div className="grid grid-cols-5 gap-2 sm:grid-cols-4">
+              <div className="max-h-64 overflow-y-auto overscroll-contain p-1">
+                <div className="grid grid-cols-5 gap-2">
                   {cards.map((card, idx) => {
                     const rating = sessionRatings[card._id]
                     const isCurrent = idx === index
 
                     const baseClasses =
-                      "h-8 w-full rounded-md border text-[11px] flex items-center justify-center transition-colors"
+                      "h-10 min-w-0 w-full rounded-lg border text-xs flex items-center justify-center transition-colors"
 
                     let ratingClasses =
                       "border-border/60 bg-background text-muted-foreground"
@@ -1082,13 +1079,16 @@ export default function FlashcardStudyClient({
                     if (rating) ratingClasses = `rating-${rating}`
 
                     const currentClasses = isCurrent
-                      ? "ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                      ? "ring-2 ring-inset ring-foreground font-semibold"
                       : "hover:border-primary/60 hover:text-primary"
 
                     return (
                       <button
                         key={card._id}
                         type="button"
+                        aria-label={`Đến thẻ ${idx + 1}`}
+                        aria-current={isCurrent ? "step" : undefined}
+                        disabled={isReviewing}
                         className={cn(
                           baseClasses,
                           ratingClasses,
@@ -1107,7 +1107,7 @@ export default function FlashcardStudyClient({
                     )
                   })}
                 </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
 
@@ -1130,7 +1130,7 @@ export default function FlashcardStudyClient({
                 </span>
               </div>
 
-              <div className="grid grid-cols-4 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 {([['again', 'Lại'], ['hard', 'Khó'], ['good', 'Tốt'], ['easy', 'Dễ']] as const).map(([rating, label]) => (
                   <div key={rating} className={`rating-${rating} rounded-lg border px-2 py-2 text-center`}>
                     <p className="text-xs">{label}</p>

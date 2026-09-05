@@ -51,7 +51,7 @@ export function MainNav() {
   const avatarSrc = user?.image || undefined
 
   return (
-    <header data-main-nav className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl shadow-[0_10px_30px_-24px_rgba(8,60,60,0.35)] relative after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-primary/40 after:to-transparent">
+    <header data-main-nav className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl shadow-sm relative after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-primary/40 after:to-transparent">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 md:gap-3 px-3 md:h-16 md:px-4">
         {/* Logo + tên app */}
         <Link href="/" className="flex shrink-0 items-center gap-2">

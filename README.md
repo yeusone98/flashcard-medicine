@@ -72,3 +72,7 @@ API `POST /api/flashcards/:id/review` trả header `Server-Timing`: `auth` (xác
 Trong DevTools → Network → request review → Timing/Response Headers, so sánh lần đầu và vài lần sau. `total` không gồm thời gian nền tảng khởi động trước handler hoặc đường truyền. Nếu `transaction` lớn, kiểm tra vùng chạy Vercel Functions và vùng MongoDB Atlas có gần nhau không trước khi đổi hosting; không tự chọn region khi chưa biết vị trí database.
 
 Index được khởi tạo tự động và đánh dấu trong collection `_schema_versions` sau khi tất cả index thành công. Tiến trình server mới chỉ đọc dấu phiên bản thay vì gửi lại toàn bộ lệnh tạo index. Lần đầu sau cập nhật vẫn cần hoàn tất thiết lập. Khi sửa danh sách index, tăng `INDEX_VERSION` trong `lib/database-indexes.ts`; khi khôi phục database phải giữ index hoặc bỏ dấu phiên bản để app tạo lại.
+
+## Hiệu ứng giao diện
+
+Các thành phần dùng chuyển động ngắn: nút nhấn 70–100 ms, menu/hộp thoại khoảng 150–200 ms, thanh tiến độ 200 ms, lật thẻ 180 ms. Danh sách không có độ trễ theo thứ tự. Hiệu ứng nâng thẻ chỉ áp dụng với chuột; thiết bị cảm ứng dùng phản hồi nhấn. `prefers-reduced-motion` giảm hiệu ứng toàn app, kể cả loading và popup; trạng thái xử lý vẫn được thể hiện bằng chữ. Không thêm hiệu ứng vào thời gian chờ lưu dữ liệu.

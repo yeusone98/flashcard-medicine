@@ -36,7 +36,7 @@ export default async function HomePage() {
             <section className="grid gap-4 md:grid-cols-2">
                 {/* Card DECKS */}
                 <Link href="/decks" className="group">
-                    <Card className="flex h-full flex-col border border-border/70 bg-gradient-to-b from-background/60 to-background/20 transition-transform duration-150 group-hover:-translate-y-1 group-hover:border-primary/60">
+                    <Card className="flex h-full flex-col border border-border/70 bg-gradient-to-b from-background/60 to-background/20 motion-card">
                         <CardHeader className="flex flex-row items-start justify-between gap-3">
                             <div>
                                 <CardTitle className="flex items-center gap-2 text-base md:text-lg">
@@ -74,7 +74,7 @@ export default async function HomePage() {
 
                 {/* Card IMPORT */}
                 <Link href="/import" className="group">
-                    <Card className="flex h-full flex-col border border-border/70 bg-gradient-to-b from-background/60 to-background/20 transition-transform duration-150 group-hover:-translate-y-1 group-hover:border-primary/60">
+                    <Card className="flex h-full flex-col border border-border/70 bg-gradient-to-b from-background/60 to-background/20 motion-card">
                         <CardHeader className="flex flex-row items-start justify-between gap-3">
                             <div>
                                 <CardTitle className="flex items-center gap-2 text-base md:text-lg">
