@@ -27,6 +27,7 @@ const links = [
   { href: "/explore", label: "Khám phá" },
   { href: "/import", label: "Nhập dữ liệu" },
   { href: "/media", label: "Thư viện" },
+  { href: "/documents", label: "Tài liệu" },
   { href: "/help", label: "Hướng dẫn" },
 ]
 
@@ -76,7 +77,7 @@ export function MainNav() {
               <button
                 className={cn(
                   buttonVariants({ variant: "outline", size: "icon" }),
-                  "h-11 w-11 xl:hidden",
+                  "h-11 w-11 2xl:hidden",
                 )}
                 aria-label="Mở điều hướng"
               >
@@ -111,7 +112,7 @@ export function MainNav() {
           </DropdownMenu>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-1 text-sm font-medium xl:flex">
+          <nav className="hidden items-center gap-1 text-sm font-medium 2xl:flex">
             {links.map((link) => {
               const isActive =
                 link.href === "/"

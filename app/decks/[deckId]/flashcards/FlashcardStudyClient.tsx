@@ -840,7 +840,7 @@ export default function FlashcardStudyClient({
                   initial={false}
                   transition={
                     isFlipAnimating
-                      ? { duration: reduceMotion ? 0 : 0.18, ease: "easeOut" }
+                      ? { duration: reduceMotion ? 0 : 0.3, ease: "easeOut" }
                       : { duration: 0 } // 👉 đổi thẻ: không animate
                   }
                   onClick={handleFlip}

@@ -285,3 +285,9 @@ body:has(.flashcard-workspace) { background-image: none; }
   .motion-button:active:not(:disabled),
   .group:hover .motion-card { transform: none; }
 }
+
+.pdf-reader:fullscreen { overflow: auto; max-width: none; }
+.pdf-reader .react-pdf__Page { background: white; color: #111; }
+.pdf-reader .react-pdf__Page__canvas { display: block; }
+.pdf-reader .react-pdf__Document { width: max-content; min-width: 100%; }
+.pdf-reader .textLayer ::selection { background: #8bbafc80; color: transparent; }

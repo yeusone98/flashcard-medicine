@@ -75,4 +75,16 @@ Index được khởi tạo tự động và đánh dấu trong collection `_sch
 
 ## Hiệu ứng giao diện
 
-Các thành phần dùng chuyển động ngắn: nút nhấn 70–100 ms, menu/hộp thoại khoảng 150–200 ms, thanh tiến độ 200 ms, lật thẻ 180 ms. Danh sách không có độ trễ theo thứ tự. Hiệu ứng nâng thẻ chỉ áp dụng với chuột; thiết bị cảm ứng dùng phản hồi nhấn. `prefers-reduced-motion` giảm hiệu ứng toàn app, kể cả loading và popup; trạng thái xử lý vẫn được thể hiện bằng chữ. Không thêm hiệu ứng vào thời gian chờ lưu dữ liệu.
+Các thành phần dùng chuyển động ngắn: nút nhấn 70–100 ms, menu/hộp thoại khoảng 150–200 ms, thanh tiến độ 200 ms, lật thẻ 300 ms. Danh sách không có độ trễ theo thứ tự. Hiệu ứng nâng thẻ chỉ áp dụng với chuột; thiết bị cảm ứng dùng phản hồi nhấn. `prefers-reduced-motion` giảm hiệu ứng toàn app, kể cả loading và popup; trạng thái xử lý vẫn được thể hiện bằng chữ. Không thêm hiệu ứng vào thời gian chờ lưu dữ liệu.
+
+## Tài liệu học (PDF)
+
+Mở **Tài liệu** trong menu hoặc `/documents`. Bản đầu hỗ trợ upload riêng tư, đổi tên/phân môn, lọc thư viện, đọc từng trang, zoom/vừa chiều rộng/toàn màn hình, nhớ trang theo tài khoản, đánh dấu và ghi chú theo trang. Bôi đen chữ → tạo flashcard, hoặc nhập thủ công; thẻ lưu tên tài liệu và số trang trong `fields.source` và ghi chú. Xóa PDF không xóa các thẻ đã tạo.
+
+- Dùng cùng `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` hiện có; không đưa secret vào biến `NEXT_PUBLIC_*`. MongoDB phải hỗ trợ transactions như các tính năng học hiện tại.
+- File upload trực tiếp tới Cloudinary dạng `raw` + `authenticated`; server chỉ ký public ID được tạo riêng cho tài khoản. Sau upload, server xác minh kích thước và chữ ký đầu file `%PDF-` trước khi cho đọc. Tối đa 10 MB/file, 20 tài liệu/tài khoản (gồm bản tải dở).
+- Khi tài khoản Cloudinary chặn PDF, bật tùy chọn cho phép PDF/ZIP delivery trong Security của Cloudinary. Giới hạn/hạn mức gói Cloudinary vẫn áp dụng. Nếu upload gián đoạn, dùng “Xác nhận bản tải dở”; nếu chưa có file thì xóa bản tải dở rồi tải lại.
+- Nội dung PDF được đọc qua API có kiểm tra chủ sở hữu, từng phần tối đa 1 MB để tránh giới hạn payload Vercel. URL tải Cloudinary có chữ ký ngắn hạn chỉ dùng ở server. Nếu kho lưu trữ bỏ qua Range, backend cắt luồng về đúng phần yêu cầu; file lớn có thể tải chậm hơn.
+- Trình đọc xử lý PDF trong trình duyệt, chỉ render một trang. Worker, CMap và font được đóng gói cùng ứng dụng; `dev`/`build` tự chuẩn bị `public/pdf-assets`. Không gửi nội dung sang AI. PDF scan đọc được nhưng cần OCR để tìm/chọn chữ; OCR và tóm tắt AI chưa có.
+- Ghi chú tối đa 5.000 ký tự, 200 ghi chú/tài liệu, 500 dấu trang. Dữ liệu học cần mạng; PDF chưa có đồng bộ offline. Backup JSON bộ thẻ giữ thông tin nguồn của thẻ nhưng **chưa sao lưu thư viện PDF, ghi chú và dấu trang**; giữ file PDF gốc.
+- Kiểm thử sử dụng Cloudinary giả lập và PDF mẫu công khai của PDF.js. Đã kiểm tra đọc/tìm/chọn chữ, tạo thẻ, nhớ trang/ghi chú và phân quyền; cần thử upload thật trên môi trường có đủ cấu hình Cloudinary trước khi sử dụng chính thức.

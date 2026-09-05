@@ -45,6 +45,7 @@ function withOptionalPwa(config: NextConfig): NextConfig {
     disable: false,
     register: true,
     cacheStartUrl: false,
+    publicExcludes: ["!pdf-assets/**/*"],
     cacheOnFrontEndNav: false,
     workboxOptions: { runtimeCaching: [] },
   })

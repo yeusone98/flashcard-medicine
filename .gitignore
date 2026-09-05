@@ -45,3 +45,5 @@ next-env.d.ts
 /public/workbox-*.js
 /.playwright-cli/
 /output/playwright/
+
+/public/pdf-assets/

@@ -2,13 +2,14 @@ import type { Db } from "mongodb"
 
 // Increment the version whenever this index definition changes. Each version
 // gets its own marker so overlapping deployments cannot overwrite one another.
-export const INDEX_VERSION = "study-indexes-v1"
+export const INDEX_VERSION = "study-indexes-v2"
 
 export async function ensureDatabaseIndexes(db: Db): Promise<void> {
   const versions = db.collection<{ _id: string; completedAt: Date }>("_schema_versions")
   if (await versions.findOne({ _id: INDEX_VERSION }, { projection: { _id: 1 } })) return
 
   const results = await Promise.allSettled([
+    db.collection("documents").createIndex({ userId: 1, createdAt: -1 }),
     db.collection("decks").createIndex({ userId: 1, deletedAt: 1, createdAt: -1 }),
     db.collection("decks").createIndex({ shareToken: 1 }, { sparse: true, unique: true }),
     db.collection("flashcards").createIndex({ deckId: 1, dueAt: 1 }),
