@@ -22,11 +22,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const links = [
   { href: "/", label: "Trang chủ" },
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard", label: "Tổng quan" },
   { href: "/deck-parents", label: "Môn học" },
   { href: "/explore", label: "Khám phá" },
-  { href: "/import", label: "Import" },
-  { href: "/media", label: "Media" },
+  { href: "/import", label: "Nhập dữ liệu" },
+  { href: "/media", label: "Thư viện" },
   { href: "/help", label: "Hướng dẫn" },
 ]
 
@@ -48,35 +48,35 @@ export function MainNav() {
     .slice(0, 2)
     .toUpperCase()
 
-  const avatarSrc = user?.image || "/avatar-default.png"
+  const avatarSrc = user?.image || undefined
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl shadow-[0_10px_30px_-24px_rgba(8,60,60,0.35)] relative after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-primary/40 after:to-transparent">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-3 md:h-16 md:px-4">
+    <header data-main-nav className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl shadow-[0_10px_30px_-24px_rgba(8,60,60,0.35)] relative after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-primary/40 after:to-transparent">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 md:gap-3 px-3 md:h-16 md:px-4">
         {/* Logo + tên app */}
-        <Link href="/" prefetch={false} className="flex items-center gap-2">
+        <Link href="/" prefetch={false} className="flex shrink-0 items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm">
             <Layers className="h-4 w-4" />
           </span>
-          <span className="hidden text-sm font-semibold tracking-tight md:block md:text-base">
+          <span className="hidden text-sm font-semibold tracking-tight whitespace-nowrap md:block md:text-base">
             Flashcard Medicine
           </span>
         </Link>
         
         {/* Search Bar */}
-        <div className="mx-2 flex-1 md:mx-6 md:max-w-xs">
+        <div className="min-w-0 flex-1">
           <CommandSearch />
         </div>
 
         {/* Nav + user + toggle theme */}
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex shrink-0 items-center gap-2 md:gap-3">
           {/* Mobile dropdown navigation */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
                   buttonVariants({ variant: "outline", size: "icon" }),
-                  "h-8 w-8 lg:hidden",
+                  "h-11 w-11 xl:hidden",
                 )}
                 aria-label="Mở điều hướng"
               >
@@ -111,7 +111,7 @@ export function MainNav() {
           </DropdownMenu>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-1 text-sm font-medium lg:flex">
+          <nav className="hidden items-center gap-1 text-sm font-medium xl:flex">
             {links.map((link) => {
               const isActive =
                 link.href === "/"
@@ -128,7 +128,7 @@ export function MainNav() {
                       variant: isActive ? "secondary" : "ghost",
                       size: "sm",
                     }),
-                    "px-2 md:px-3 text-[13px] xl:text-sm",
+                    "px-2 text-[13px]",
                   )}
                 >
                   {link.label}
@@ -150,7 +150,7 @@ export function MainNav() {
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden max-w-[120px] truncate text-sm font-medium xl:inline">
+                  <span className="hidden max-w-[120px] truncate text-sm font-medium 2xl:inline">
                     {displayName}
                   </span>
                 </button>

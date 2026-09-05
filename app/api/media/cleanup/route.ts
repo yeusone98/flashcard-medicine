@@ -3,6 +3,7 @@ import { auth } from "@/auth"
 import { getUserIdFromSession } from "@/lib/auth-helpers"
 import cloudinary from "@/lib/cloudinary"
 import {
+  ObjectId,
   getDecksCollection,
   getFlashcardsCollection,
   getMediaCollection,
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
               frontAudio: 1,
               backAudio: 1,
               fields: 1,
+              note: 1,
             },
           },
         )
@@ -94,7 +96,7 @@ export async function POST(req: NextRequest) {
         )
         .toArray(),
       usersCol.find({}, { projection: { image: 1 } }).toArray(),
-      mediaCol.find({}).toArray(),
+      mediaCol.find({ ownerId: new ObjectId(userId), createdAt: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }).toArray(),
     ])
 
     decks.forEach((deck) => {
@@ -109,6 +111,7 @@ export async function POST(req: NextRequest) {
       addUrlsFromText(usedUrls, card.front ?? "")
       addUrlsFromText(usedUrls, card.back ?? "")
       addUrlsFromFields(usedUrls, card.fields ?? null)
+      addUrlsFromText(usedUrls, card.note ?? "")
     })
 
     questions.forEach((question) => {
@@ -146,33 +149,21 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const orphanIds = orphans
-      .map((item) => item._id)
-      .filter(Boolean)
-
-    const deleteTargets = orphans.filter((item) => item.publicId)
-    const deleteResults = await Promise.allSettled(
-      deleteTargets.map((item) =>
-        cloudinary.uploader.destroy(item.publicId, {
-          resource_type: item.resourceType ?? "image",
-          invalidate: true,
-        }),
-      ),
-    )
-
-    const failedDeletes = deleteResults.filter(
-      (result) => result.status === "rejected",
-    )
-
-    if (orphanIds.length > 0) {
-      await mediaCol.deleteMany({ _id: { $in: orphanIds } })
+    const deletedIds = []
+    let failedDeletes = 0
+    for (const item of orphans) {
+      try {
+        if (item.publicId) await cloudinary.uploader.destroy(item.publicId, { resource_type: item.resourceType ?? "image", invalidate: true })
+        deletedIds.push(item._id)
+      } catch { failedDeletes++ }
     }
+    if (deletedIds.length) await mediaCol.deleteMany({ _id: { $in: deletedIds }, ownerId: new ObjectId(userId) })
 
     return NextResponse.json({
       dryRun: false,
       checked: media.length,
-      removedCount: orphanIds.length,
-      failedDeletes: failedDeletes.length,
+      removedCount: deletedIds.length,
+      failedDeletes,
     })
   } catch (error) {
     console.error("Media cleanup error", error)

@@ -1,3 +1,4 @@
+import { reserveAiQuota } from "@/lib/ai-quota"
 import { NextRequest, NextResponse } from "next/server"
 import OpenAI from "openai"
 import { State } from "ts-fsrs"
@@ -5,6 +6,7 @@ import { State } from "ts-fsrs"
 import { requireAuth } from "@/lib/auth-helpers"
 import { createDeck } from "@/lib/decks"
 import {
+  withTransaction,
   getFlashcardsCollection,
   getQuestionsCollection,
 } from "@/lib/mongodb"
@@ -32,9 +34,7 @@ type AiResponse = {
   questions?: AiQuestion[]
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const { deckName, notes } = await req.json()
 
-    if (!deckName || !notes) {
+    if (typeof deckName !== "string" || !deckName.trim() || deckName.length > 200 || typeof notes !== "string" || !notes.trim() || notes.length > 20000) {
       return NextResponse.json(
         { error: "Thiếu deckName hoặc notes" },
         { status: 400 },
@@ -63,18 +63,15 @@ export async function POST(req: NextRequest) {
       getQuestionsCollection(),
     ])
 
-    const now = new Date()
-    const deckInsert = await createDeck({
-      userId,
-      name: String(deckName).trim(),
-      description: "Sinh tự động từ ghi chú (Notion / Markdown)",
-      createdAt: now,
-      updatedAt: now,
-    })
-    const deckId = deckInsert.insertedId
-
+    const allowedEmails = (process.env.AI_ALLOWED_EMAILS ?? "").split(",").map(email => email.trim().toLowerCase()).filter(Boolean)
+    if (allowedEmails.length && !allowedEmails.includes(authResult.session.user?.email?.toLowerCase() ?? "")) {
+      return NextResponse.json({ error: "Tài khoản chưa được phép sử dụng AI" }, { status: 403 })
+    }
+    if (!await reserveAiQuota(userId)) return NextResponse.json({ error: "Đã hết lượt AI hôm nay (5 lượt/tài khoản, 20 lượt toàn website)." }, { status: 429 })
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 0, timeout: 60000 })
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
+      max_completion_tokens: 6000,
       response_format: { type: "json_object" },
       messages: [
         {
@@ -141,6 +138,21 @@ YÊU CẦU:
       ? parsed.questions
       : []
 
+    if (!flashcards.length && !questions.length) return NextResponse.json({ error: "AI không tạo được thẻ hợp lệ" }, { status: 422 })
+    return await withTransaction(async session => {
+    const now = new Date()
+    const deckInsert = await createDeck({
+      session,
+      userId,
+      name: String(deckName).trim(),
+      description: "Sinh tự động từ ghi chú (Notion / Markdown)",
+      createdAt: now,
+      updatedAt: now,
+    })
+    const deckId = deckInsert.insertedId
+
+    let flashcardCount = 0
+    let questionCount = 0
     if (flashcards.length > 0) {
       const docs = flashcards
         .map((flashcard, index) => {
@@ -160,7 +172,8 @@ YÊU CẦU:
         .filter((doc) => doc.front && doc.back)
 
       if (docs.length) {
-        await flashcardsCol.insertMany(docs)
+        await flashcardsCol.insertMany(docs, { session })
+        flashcardCount = docs.length
       }
     }
 
@@ -198,19 +211,22 @@ YÊU CẦU:
           (question) =>
             question.question &&
             question.choices.length >= 2 &&
-            question.choices.some((choice) => choice.isCorrect),
+            question.choices.filter((choice) => choice.isCorrect).length === 1,
         )
 
       if (qDocs.length) {
-        await questionsCol.insertMany(qDocs)
+        await questionsCol.insertMany(qDocs, { session })
+        questionCount = qDocs.length
       }
     }
 
+    if (!flashcardCount && !questionCount) throw new Error("AI returned no valid cards")
     return NextResponse.json({
       success: true,
       deckId: deckId.toString(),
-      flashcardCount: flashcards.length,
-      questionCount: questions.length,
+      flashcardCount,
+      questionCount,
+    })
     })
   } catch (error) {
     console.error("Error in /api/import/notes-ai", error)

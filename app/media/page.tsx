@@ -83,7 +83,7 @@ export default function MediaLibraryPage() {
       const data = (await res.json()) as MediaResponse
 
       if (!res.ok) {
-        throw new Error((data as any)?.error || "Không thể tải media")
+        throw new Error((data as MediaResponse & { error?: string })?.error || "Không thể tải media")
       }
 
       setItems((prev) => (reset ? data.items : [...prev, ...data.items]))

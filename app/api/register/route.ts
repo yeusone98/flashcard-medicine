@@ -6,12 +6,13 @@ import { getUsersCollection } from "@/lib/mongodb"
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        let { name, email, password } = body as {
+        const { name, password } = body as {
             name?: string
             email?: string
             password?: string
         }
 
+        let email = typeof body.email === "string" ? body.email : ""
         if (!email || !password) {
             return NextResponse.json(
                 { error: "Email và mật khẩu là bắt buộc" },

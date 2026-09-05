@@ -62,7 +62,7 @@ export const normalizeSteps = (
   const raw = Array.isArray(input)
     ? input
     : typeof input === "string"
-      ? input.split(/[,\\n]/)
+      ? input.split(/[,\n]/)
       : []
 
   const parsed = raw

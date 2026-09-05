@@ -1,3 +1,4 @@
+import { startOfStudyDay } from "@/lib/study-time"
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import {
@@ -70,8 +71,7 @@ export async function GET() {
 
     const deckIds = decks.map((deck) => deck._id)
     const now = new Date()
-    const startOfDay = new Date(now)
-    startOfDay.setHours(0, 0, 0, 0)
+    const startOfDay = startOfStudyDay(now)
 
     const dueExpr = { $lte: [{ $ifNull: ["$dueAt", now] }, now] }
 

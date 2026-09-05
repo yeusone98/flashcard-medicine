@@ -241,8 +241,8 @@ export default function StatsPage() {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
-                        label={(props: any) =>
-                          `${RATING_LABELS[props.rating] ?? props.rating}: ${props.count}`
+                        label={(props) =>
+                          `${RATING_LABELS[String(props.name)] ?? props.name}: ${props.value}`
                         }
                       >
                         {data.ratingBreakdown.map((entry) => (

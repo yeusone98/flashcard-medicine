@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
-import { getMediaCollection } from "@/lib/mongodb"
+import { getMediaCollection, ObjectId } from "@/lib/mongodb"
 import { getUserIdFromSession } from "@/lib/auth-helpers"
 
 export const runtime = "nodejs"
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number.isFinite(pageRaw) ? pageRaw : 1)
     const skip = (page - 1) * limit
 
-    const filter: Record<string, unknown> = {}
+    const filter: Record<string, unknown> = { ownerId: new ObjectId(userId) }
     if (type === "image" || type === "audio") {
       filter.kind = type
     }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth-helpers"
 import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import {
+  getReviewLogsCollection,
+  getMcqResultsCollection,
   getDecksCollection,
   getFlashcardsCollection,
   getQuestionsCollection,
@@ -65,32 +67,17 @@ export async function GET(
     })
   }
 
-  // JSON format
+  const logs = await getReviewLogsCollection()
+  const results = await getMcqResultsCollection()
+  const [reviewLogs, mcqResults] = await Promise.all([
+    logs.find({ deckId: _id }).toArray(),
+    results.find({ deckId: _id, userId: new ObjectId(userId) }, { projection: { userId: 0 } }).toArray(),
+  ])
   const data = {
-    deck: {
-      name: deck.name,
-      description: deck.description ?? "",
-      subject: deck.subject ?? "",
-      options: deck.options ?? null,
-    },
-    flashcards: flashcards.map((c) => ({
-      front: c.front ?? "",
-      back: c.back ?? "",
-      frontImage: c.frontImage ?? "",
-      backImage: c.backImage ?? "",
-      frontAudio: c.frontAudio ?? "",
-      backAudio: c.backAudio ?? "",
-      fields: c.fields ?? null,
-      note: c.note ?? "",
-      dueAt: c.dueAt ? new Date(c.dueAt).toISOString() : null,
-      fsrsState: c.fsrsState ?? null,
-    })),
-    questions: questions.map((q) => ({
-      question: q.question ?? "",
-      image: q.image ?? "",
-      explanation: q.explanation ?? "",
-      choices: q.choices ?? [],
-    })),
+    format: "flashcard-medicine", version: 1,
+    deck: { name: deck.name, description: deck.description ?? "", subject: deck.subject ?? "", options: deck.options ?? null },
+    flashcards, questions, reviewLogs,
+    mcqResults,
     exportedAt: new Date().toISOString(),
   }
 

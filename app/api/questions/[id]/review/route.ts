@@ -1,160 +1,33 @@
-// app/api/questions/[id]/review/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import {
-  getDecksCollection,
-  getQuestionsCollection,
-  getReviewLogsCollection,
-  ObjectId,
-} from "@/lib/mongodb"
 import { requireAuth } from "@/lib/auth-helpers"
 import { getOwnedActiveDeckFilter } from "@/lib/decks"
-import {
-  buildFsrsCard,
-  mapRatingToLabel,
-  mapReviewRating,
-  mapStateToLabel,
-  normalizeDeckOptions,
-  scheduleFsrsReview,
-} from "@/lib/fsrs"
+import { getDecksCollection, getQuestionsCollection, ObjectId, withTransaction } from "@/lib/mongodb"
+import { normalizeDeckOptions } from "@/lib/fsrs"
+import { ratings, saveReview, type ReviewRating } from "@/lib/reviews"
 
-type ReviewRating = "again" | "hard" | "good" | "easy"
-
-const allowedRatings: ReviewRating[] = ["again", "hard", "good", "easy"]
-
-function resolveRating(body: Record<string, unknown>): ReviewRating | null {
-  const ratingRaw = typeof body?.rating === "string" ? body.rating : ""
-  if (allowedRatings.includes(ratingRaw as ReviewRating)) {
-    return ratingRaw as ReviewRating
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth()
+  if (auth instanceof NextResponse) return auth
+  const { id } = await params
+  const body = await req.json().catch(() => null)
+  const rating = body?.rating ?? (typeof body?.isCorrect === "boolean" ? (body.isCorrect ? "good" : "again") : "")
+  if (!ObjectId.isValid(id) || !ratings.includes(rating as ReviewRating) || typeof body?.requestId !== "string" || !/^[a-zA-Z0-9-]{16,100}$/.test(body.requestId)) {
+    return NextResponse.json({ error: "Dữ liệu ôn tập không hợp lệ" }, { status: 400 })
   }
-
-  if (typeof body?.isCorrect === "boolean") {
-    return body.isCorrect ? "good" : "again"
-  }
-
-  return null
-}
-
-export async function POST(
-  req: NextRequest,
-  props: { params: Promise<{ id: string }> },
-) {
   try {
-    const authResult = await requireAuth()
-    if (authResult instanceof NextResponse) return authResult
-    const { userId } = authResult
-
-    const { id } = await props.params
-
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "Invalid questionId" },
-        { status: 400 },
-      )
-    }
-
-    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>
-    const rating = resolveRating(body)
-
-    if (!rating) {
-      return NextResponse.json(
-        { error: "rating must be 'again' | 'hard' | 'good' | 'easy' or provide isCorrect" },
-        { status: 400 },
-      )
-    }
-
-    const [questionsCol, decksCol, reviewLogsCol] = await Promise.all([
-      getQuestionsCollection(),
-      getDecksCollection(),
-      getReviewLogsCollection(),
-    ])
-    const _id = new ObjectId(id)
-
-    const question = await questionsCol.findOne({ _id })
-    if (!question) {
-      return NextResponse.json(
-        { error: "Question not found" },
-        { status: 404 },
-      )
-    }
-
-    const deck = await decksCol.findOne(
-      getOwnedActiveDeckFilter(userId, { _id: question.deckId }),
-    )
-    if (!deck) {
-      return NextResponse.json({ error: "Question not found" }, { status: 404 })
-    }
-    const deckOptions = normalizeDeckOptions(deck?.options ?? null)
-
-    const now = new Date()
-    const fsrsCard = buildFsrsCard(question, now)
-    const fsrsRating = mapReviewRating(rating)
-
-    const result = scheduleFsrsReview(fsrsCard, fsrsRating, now, deckOptions)
-    const nextCard = result.card
-    const log = result.log
-
-    const intervalMinutes = Math.max(
-      1,
-      Math.round((nextCard.due.getTime() - now.getTime()) / (60 * 1000)),
-    )
-    const intervalDays = Math.max(0, Math.round(nextCard.scheduled_days))
-
-    await questionsCol.updateOne(
-      { _id },
-      {
-        $set: {
-          lastReviewedAt: now,
-          dueAt: nextCard.due,
-          fsrsState: nextCard.state,
-          fsrsStability: nextCard.stability,
-          fsrsDifficulty: nextCard.difficulty,
-          fsrsElapsedDays: nextCard.elapsed_days,
-          fsrsScheduledDays: nextCard.scheduled_days,
-          fsrsLearningSteps: nextCard.learning_steps,
-          fsrsReps: nextCard.reps,
-          fsrsLapses: nextCard.lapses,
-          reviewRating: rating,
-          reviewIntervalMinutes: intervalMinutes,
-          updatedAt: now,
-        },
-      },
-    )
-
-    await reviewLogsCol.insertOne({
-      deckId: question.deckId,
-      itemType: "question",
-      itemId: _id,
-      rating: mapRatingToLabel(fsrsRating),
-      state: mapStateToLabel(log.state),
-      dueAt: log.due,
-      nextDueAt: nextCard.due,
-      stability: log.stability,
-      difficulty: log.difficulty,
-      elapsedDays: log.elapsed_days,
-      scheduledDays: log.scheduled_days,
-      learningSteps: log.learning_steps,
-      reps: nextCard.reps,
-      lapses: nextCard.lapses,
-      reviewedAt: log.review,
-      createdAt: now,
-      updatedAt: now,
+    const next = await withTransaction(async session => {
+      const items = await getQuestionsCollection()
+      const item = await items.findOne({ _id: new ObjectId(id) }, { session })
+      if (!item) return null
+      const decks = await getDecksCollection()
+      const deck = await decks.findOne(getOwnedActiveDeckFilter(auth.userId, { _id: item.deckId }), { session })
+      if (!deck) return null
+      return saveReview({ itemType: "question", item, rating, requestId: body.requestId, options: normalizeDeckOptions(deck.options), session })
     })
-
-    return NextResponse.json({
-      success: true,
-      questionId: id,
-      next: {
-        rating,
-        intervalDays,
-        intervalMinutes,
-        dueAt: nextCard.due,
-      },
-    })
-  } catch (err) {
-    console.error("Question review error", err)
-    return NextResponse.json(
-      { error: "Failed to update review schedule" },
-      { status: 500 },
-    )
+    if (!next) return NextResponse.json({ error: "Không tìm thấy thẻ" }, { status: 404 })
+    return NextResponse.json({ success: true, next })
+  } catch (error) {
+    console.error("Review save failed", error)
+    return NextResponse.json({ error: "Chưa lưu được lịch ôn. Vui lòng thử lại." }, { status: 500 })
   }
 }

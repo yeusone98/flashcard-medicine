@@ -47,7 +47,7 @@ export default function ProfilePage() {
         .slice(0, 2)
         .toUpperCase()
 
-    const avatarSrc = user?.image || "/avatar-default.png"
+    const avatarSrc = user?.image || undefined
 
     async function handleAvatarSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()

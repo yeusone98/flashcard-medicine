@@ -1,13 +1,6 @@
 // lib/mongodb.ts
 import { MongoClient, ObjectId, Collection, Db } from "mongodb"
 
-const uri = process.env.MONGODB_URI as string
-
-if (!uri) {
-  throw new Error("Please define the MONGODB_URI environment variable")
-}
-
-let client: MongoClient | null = null
 let clientPromise: Promise<MongoClient> | null = null
 let cachedDb: Db | null = null
 
@@ -15,53 +8,41 @@ declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined
 }
 
-if (process.env.NODE_ENV === "development") {
+function getClient(): Promise<MongoClient> {
+  if (clientPromise) return clientPromise
+  const uri = process.env.MONGODB_URI
+  if (!uri) throw new Error("Please define the MONGODB_URI environment variable")
   if (!global._mongoClientPromise) {
-    client = new MongoClient(uri)
-    global._mongoClientPromise = client.connect()
+    const client = new MongoClient(uri, { maxPoolSize: 10 })
+    global._mongoClientPromise = client.connect().catch(error => {
+      global._mongoClientPromise = undefined
+      clientPromise = null
+      throw error
+    })
   }
   clientPromise = global._mongoClientPromise
-} else {
-  client = new MongoClient(uri)
-  clientPromise = client.connect()
+  return clientPromise
 }
 
-let indexesInitialized = false
+let indexPromise: Promise<unknown> | null = null
 
 export async function getDb(): Promise<Db> {
-  if (cachedDb) return cachedDb
-  const c = await (clientPromise as Promise<MongoClient>)
-  cachedDb = c.db("flashcard_medicine")
-  
-  if (!indexesInitialized) {
-    try {
-      indexesInitialized = true
-      
-      const decks = cachedDb.collection("decks")
-      void decks.createIndex({ userId: 1 })
-      void decks.createIndex({ userId: 1, deletedAt: 1, createdAt: -1 })
-      void decks.createIndex({ isPublic: 1, userId: 1 })
-      void decks.createIndex({ shareToken: 1 }, { sparse: true, unique: true })
-      
-      const flashcards = cachedDb.collection("flashcards")
-      void flashcards.createIndex({ deckId: 1 })
-      void flashcards.createIndex({ userId: 1 })
-      
-      const questions = cachedDb.collection("questions")
-      void questions.createIndex({ deckId: 1 })
-      void questions.createIndex({ userId: 1 })
-      
-      const mcqResults = cachedDb.collection("mcq_results")
-      void mcqResults.createIndex({ deckId: 1 })
-      void mcqResults.createIndex({ userId: 1 })
-      
-      console.log("✅ MongoDB indexes initialized asynchronously")
-    } catch (error) {
-      console.error("❌ MongoDB index error:", error)
-    }
-  }
-
-  return cachedDb
+  if (!cachedDb) cachedDb = (await getClient()).db("flashcard_medicine")
+  const db = cachedDb
+  indexPromise ??= Promise.all([
+    db.collection("decks").createIndex({ userId: 1, deletedAt: 1, createdAt: -1 }),
+    db.collection("decks").createIndex({ shareToken: 1 }, { sparse: true, unique: true }),
+    db.collection("flashcards").createIndex({ deckId: 1, dueAt: 1 }),
+    db.collection("questions").createIndex({ deckId: 1, dueAt: 1 }),
+    db.collection("review_logs").createIndex({ deckId: 1, createdAt: 1 }),
+    db.collection("review_logs").createIndex({ itemId: 1, requestId: 1 }),
+    db.collection("mcq_results").createIndex({ userId: 1, deckId: 1, updatedAt: -1 }),
+    db.collection("mcq_results").createIndex({ userId: 1, deckId: 1, attemptId: 1 }, { unique: true, partialFilterExpression: { attemptId: { $type: "string" } } }),
+    db.collection("media").createIndex({ ownerId: 1, createdAt: -1 }),
+    db.collection("ai_usage").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+  ]).catch(error => { indexPromise = null; throw error })
+  await indexPromise
+  return db
 }
 
 // Giữ lại connectDB cho những chỗ đang gọi `await connectDB()`
@@ -150,11 +131,13 @@ export interface QuestionDoc {
 }
 
 export interface McqAnswerDoc {
+  questionId?: string
   selectedIndex: number | null
   isCorrect: boolean | null
 }
 
 export interface McqResultDoc {
+  attemptId?: string
   _id?: ObjectId
   userId: ObjectId
   deckId: ObjectId
@@ -266,3 +249,10 @@ export async function getMediaCollection(): Promise<Collection<MediaDoc>> {
 
 // Để khỏi import từ "mongodb" nữa
 export { ObjectId }
+
+// Atlas transactions keep the item schedule, review log and quiz result together.
+export async function withTransaction<T>(work: (session: import("mongodb").ClientSession) => Promise<T>): Promise<T> {
+  await getDb()
+  const connected = await getClient()
+  return connected.withSession(session => session.withTransaction(() => work(session)))
+}

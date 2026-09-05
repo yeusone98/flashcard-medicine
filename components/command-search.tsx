@@ -59,7 +59,7 @@ export function CommandSearch() {
         if (res.ok) {
           const data = await res.json()
           setResults(
-            data.map((d: any) => ({
+            data.map((d: SearchResult) => ({
               _id: d._id,
               name: d.name,
               subject: d.subject || "Khác",
@@ -86,15 +86,16 @@ export function CommandSearch() {
   return (
     <>
       <button
+        aria-label="Tìm kiếm bộ thẻ"
         onClick={() => setOpen(true)}
-        className="relative flex items-center justify-between gap-4 rounded-full border border-border/70 bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/80 w-full sm:w-64"
+        className="relative flex min-w-0 items-center justify-between gap-2 rounded-full border border-border/70 bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/80 w-full max-w-full min-h-10"
       >
-        <span className="flex items-center gap-2">
-          <Search className="h-4 w-4" />
-          <span className="hidden sm:inline-block">Tìm kiếm nhanh...</span>
-          <span className="sm:hidden">Tìm kiếm...</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="hidden min-w-0 truncate sm:inline-block">Tìm kiếm nhanh...</span>
+          <span className="min-w-0 truncate sm:hidden">Tìm...</span>
         </span>
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+        <kbd className="pointer-events-none hidden h-5 shrink-0 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
           <span className="text-xs">⌘</span>K
         </kbd>
       </button>

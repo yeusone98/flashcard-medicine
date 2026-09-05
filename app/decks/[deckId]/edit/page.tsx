@@ -277,7 +277,7 @@ export default function EditDeckPage() {
         }
 
         if (flashRes.ok) {
-          const flashData = (await flashRes.json()) as any[]
+          const flashData = (await flashRes.json()) as (Record<string, unknown> & { _id?: string })[]
           setFlashcards(
             flashData.map((card) => ({
               clientId: typeof card._id === "string" ? card._id : createClientId(),
@@ -311,7 +311,7 @@ export default function EditDeckPage() {
         }
 
         if (questionRes.ok) {
-          const questionData = (await questionRes.json()) as any[]
+          const questionData = (await questionRes.json()) as (Record<string, unknown> & { _id?: string })[]
           setQuestions(
             questionData.map((q) => ({
               clientId: typeof q._id === "string" ? q._id : createClientId(),
@@ -332,7 +332,7 @@ export default function EditDeckPage() {
                     .filter(Boolean)
                 : [],
               choices: Array.isArray(q.choices)
-                ? q.choices.map((c: any) => ({
+                ? q.choices.map((c: Record<string, unknown>) => ({
                     text: String(c.text ?? ""),
                     isCorrect: Boolean(c.isCorrect),
                     image: typeof c.image === "string" ? c.image : "",
@@ -385,6 +385,7 @@ export default function EditDeckPage() {
   }
 
   const uploadImageFile = async (file: File) => {
+    if (file.size > 4 * 1024 * 1024) throw new Error("Ảnh tối đa 4 MB. Vui lòng nén ảnh trước khi tải lên.")
     const formData = new FormData()
     formData.append("file", file)
 
@@ -408,6 +409,7 @@ export default function EditDeckPage() {
   }
 
   const uploadAudioFile = async (file: File) => {
+    if (file.size > 4 * 1024 * 1024) throw new Error("Âm thanh tối đa 4 MB. Vui lòng nén file trước khi tải lên.")
     const formData = new FormData()
     formData.append("file", file)
     formData.append("kind", "audio")

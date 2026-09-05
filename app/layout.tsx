@@ -23,6 +23,8 @@ const sora = Sora({
   variable: "--font-display",
 })
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Flashcard Medicine",
   description: "Flashcard & MCQ cho sinh viên Y",

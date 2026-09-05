@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData()
     const file = formData.get("file") as File | null
+    if (file && file.size > 4 * 1024 * 1024) return NextResponse.json({ error: "Tài liệu tối đa 4 MB" }, { status: 413 })
     const deckName = formData.get("deckName")?.toString().trim() || ""
     const deckDescription =
       formData.get("deckDescription")?.toString().trim() || ""

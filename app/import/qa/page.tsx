@@ -41,7 +41,8 @@ export default function ImportQAPage() {
             setLoading(true)
             setMessage(null)
 
-            const formData = new FormData()
+            if (file.size > 4 * 1024 * 1024) throw new Error("Tài liệu tối đa 4 MB. Vui lòng chia nhỏ file.")
+      const formData = new FormData()
             formData.append("file", file)
             formData.append("deckName", deckName.trim())
 
@@ -66,9 +67,9 @@ export default function ImportQAPage() {
                 title: "Import Q/A thành công",
                 description: `Deck "${name}" đã được tạo/import thành công.`,
             })
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error)
-            const desc = error?.message || "Đã xảy ra lỗi, vui lòng thử lại."
+            const desc = error instanceof Error ? error.message : "Đã xảy ra lỗi, vui lòng thử lại."
             setMessage(desc)
 
             toast({

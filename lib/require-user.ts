@@ -8,7 +8,7 @@ export async function requireSession() {
     if (!session || !session.user) {
         redirect("/login")
     }
-    const userId = (session.user as any).id as string | undefined
+    const userId = "id" in session.user && typeof session.user.id === "string" ? session.user.id : undefined
     if (!userId) {
         redirect("/login")
     }

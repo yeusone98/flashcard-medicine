@@ -1,218 +1,75 @@
-// app/api/mcq-results/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { getMcqResultsCollection, ObjectId } from "@/lib/mongodb"
-import { getUserIdFromSession } from "@/lib/auth-helpers"
+import { requireAuth } from "@/lib/auth-helpers"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
+import { getDecksCollection, getMcqResultsCollection, getQuestionsCollection, ObjectId, withTransaction } from "@/lib/mongodb"
+import { normalizeDeckOptions } from "@/lib/fsrs"
+import { saveReview } from "@/lib/reviews"
 
 export const runtime = "nodejs"
 
-
-
 export async function GET(req: NextRequest) {
-  try {
-    const session = await auth()
-    const userId = getUserIdFromSession(session)
-
-    if (!userId) {
-      return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 })
-    }
-
-    const deckId = req.nextUrl.searchParams.get("deckId")
-    if (!deckId) {
-      return NextResponse.json(
-        { error: "Thiếu deckId" },
-        { status: 400 },
-      )
-    }
-
-    let deckObjectId: ObjectId
-    try {
-      deckObjectId = new ObjectId(deckId)
-    } catch {
-      return NextResponse.json(
-        { error: "deckId không hợp lệ" },
-        { status: 400 },
-      )
-    }
-
-    const collection = await getMcqResultsCollection()
-    const existing = await collection.findOne({
-      userId: new ObjectId(userId),
-      deckId: deckObjectId,
-    })
-
-    if (!existing) {
-      return NextResponse.json({ result: null })
-    }
-
-    return NextResponse.json({
-      result: {
-        totalQuestions: existing.totalQuestions,
-        correctCount: existing.correctCount,
-        percent: existing.percent,
-        score10: existing.score10,
-        createdAt: existing.createdAt.toISOString(),
-        answers: existing.answers ?? [],
-      },
-    })
-  } catch (error) {
-    console.error("[MCQ_RESULTS][GET] error", error)
-    return NextResponse.json(
-      { error: "Không thể lấy kết quả" },
-      { status: 500 },
-    )
-  }
-}
-
-type AnswerPayload = {
-  selectedIndex: number | null
-  isCorrect: boolean | null
+  const auth = await requireAuth()
+  if (auth instanceof NextResponse) return auth
+  const id = req.nextUrl.searchParams.get("deckId") ?? ""
+  if (!ObjectId.isValid(id)) return NextResponse.json({ error: "deckId không hợp lệ" }, { status: 400 })
+  const decks = await getDecksCollection()
+  if (!await decks.findOne(getOwnedActiveDeckFilter(auth.userId, { _id: new ObjectId(id) }))) return NextResponse.json({ error: "Không tìm thấy deck" }, { status: 404 })
+  const results = await getMcqResultsCollection()
+  const result = await results.findOne({ userId: new ObjectId(auth.userId), deckId: new ObjectId(id) }, { sort: { updatedAt: -1 } })
+  return NextResponse.json({ result })
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const session = await auth()
-    const userId = getUserIdFromSession(session)
-
-    if (!userId) {
-      return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 })
-    }
-
-    const body = (await req.json()) as {
-      deckId?: string
-      totalQuestions?: number
-      correctCount?: number
-      percent?: number
-      score10?: number
-      answers?: AnswerPayload[]
-    }
-
-    const {
-      deckId,
-      totalQuestions,
-      correctCount,
-      percent,
-      score10,
-      answers,
-    } = body
-
-    if (!deckId) {
-      return NextResponse.json(
-        { error: "Thiếu deckId" },
-        { status: 400 },
-      )
-    }
-
-    if (
-      typeof totalQuestions !== "number" ||
-      typeof correctCount !== "number" ||
-      typeof percent !== "number" ||
-      typeof score10 !== "number"
-    ) {
-      return NextResponse.json(
-        { error: "Dữ liệu kết quả không hợp lệ" },
-        { status: 400 },
-      )
-    }
-
-    let deckObjectId: ObjectId
-    try {
-      deckObjectId = new ObjectId(deckId)
-    } catch {
-      return NextResponse.json(
-        { error: "deckId không hợp lệ" },
-        { status: 400 },
-      )
-    }
-
-    let normalizedAnswers: AnswerPayload[] = []
-    if (Array.isArray(answers)) {
-      normalizedAnswers = answers.map(a => ({
-        selectedIndex:
-          typeof a?.selectedIndex === "number" ? a.selectedIndex : null,
-        isCorrect:
-          typeof a?.isCorrect === "boolean" ? a.isCorrect : null,
-      }))
-    }
-
-    const collection = await getMcqResultsCollection()
-    const now = new Date()
-
-    await collection.updateOne(
-      {
-        userId: new ObjectId(userId),
-        deckId: deckObjectId,
-      },
-      {
-        $set: {
-          totalQuestions,
-          correctCount,
-          percent,
-          score10,
-          answers: normalizedAnswers,
-          updatedAt: now,
-        },
-        $setOnInsert: {
-          userId: new ObjectId(userId),
-          deckId: deckObjectId,
-          createdAt: now,
-        },
-      },
-      { upsert: true },
-    )
-
-    return NextResponse.json({
-      ok: true,
-      createdAt: now.toISOString(),
-    })
-  } catch (error) {
-    console.error("[MCQ_RESULTS][POST] error", error)
-    return NextResponse.json(
-      { error: "Không thể lưu kết quả" },
-      { status: 500 },
-    )
+  const auth = await requireAuth()
+  if (auth instanceof NextResponse) return auth
+  const body = await req.json().catch(() => null)
+  if (!ObjectId.isValid(body?.deckId ?? "") || typeof body?.attemptId !== "string" || !/^[a-zA-Z0-9-]{16,100}$/.test(body.attemptId) || !Array.isArray(body.answers) || !body.answers.length || body.answers.length > 1000) {
+    return NextResponse.json({ error: "Bài làm không hợp lệ (tối đa 1000 câu/lần)." }, { status: 400 })
   }
-}
-
-export async function DELETE(req: NextRequest) {
+  const answers = body.answers as { questionId?: string; selectedIndex?: number | null }[]
+  if (answers.some(a => !a || typeof a.questionId !== "string" || !ObjectId.isValid(a.questionId) || (a.selectedIndex !== null && (!Number.isInteger(a.selectedIndex) || a.selectedIndex! < 0))) || new Set(answers.map(a => a.questionId)).size !== answers.length) {
+    return NextResponse.json({ error: "Đáp án không hợp lệ" }, { status: 400 })
+  }
   try {
-    const session = await auth()
-    const userId = getUserIdFromSession(session)
-
-    if (!userId) {
-      return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 })
-    }
-
-    const deckId = req.nextUrl.searchParams.get("deckId")
-    if (!deckId) {
-      return NextResponse.json(
-        { error: "Thiếu deckId" },
-        { status: 400 },
-      )
-    }
-
-    let deckObjectId: ObjectId
-    try {
-      deckObjectId = new ObjectId(deckId)
-    } catch {
-      return NextResponse.json(
-        { error: "deckId không hợp lệ" },
-        { status: 400 },
-      )
-    }
-
-    const collection = await getMcqResultsCollection()
-    await collection.deleteOne({
-      userId: new ObjectId(userId),
-      deckId: deckObjectId,
+    const result = await withTransaction(async session => {
+      const deckId = new ObjectId(body.deckId)
+      const userId = new ObjectId(auth.userId)
+      const decks = await getDecksCollection()
+      const deck = await decks.findOne(getOwnedActiveDeckFilter(auth.userId, { _id: deckId }), { session })
+      if (!deck) throw new Error("INVALID_DECK")
+      const results = await getMcqResultsCollection()
+      const existing = await results.findOne({ userId, deckId, attemptId: body.attemptId }, { session })
+      if (existing) return existing
+      const questions = await getQuestionsCollection()
+      const docs = await questions.find({ deckId, _id: { $in: answers.map(a => new ObjectId(a.questionId)) } }, { session }).toArray()
+      if (docs.length !== answers.length) throw new Error("INVALID_ANSWERS")
+      const byId = new Map(docs.map(q => [q._id.toString(), q]))
+      const normalized = []
+      for (const answer of answers) {
+        const q = byId.get(answer.questionId!)!
+        if (answer.selectedIndex !== null && answer.selectedIndex! >= q.choices.length) throw new Error("INVALID_ANSWERS")
+        const isCorrect = answer.selectedIndex !== null && q.choices[answer.selectedIndex!].isCorrect
+        normalized.push({ questionId: q._id.toString(), selectedIndex: answer.selectedIndex ?? null, isCorrect })
+        // An unanswered question has not been reviewed.
+        if (answer.selectedIndex !== null) await saveReview({ itemType: "question", item: q, rating: isCorrect ? "good" : "again", requestId: body.attemptId, options: normalizeDeckOptions(deck.options), session })
+      }
+      const now = new Date()
+      const correctCount = normalized.filter(a => a.isCorrect).length
+      const doc = { userId, deckId, attemptId: body.attemptId as string, totalQuestions: normalized.length, correctCount, percent: Math.round(correctCount / normalized.length * 100), score10: correctCount / normalized.length * 10, answers: normalized, createdAt: now, updatedAt: now }
+      await results.insertOne(doc, { session })
+      return doc
     })
-
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, result })
   } catch (error) {
-    console.error("[MCQ_RESULTS][DELETE] error", error)
-    return NextResponse.json(
-      { error: "Không thể xoá kết quả" },
-      { status: 500 },
-    )
+    // An all-unanswered submission can race at the unique attempt index without
+    // touching a question. Return the already committed result on retry.
+    if (error && typeof error === "object" && "code" in error && error.code === 11000) {
+      const results = await getMcqResultsCollection()
+      const existing = await results.findOne({ userId: new ObjectId(auth.userId), deckId: new ObjectId(body.deckId), attemptId: body.attemptId })
+      if (existing) return NextResponse.json({ ok: true, result: existing })
+    }
+    console.error("Quiz save failed", error)
+    const invalid = error instanceof Error && error.message.startsWith("INVALID_")
+    return NextResponse.json({ error: invalid ? "Bộ câu hỏi đã thay đổi hoặc không còn truy cập được. Vui lòng tải lại." : "Chưa lưu được bài làm. Vui lòng thử lại." }, { status: invalid ? 400 : 500 })
   }
 }

@@ -1,3 +1,4 @@
+import { startOfStudyDay } from "@/lib/study-time"
 import { NextRequest, NextResponse } from "next/server"
 import {
     getDecksCollection,
@@ -77,8 +78,7 @@ export async function GET(req: NextRequest) {
 
     if (mode === "due") {
         const deckOptions = normalizeDeckOptions(deckDoc.options ?? null)
-        const startOfDay = new Date(now)
-        startOfDay.setHours(0, 0, 0, 0)
+        const startOfDay = startOfStudyDay(now)
 
         const reviewCounts = await reviewLogsCol
             .aggregate([

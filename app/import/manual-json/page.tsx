@@ -237,6 +237,20 @@ export default function ImportManualJsonPage() {
       return
     }
 
+    if (parsed && typeof parsed === "object" && "format" in parsed && parsed.format === "flashcard-medicine") {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/import/backup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(parsed) })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Không thể khôi phục")
+        toast({ title: "Đã khôi phục nội dung và lịch sử học vào bộ thẻ mới" })
+        window.location.assign(`/decks/${data.deckId}`)
+      } catch (error) {
+        toast({ variant: "destructive", title: "Khôi phục thất bại", description: error instanceof Error ? error.message : "Vui lòng thử lại" })
+      } finally { setLoading(false) }
+      return
+    }
+
     // 2. Chuẩn hoá payload
     let payload: ManualImportPayload
 

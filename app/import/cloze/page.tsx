@@ -38,6 +38,7 @@ export default function ImportClozePage() {
     try {
       setLoading(true)
 
+      if (file.size > 4 * 1024 * 1024) throw new Error("Tài liệu tối đa 4 MB. Vui lòng chia nhỏ file.")
       const formData = new FormData()
       formData.append("file", file)
       formData.append("deckName", deckName.trim())
@@ -62,14 +63,14 @@ export default function ImportClozePage() {
         title: "Import thành công",
         description: `Deck "${deckName}" đã được tạo/import thành công.`,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error)
 
       // ❌ Popup lỗi
       toast({
         variant: "destructive",
         title: "Import thất bại",
-        description: error.message || "Vui lòng thử lại sau.",
+        description: error instanceof Error ? error.message : "Vui lòng thử lại sau.",
       })
     } finally {
       setLoading(false)

@@ -9,14 +9,14 @@
     --foreground: 24 45% 20%; /* Nâu Espresso cổ điển cho chữ */
     
     /* Thẻ card/Popover: #FFE8CD */
-    --card: 32.4 100% 90.2%; 
+    --card: 30 60% 97%;
     --card-foreground: 24 45% 20%;
     
     --popover: 32.4 100% 90.2%;
     --popover-foreground: 24 45% 20%;
     
     /* Primary: Đổi sang cam đất (Terracotta) để chữ nổi bật trên nền sáng */
-    --primary: 15 56% 50%; 
+    --primary: 15 56% 40%;
     --primary-foreground: 0 0% 100%; /* Chữ trắng trên nền cam đất */
     
     /* Secondary: #FFD6BA */
@@ -25,7 +25,7 @@
     
     /* Muted (Vùng làm mờ / nền icon): #FFDCDC */
     --muted: 0 100% 93.1%; 
-    --muted-foreground: 24 30% 45%;
+    --muted-foreground: 24 24% 35%;
     
     /* Accent (Hiệu ứng hover v.v): Sử dụng lại #FFD6BA */
     --accent: 24.3 100% 86.5%; 
@@ -261,3 +261,52 @@
     transform: translateY(0);
   }
 }
+
+/* Study surfaces keep the warm theme while giving long-form text a quiet canvas. */
+.study-reading {
+  background: #fffdfa;
+  color: #38291f;
+}
+.dark .study-reading {
+  background: #19231b;
+  color: #f1f0e9;
+}
+.study-page .rich-content { line-height: 1.75; }
+.study-page[data-study-focus="true"] { max-width: 52rem; margin-inline: auto; width: 100%; }
+.study-page[data-study-focus="true"] .study-secondary { display: none; }
+body:has(.study-page[data-study-focus="true"]) [data-main-nav] { display: none; }
+.study-disclosure > summary::-webkit-details-marker { display: none; }
+.study-disclosure[open] > summary svg { transform: rotate(180deg); }
+.study-disclosure > div > div { box-shadow: none; }
+.rating-button {
+  min-height: 52px;
+  height: auto;
+  padding: 10px 8px;
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border-width: 1px;
+}
+.rating-again { color: #9f2532; background: #fff0f1; border-color: #d98e97; }
+.rating-hard { color: #825100; background: #fff5dd; border-color: #c7a363; }
+.rating-good { color: #1c684a; background: #edf8f0; border-color: #80b59a; }
+.rating-easy { color: #ffffff; background: #235f67; border-color: #235f67; }
+.rating-again:hover { background: #ffe1e4; }
+.rating-hard:hover { background: #ffebbb; }
+.rating-good:hover { background: #d8f0e0; }
+.rating-easy:hover { background: #194d54; }
+.dark .rating-again { color: #ffc1c8; background: #3b2228; border-color: #94525e; }
+.dark .rating-hard { color: #f7d48d; background: #352e1c; border-color: #907840; }
+.dark .rating-good { color: #b6eac8; background: #203a2d; border-color: #537f65; }
+.dark .rating-easy { color: #d6f8fc; background: #244950; border-color: #66969d; }
+.rating-button:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 3px; }
+@media (max-width: 767px) {
+  .study-page[data-study-focus="true"] .study-flashcard { height: clamp(280px, 45svh, 440px); }
+  .study-ratings { position: sticky; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 20; box-shadow: 0 6px 20px #38291f12; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .study-page *, .study-page *::before, .study-page *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+.dark .study-page h1 .text-primary { color: #a0dfbb; }

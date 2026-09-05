@@ -7,12 +7,7 @@ const {
     CLOUDINARY_API_SECRET,
 } = process.env
 
-if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-    throw new Error(
-        "Missing Cloudinary config. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET",
-    )
-}
-
+// Credentials are required when uploading, not while compiling the app.
 cloudinary.config({
     cloud_name: CLOUDINARY_CLOUD_NAME,
     api_key: CLOUDINARY_API_KEY,

@@ -1,3 +1,4 @@
+import { mediaIsReferenced } from "@/lib/media-references"
 // app/api/media/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
@@ -29,7 +30,7 @@ export async function DELETE(
     }
 
     const mediaCol = await getMediaCollection()
-    const media = await mediaCol.findOne({ _id: new ObjectId(id) })
+    const media = await mediaCol.findOne({ _id: new ObjectId(id), ownerId: new ObjectId(userId) })
 
     if (!media) {
       return NextResponse.json(
@@ -37,6 +38,8 @@ export async function DELETE(
         { status: 404 },
       )
     }
+
+    if (await mediaIsReferenced(media)) return NextResponse.json({ error: "File đang được sử dụng trong thẻ, ghi chú hoặc hồ sơ. Hãy gỡ liên kết trước khi xoá." }, { status: 409 })
 
     // Xoá trên Cloudinary nếu có publicId
     if (media.publicId) {
@@ -46,7 +49,8 @@ export async function DELETE(
           invalidate: true,
         })
       } catch (err) {
-        console.error("Cloudinary delete error (non-fatal)", err)
+        console.error("Cloudinary delete error", err)
+        return NextResponse.json({ error: "Không thể xoá file. Vui lòng thử lại." }, { status: 502 })
       }
     }
 

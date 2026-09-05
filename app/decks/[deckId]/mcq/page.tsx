@@ -29,6 +29,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { StudyDisclosure, StudyFocusToggle, useStudyFocus } from "@/components/study-layout"
 import RichContent from "@/components/rich-content"
 import { cn } from "@/lib/utils"
 import { ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } from "lucide-react"
@@ -48,6 +49,7 @@ interface Question {
 }
 
 interface AnswerState {
+  questionId?: string
   selectedIndex: number | null
   isCorrect: boolean | null
 }
@@ -85,6 +87,7 @@ interface McqResult {
 }
 
 export default function MCQPage() {
+  const { focused, toggle } = useStudyFocus()
   const params = useParams<{ deckId: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -114,6 +117,10 @@ export default function MCQPage() {
 
   const [savedResult, setSavedResult] = useState<McqResult | null>(null)
   const [isSavingResult, setIsSavingResult] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const savingRef = useRef(false)
+  const attemptRef = useRef<string | null>(null)
+  const pendingAnswersRef = useRef<{ questionId: string; selectedIndex: number | null }[] | null>(null)
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
@@ -128,6 +135,9 @@ export default function MCQPage() {
     const fetchAll = async () => {
       try {
         setLoading(true)
+        setSaveError(null)
+        attemptRef.current = null
+        pendingAnswersRef.current = null
 
         const questionMode = studyMode === "due" ? "due" : "all"
         const [deckRes, questionsRes, resultRes] = await Promise.all([
@@ -193,9 +203,10 @@ export default function MCQPage() {
         if (
           loadedResult &&
           Array.isArray(loadedResult.answers) &&
-          loadedResult.answers.length === normalizedQuestions.length
+          loadedResult.answers.length === normalizedQuestions.length &&
+          normalizedQuestions.every(q => loadedResult!.answers.some(a => a.questionId === q._id))
         ) {
-          setAnswers(loadedResult.answers)
+          setAnswers(normalizedQuestions.map(q => loadedResult!.answers.find(a => a.questionId === q._id)!))
           setIsSubmitted(true)
           setSavedResult(loadedResult)
         } else {
@@ -335,7 +346,7 @@ export default function MCQPage() {
     savedResult?.score10 ??
     (totalForDisplay ? (correctForDisplay / totalForDisplay) * 10 : 0)
 
-  const progress = hasQuestions ? ((index + 1) / total) * 100 : 0
+  const progress = hasQuestions ? (answeredCount / total) * 100 : 0
 
   // Lọc vị trí câu theo chế độ xem
   const getFilteredPositions = () => {
@@ -372,7 +383,7 @@ export default function MCQPage() {
     !isSubmitted && hasQuestions && index === total - 1
 
   const handleSelect = (choiceIndex: number) => {
-    if (!current || isSubmitted) return
+    if (!current || isSubmitted || savingRef.current || pendingAnswersRef.current) return
     if (currentQuestionIndex === null) return
 
     setAnswers(prev => {
@@ -429,91 +440,38 @@ export default function MCQPage() {
   }
 
   const confirmSubmit = async () => {
-    if (!hasQuestions) return
-
-    setIsSubmitted(true)
+    if (!hasQuestions || savingRef.current) return
+    savingRef.current = true
+    setIsSavingResult(true)
+    setSaveError(null)
     setShowSubmitModal(false)
-    setReviewMode("all")
-
-    const totalQuestions = total
-    const correct = correctCount
-    const computedPercent = totalQuestions
-      ? Math.round((correct / totalQuestions) * 100)
-      : 0
-    const computedScore10 = totalQuestions
-      ? (correct / totalQuestions) * 10
-      : 0
-
-    const baseResult: McqResult = {
-      totalQuestions,
-      correctCount: correct,
-      percent: computedPercent,
-      score10: computedScore10,
-      answers: [...answers],
-      createdAt: new Date().toISOString(),
-    }
-
-    setSavedResult(baseResult)
-
-    const reviewUpdates = questions
-      .map((q, idx) => ({
-        id: q._id,
-        isCorrect: answers[idx]?.isCorrect === true,
-      }))
-      .filter((item) => item.id)
-
-    if (reviewUpdates.length > 0) {
-      void Promise.allSettled(
-        reviewUpdates.map((item) =>
-          fetch(`/api/questions/${item.id}/review`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isCorrect: item.isCorrect }),
-          }),
-        ),
-      )
-    }
-
-    if (!deckId) return
-
+    attemptRef.current ??= crypto.randomUUID()
+    pendingAnswersRef.current ??= questions.map((q, i) => ({ questionId: q._id, selectedIndex: answers[i]?.selectedIndex ?? null }))
     try {
-      setIsSavingResult(true)
       const res = await fetch("/api/mcq-results", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          deckId,
-          totalQuestions,
-          correctCount: correct,
-          percent: computedPercent,
-          score10: computedScore10,
-          answers,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deckId, attemptId: attemptRef.current, answers: pendingAnswersRef.current }),
       })
-
-      if (res.ok) {
-        const json = await res.json()
-        if (json?.createdAt) {
-          setSavedResult(prev =>
-            prev
-              ? { ...prev, createdAt: json.createdAt as string }
-              : { ...baseResult, createdAt: json.createdAt as string },
-          )
-        }
-      } else {
-        console.error("Không thể lưu kết quả trắc nghiệm", await res.text())
-      }
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Chưa lưu được bài làm")
+      setSavedResult(data.result)
+      setAnswers(data.result.answers)
+      setIsSubmitted(true)
+      setReviewMode("all")
+      pendingAnswersRef.current = null
     } catch (error) {
-      console.error("Lỗi lưu kết quả trắc nghiệm", error)
+      setSaveError(error instanceof Error ? error.message : "Mất kết nối. Vui lòng thử lại.")
     } finally {
+      savingRef.current = false
       setIsSavingResult(false)
     }
   }
 
   const resetQuiz = async () => {
-    if (!hasQuestions) return
+    if (!hasQuestions || savingRef.current || pendingAnswersRef.current) return
+    attemptRef.current = null
+    setSaveError(null)
 
     setAnswers(
       questions.map(() => ({
@@ -540,15 +498,6 @@ export default function MCQPage() {
       }
     }
 
-    if (!deckId) return
-
-    try {
-      await fetch(`/api/mcq-results?deckId=${deckId}`, {
-        method: "DELETE",
-      })
-    } catch (error) {
-      console.error("Không thể reset kết quả trắc nghiệm", error)
-    }
   }
 
   const handleChangeReviewMode = (mode: ReviewMode) => {
@@ -671,8 +620,12 @@ export default function MCQPage() {
   ])
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl flex-col gap-6 px-4 py-6">
-      <nav className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+    <div data-study-focus={focused} className="study-page mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl flex-col gap-5 px-4 py-6">
+      <div className="flex items-center justify-between gap-3">
+        <Link href={`/decks/${deckId}`} className="text-sm font-medium text-muted-foreground hover:text-foreground">← Bộ thẻ</Link>
+        <StudyFocusToggle focused={focused} onToggle={toggle} />
+      </div>
+      <nav className="study-secondary flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         <Link
           href={
             subject
@@ -681,7 +634,7 @@ export default function MCQPage() {
           }
           className="hover:text-foreground"
         >
-          Decks
+          Bộ thẻ
         </Link>
         <span>/</span>
         <Link
@@ -692,10 +645,10 @@ export default function MCQPage() {
           }
           className="hover:text-foreground"
         >
-          {deckName || "Deck"}
+          {deckName || "Bộ thẻ"}
         </Link>
         <span>/</span>
-        <span className="text-foreground">MCQ</span>
+        <span className="text-foreground">Trắc nghiệm</span>
       </nav>
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
@@ -711,17 +664,17 @@ export default function MCQPage() {
               )
             }
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft aria-label="Về bộ thẻ" className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-lg font-semibold tracking-tight">
               Trắc nghiệm
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="study-secondary text-sm text-muted-foreground">
               Chọn đáp án cho từng câu hỏi, làm đến câu cuối rồi nộp bài để xem
               điểm và giải thích.
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="study-secondary mt-2 flex flex-wrap items-center gap-2">
               <Button
                 asChild
                 size="sm"
@@ -768,10 +721,10 @@ export default function MCQPage() {
               </Button>
             </div>
             {studyMode === "due" && studyLimits ? (
-              <p className="mt-2 max-w-3xl rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
-                `Hôm nay` đang áp dụng giới hạn học: mới {studyLimits.newPerDay}
+              <p className="study-secondary mt-2 max-w-3xl rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-[11px] text-muted-foreground">
+                Hôm nay đang áp dụng giới hạn học: mới {studyLimits.newPerDay}
                 /ngày, ôn {studyLimits.reviewPerDay}/ngày. Nếu không thấy đủ số câu,
-                chuyển sang tab `Tất cả` hoặc tăng giới hạn trong Tùy chọn học.
+                chuyển sang tab Tất cả hoặc tăng giới hạn trong Tùy chọn học.
               </p>
             ) : null}
           </div>
@@ -779,7 +732,7 @@ export default function MCQPage() {
 
         <div className="flex flex-col items-end gap-1 text-right">
           <Badge variant="outline" className="text-[11px]">
-            {deckName || "Deck không tên"}
+            {deckName || "Bộ thẻ chưa đặt tên"}
           </Badge>
           <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/80" />
@@ -788,6 +741,11 @@ export default function MCQPage() {
         </div>
       </div>
 
+      {saveError && <div role="alert" className="rounded-lg border border-destructive p-4 text-sm">
+        <p>{saveError} Bài làm chưa được xác nhận lưu.</p>
+        <Button onClick={() => void confirmSubmit()} disabled={isSavingResult} className="mt-2">Thử lưu lại</Button>
+      </div>}
+      {isSavingResult && <p role="status">Đang lưu bài làm và lịch ôn…</p>}
       {/* Progress */}
       {hasQuestions && (
         <Card className="border-dashed">
@@ -813,7 +771,7 @@ export default function MCQPage() {
 
       {!loading && !hasQuestions && (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-          <p>Deck này chưa có câu hỏi trắc nghiệm.</p>
+          <p>Bộ thẻ này chưa có câu hỏi trắc nghiệm.</p>
           <p>
             Hãy import từ trang{" "}
             <span className="font-mono text-primary">/import/mcq</span>.
@@ -822,7 +780,7 @@ export default function MCQPage() {
       )}
 
       {hasQuestions && current && (
-        <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
+        <div className={cn("study-columns grid gap-4", !focused && "md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]")}>
           {/* Cột trái: Câu hỏi + đáp án */}
           <Card className="flex h-full flex-col">
             <CardHeader className="pb-3">
@@ -837,7 +795,7 @@ export default function MCQPage() {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <div className="rounded-2xl bg-card/70 px-4 py-3 text-sm md:text-base">
+              <div className="study-reading rounded-2xl border px-5 py-6 text-base leading-relaxed md:text-lg">
                 <RichContent
                   content={current.question}
                   className="leading-relaxed"
@@ -906,7 +864,7 @@ export default function MCQPage() {
                       type="button"
                       onClick={() => handleSelect(i)}
                       disabled={isSubmitted}
-                      className={choiceClasses}
+                      className={cn(choiceClasses, "min-h-14 text-base leading-relaxed")}
                     >
                       <div
                         className={cn(
@@ -1018,6 +976,8 @@ export default function MCQPage() {
           </Card>
 
           {/* Cột phải: Kết quả + danh sách */}
+          <aside className={cn(focused && !isSubmitted && "hidden")}>
+          <StudyDisclosure key={isSubmitted ? "result" : "questions"} title={isSubmitted ? "Kết quả bài làm" : "Danh sách câu hỏi"} defaultOpen={isSubmitted}>
           <Card className="h-full">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Kết quả & danh sách</CardTitle>
@@ -1206,6 +1166,8 @@ export default function MCQPage() {
               </div>
             </CardContent>
           </Card>
+          </StudyDisclosure>
+          </aside>
         </div>
       )}
 

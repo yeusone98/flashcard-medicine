@@ -1,3 +1,4 @@
+import { startOfStudyDay, STUDY_TIME_ZONE, studyStreak } from "@/lib/study-time"
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth-helpers"
 import { getOwnedActiveDeckFilter } from "@/lib/decks"
@@ -28,9 +29,7 @@ export async function GET() {
   }
 
   const now = new Date()
-  const thirtyDaysAgo = new Date(now)
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  thirtyDaysAgo.setHours(0, 0, 0, 0)
+  const thirtyDaysAgo = startOfStudyDay(new Date(now.getTime() - 30 * 86400000))
 
   // 1. Daily reviews (last 30 days)
   const dailyPipeline = [
@@ -43,7 +42,7 @@ export async function GET() {
     {
       $group: {
         _id: {
-          $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: STUDY_TIME_ZONE },
         },
         count: { $sum: 1 },
       },
@@ -93,7 +92,7 @@ export async function GET() {
     {
       $group: {
         _id: {
-          $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: STUDY_TIME_ZONE },
         },
       },
     },
@@ -108,29 +107,7 @@ export async function GET() {
       reviewLogsCol.aggregate(streakPipeline).toArray(),
     ])
 
-  // Calculate streak
-  let streak = 0
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const daySet = new Set(streakDays.map((d) => d._id as string))
-
-  // Check if today or yesterday has reviews (allow checking from today)
-  const checkDate = new Date(today)
-  const todayStr = checkDate.toISOString().split("T")[0]
-  if (!daySet.has(todayStr)) {
-    // If no review today, check if yesterday had one to start streak from there
-    checkDate.setDate(checkDate.getDate() - 1)
-  }
-
-  for (let i = 0; i < 365; i++) {
-    const dateStr = checkDate.toISOString().split("T")[0]
-    if (daySet.has(dateStr)) {
-      streak++
-      checkDate.setDate(checkDate.getDate() - 1)
-    } else {
-      break
-    }
-  }
+  const streak = studyStreak(streakDays.map((d) => String(d._id)), now)
 
   // Total reviews
   const totalReviews = await reviewLogsCol.countDocuments({

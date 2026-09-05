@@ -44,6 +44,9 @@ function withOptionalPwa(config: NextConfig): NextConfig {
     dest: "public",
     disable: false,
     register: true,
+    cacheStartUrl: false,
+    cacheOnFrontEndNav: false,
+    workboxOptions: { runtimeCaching: [] },
   })
 
   return withPWA(config)

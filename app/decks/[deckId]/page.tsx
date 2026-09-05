@@ -83,7 +83,7 @@ export default async function DeckOverviewPage(
     <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col gap-6 px-4 py-6 stagger">
       <nav className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         <Link href={decksHref} className="hover:text-foreground">
-          Decks
+          Bộ thẻ
         </Link>
         <span>/</span>
         <span className="text-foreground">{deck.name}</span>
@@ -104,7 +104,7 @@ export default async function DeckOverviewPage(
           <Button asChild variant="outline" size="sm">
             <Link href="/import">
               <Upload className="mr-1 h-4 w-4" />
-              Import thêm
+              Nhập thêm
             </Link>
           </Button>
         </div>
@@ -190,9 +190,9 @@ export default async function DeckOverviewPage(
 
         <Card className="border-dashed">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Export dữ liệu</CardTitle>
+            <CardTitle className="text-base">Xuất dữ liệu</CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
-              Tải deck ra file để backup hoặc chia sẻ.
+              JSON giữ nội dung và lịch sử học để khôi phục tại trang Nhập dữ liệu → Khôi phục bản sao lưu. Ảnh và âm thanh được lưu bằng liên kết; hãy giữ file gốc.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">

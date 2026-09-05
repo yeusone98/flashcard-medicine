@@ -66,9 +66,9 @@ export default function ImportNotesAIPage() {
                 title: "Tạo bộ thẻ từ notes thành công",
                 description: desc,
             })
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error)
-            const desc = error?.message || "Đã xảy ra lỗi, vui lòng thử lại."
+            const desc = error instanceof Error ? error.message : "Đã xảy ra lỗi, vui lòng thử lại."
             setMessage(desc)
 
             toast({

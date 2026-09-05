@@ -115,6 +115,7 @@ export function LoginForm() {
             src={beLan}
             alt="Lại Bùi Kim Lan"
             fill
+            sizes="(min-width: 1024px) 490px, (min-width: 768px) 46vw, 0px"
             className="object-cover"
             priority
           />

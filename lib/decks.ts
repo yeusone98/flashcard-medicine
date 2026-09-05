@@ -8,6 +8,7 @@ import {
 } from "@/lib/mongodb"
 
 type CreateDeckInput = {
+  session?: import("mongodb").ClientSession
   userId: string
   name: string
   description?: string | null
@@ -98,5 +99,5 @@ export async function createDeck(
   }
 
   const decksCol = input.decksCol ?? (await getDecksCollection())
-  return decksCol.insertOne(doc)
+  return decksCol.insertOne(doc, { session: input.session })
 }

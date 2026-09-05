@@ -1,5 +1,7 @@
+import { startOfStudyDay } from "@/lib/study-time"
 import { notFound } from "next/navigation"
-import { getActiveDeckFilter } from "@/lib/decks"
+import { requireSession } from "@/lib/require-user"
+import { getOwnedActiveDeckFilter } from "@/lib/decks"
 import {
     getDecksCollection,
     getFlashcardsCollection,
@@ -46,6 +48,7 @@ export default async function DeckFlashcardsPage(
         searchParams?: Promise<{ mode?: string; subject?: string }>
     },
 ) {
+    const { userId } = await requireSession()
     const { deckId } = await props.params
     const searchParams = props.searchParams ? await props.searchParams : {}
     const mode = typeof searchParams?.mode === "string" ? searchParams.mode : "due"
@@ -63,7 +66,7 @@ export default async function DeckFlashcardsPage(
 
     const _id = new ObjectId(deckId)
 
-    const deck = await decksCol.findOne(getActiveDeckFilter({ _id }))
+    const deck = await decksCol.findOne(getOwnedActiveDeckFilter(userId, { _id }))
     if (!deck) {
         return notFound()
     }
@@ -103,8 +106,7 @@ export default async function DeckFlashcardsPage(
         const deckOptions = normalizeDeckOptions(deck.options ?? null)
         const dueBeforeLimit = flashcards.length
         const reviewLogsCol = await getReviewLogsCollection()
-        const startOfDay = new Date(now)
-        startOfDay.setHours(0, 0, 0, 0)
+        const startOfDay = startOfStudyDay(now)
 
         const reviewCounts = await reviewLogsCol
             .aggregate([

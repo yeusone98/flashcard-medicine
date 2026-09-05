@@ -23,11 +23,11 @@ export default async function ImportHubPage() {
           Import dữ liệu
         </Badge>
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          Import Flashcard và MCQ
+          Nhập thẻ ghi nhớ và trắc nghiệm
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Mỗi loại đều có 2 cách: tạo thủ công ngay trên trang import (giống
-          Edit set), hoặc import JSON.
+          Edit set), hoặc nhập JSON.
         </p>
       </section>
 
@@ -38,7 +38,7 @@ export default async function ImportHubPage() {
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <BookOpenCheck className="h-4 w-4" />
               </span>
-              Import Flashcard
+              Nhập thẻ ghi nhớ
             </CardTitle>
             <CardDescription>
               Bắt buộc chọn môn học và bộ thẻ trước khi tạo flashcard.
@@ -53,7 +53,7 @@ export default async function ImportHubPage() {
           <CardFooter>
             <Button asChild className="w-full justify-between">
               <Link href="/import/flashcard">
-                Mở import Flashcard
+                Mở trang nhập Flashcard
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -66,7 +66,7 @@ export default async function ImportHubPage() {
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <ListChecks className="h-4 w-4" />
               </span>
-              Import MCQ
+              Nhập trắc nghiệm
             </CardTitle>
             <CardDescription>
               Bắt buộc chọn môn học và bộ thẻ trước khi tạo MCQ.
@@ -81,13 +81,14 @@ export default async function ImportHubPage() {
           <CardFooter>
             <Button asChild className="w-full justify-between" variant="outline">
               <Link href="/import/mcq">
-                Mở import MCQ
+                Mở trang nhập MCQ
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           </CardFooter>
         </Card>
       </section>
+      <Button asChild variant="outline"><Link href="/import/backup">Khôi phục bản sao lưu đầy đủ</Link></Button>
     </main>
   )
 }

@@ -141,13 +141,13 @@ export function DecksPageClient({
     ? "Thùng rác deck"
     : hasSubject
       ? `Bộ thẻ - ${subject}`
-      : "Chọn một deck để bắt đầu học"
+      : "Chọn bộ thẻ để bắt đầu học"
 
   const descriptionText = isTrashView
     ? "Deck đã xóa mềm sẽ nằm ở đây và có thể khôi phục lại khi cần."
     : hasSubject
       ? "Chỉ hiển thị các bộ thẻ thuộc môn hoặc chủ đề đang được lọc."
-      : "Mỗi deck có thể dùng để học Flashcard hoặc làm Trắc nghiệm. Bạn có thể import thêm dữ liệu ở màn hình Import."
+      : "Mỗi bộ thẻ có thể dùng để học Flashcard hoặc làm Trắc nghiệm. Bạn có thể nhập thêm dữ liệu ở màn hình Import."
 
   const openCreateDialog = () => {
     setCreateName("")
@@ -195,7 +195,7 @@ export function DecksPageClient({
 
       const data = await res.json().catch(() => null)
       if (!res.ok) {
-        throw new Error(data?.error || "Tạo deck thất bại")
+        throw new Error(data?.error || "Tạo bộ thẻ thất bại")
       }
 
       const deckId =
@@ -234,9 +234,9 @@ export function DecksPageClient({
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Tạo deck thất bại",
+        title: "Tạo bộ thẻ thất bại",
         description:
-          error instanceof Error ? error.message : "Tạo deck thất bại",
+          error instanceof Error ? error.message : "Tạo bộ thẻ thất bại",
       })
     } finally {
       setCreating(false)
@@ -310,9 +310,9 @@ export function DecksPageClient({
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tạo deck mới</DialogTitle>
+            <DialogTitle>Tạo bộ thẻ mới</DialogTitle>
             <DialogDescription>
-              Tạo deck trống để thêm flashcard và câu hỏi MCQ từng thẻ một.
+              Tạo bộ thẻ trống để thêm flashcard và câu hỏi MCQ từng thẻ một.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -382,7 +382,7 @@ export function DecksPageClient({
                 ) : (
                   <Plus className="h-4 w-4" />
                 )}
-                Tạo deck
+                Tạo bộ thẻ
               </Button>
             </DialogFooter>
           </form>
@@ -409,7 +409,7 @@ export function DecksPageClient({
           {!isTrashView ? (
             <Button size="sm" onClick={openCreateDialog}>
               <Plus className="h-4 w-4" />
-              Tạo deck
+              Tạo bộ thẻ
             </Button>
           ) : null}
           <Button asChild variant="outline" size="sm">
@@ -462,7 +462,7 @@ export function DecksPageClient({
                   </Button>
                   <Button size="sm" variant="outline" onClick={openCreateDialog}>
                     <Plus className="mr-1 h-4 w-4" />
-                    Tạo deck mới
+                    Tạo bộ thẻ mới
                   </Button>
                 </>
               )}

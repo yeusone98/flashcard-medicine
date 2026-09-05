@@ -5,8 +5,8 @@ import { getMediaCollection, ObjectId, type MediaDoc } from "@/lib/mongodb"
 
 export type MediaKind = "image" | "audio"
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024
-const MAX_AUDIO_SIZE = 15 * 1024 * 1024
+const MAX_IMAGE_SIZE = 4 * 1024 * 1024
+const MAX_AUDIO_SIZE = 4 * 1024 * 1024
 
 const inferKind = (mimeType: string | undefined): MediaKind | null => {
   if (!mimeType) return null
@@ -35,7 +35,7 @@ export async function uploadMediaFile(
   const mimeType = file.type || "application/octet-stream"
   const kind = options?.kind ?? inferKind(mimeType)
 
-  if (!kind) {
+  if (!kind || inferKind(mimeType) !== kind) {
     throw new Error("Unsupported media type")
   }
 
@@ -43,8 +43,8 @@ export async function uploadMediaFile(
   if (file.size > maxSize) {
     throw new Error(
       kind === "image"
-        ? "Image is too large (max 5MB)"
-        : "Audio is too large (max 15MB)",
+        ? "Image is too large (max 4MB)"
+        : "Audio is too large (max 4MB)",
     )
   }
 
@@ -53,7 +53,7 @@ export async function uploadMediaFile(
   const sha256 = crypto.createHash("sha256").update(buffer).digest("hex")
 
   const mediaCol = await getMediaCollection()
-  const existing = await mediaCol.findOne({ sha256, kind })
+  const existing = await mediaCol.findOne({ sha256, kind, ownerId: options?.ownerId ? new ObjectId(options.ownerId) : { $exists: false } })
 
   if (existing?._id) {
     return {
@@ -63,7 +63,7 @@ export async function uploadMediaFile(
   }
 
   const baseFolder = process.env.CLOUDINARY_FOLDER || "flashcard-medicine"
-  const folder = `${baseFolder}/media/${kind}`
+  const folder = `${baseFolder}/media/${options?.ownerId ?? "legacy"}/${kind}`
   const resourceType = kind === "audio" ? "video" : "image"
   const dataUri = buildDataUri(buffer, mimeType)
 
