@@ -2,9 +2,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import Link from "next/link"
+import Link from "@/components/navigation-link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { motion } from "framer-motion"
 import {
   BookOpenCheck,
   Layers,
@@ -470,16 +469,11 @@ export function DecksPageClient({
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {displayDecks.map((deck, idx) => (
-              <motion.div
-                key={deck._id}
-                initial={{ opacity: 0, y: 16, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.2, delay: idx * 0.03 }}
-              >
+            {displayDecks.map((deck) => (
+              <div key={deck._id} className="min-w-0">
                 <Card className="flex h-full flex-col border-border/70 bg-card/80">
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <CardTitle className="text-base md:text-lg">
@@ -567,7 +561,7 @@ export function DecksPageClient({
                         Khôi phục deck
                       </Button>
                     ) : (
-                      <div className="flex items-center gap-3">
+                      <div className="flex w-full flex-wrap items-center gap-3">
                         <Button
                           asChild
                           size="default"
@@ -641,7 +635,7 @@ export function DecksPageClient({
                     )}
                   </CardFooter>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}

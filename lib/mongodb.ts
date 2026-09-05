@@ -1,5 +1,6 @@
 // lib/mongodb.ts
 import { MongoClient, ObjectId, Collection, Db } from "mongodb"
+import { ensureDatabaseIndexes } from "@/lib/database-indexes"
 
 let clientPromise: Promise<MongoClient> | null = null
 let cachedDb: Db | null = null
@@ -29,18 +30,7 @@ let indexPromise: Promise<unknown> | null = null
 export async function getDb(): Promise<Db> {
   if (!cachedDb) cachedDb = (await getClient()).db("flashcard_medicine")
   const db = cachedDb
-  indexPromise ??= Promise.all([
-    db.collection("decks").createIndex({ userId: 1, deletedAt: 1, createdAt: -1 }),
-    db.collection("decks").createIndex({ shareToken: 1 }, { sparse: true, unique: true }),
-    db.collection("flashcards").createIndex({ deckId: 1, dueAt: 1 }),
-    db.collection("questions").createIndex({ deckId: 1, dueAt: 1 }),
-    db.collection("review_logs").createIndex({ deckId: 1, createdAt: 1 }),
-    db.collection("review_logs").createIndex({ itemId: 1, requestId: 1 }),
-    db.collection("mcq_results").createIndex({ userId: 1, deckId: 1, updatedAt: -1 }),
-    db.collection("mcq_results").createIndex({ userId: 1, deckId: 1, attemptId: 1 }, { unique: true, partialFilterExpression: { attemptId: { $type: "string" } } }),
-    db.collection("media").createIndex({ ownerId: 1, createdAt: -1 }),
-    db.collection("ai_usage").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
-  ]).catch(error => { indexPromise = null; throw error })
+  indexPromise ??= ensureDatabaseIndexes(db).catch(error => { indexPromise = null; throw error })
   await indexPromise
   return db
 }

@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,6 +11,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  Loader2,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -301,6 +302,7 @@ export default function FlashcardStudyClient({
       : `${elapsedRemainSeconds} giây`
 
   // lật thẻ – chỉ animate khi user bấm
+  const reduceMotion = useReducedMotion()
   const handleFlip = useCallback(() => {
     if (!current) return
     setIsFlipAnimating(true)
@@ -841,7 +843,7 @@ export default function FlashcardStudyClient({
                   initial={false}
                   transition={
                     isFlipAnimating
-                      ? { duration: 0.5, ease: "easeInOut" }
+                      ? { duration: reduceMotion ? 0 : 0.18, ease: "easeOut" }
                       : { duration: 0 } // 👉 đổi thẻ: không animate
                   }
                   onClick={handleFlip}
@@ -965,8 +967,8 @@ export default function FlashcardStudyClient({
 
           {/* Rating + phím tắt */}
           <div className="study-ratings flex flex-col gap-2 rounded-2xl border border-border bg-background p-3">
-            <span className="text-xs text-muted-foreground">
-              Đánh giá thẻ:
+            <span role="status" className="flex min-h-4 items-center gap-2 text-xs text-muted-foreground">
+              {isReviewing ? <><Loader2 aria-hidden="true" className="h-3 w-3 animate-spin motion-reduce:animate-none" />Đang lưu đánh giá…</> : "Đánh giá thẻ:"}
             </span>
             <div className="grid grid-cols-4 gap-2">
               <Button

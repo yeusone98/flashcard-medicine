@@ -2,7 +2,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import Link from "next/link"
+import Link from "@/components/navigation-link"
 import { motion } from "framer-motion"
 import { Layers, Plus, Search, SortAsc, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react"
 

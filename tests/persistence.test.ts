@@ -1,6 +1,8 @@
 import { beforeAll, afterAll, beforeEach, describe, it, expect, vi } from "vitest"
 import { MongoMemoryReplSet } from "mongodb-memory-server"
 import { NextRequest } from "next/server"
+import { Collection } from "mongodb"
+import { ensureDatabaseIndexes, INDEX_VERSION } from "@/lib/database-indexes"
 import { getDb, ObjectId } from "@/lib/mongodb"
 
 const identity = vi.hoisted(() => ({ id: "000000000000000000000001" }))
@@ -51,6 +53,40 @@ beforeEach(async () => {
   await db.collection("questions").insertMany([q1, q2].map(_id => ({ _id, deckId, question: "Question", choices: [{ text: "A", isCorrect: true }, { text: "B", isCorrect: false }], fsrsState: 0, ...dates })))
 })
 
+describe("database index bootstrap", () => {
+  it("reuses the persisted index version across independent initializations", async () => {
+    const client = await global._mongoClientPromise!
+    const db = client.db("index_bootstrap_test")
+    const createIndex = vi.spyOn(Collection.prototype, "createIndex")
+    try {
+      await ensureDatabaseIndexes(db)
+      expect(createIndex).toHaveBeenCalledTimes(10)
+      createIndex.mockClear()
+      await ensureDatabaseIndexes(db)
+      expect(createIndex).not.toHaveBeenCalled()
+      const indexes = await db.collection("mcq_results").indexes()
+      expect(indexes.some(index => index.unique && index.key.attemptId === 1)).toBe(true)
+    } finally {
+      createIndex.mockRestore()
+      await db.dropDatabase()
+    }
+  })
+  it("does not mark a failed setup complete and can retry", async () => {
+    const client = await global._mongoClientPromise!
+    const db = client.db("index_bootstrap_failure_test")
+    const createIndex = vi.spyOn(Collection.prototype, "createIndex").mockRejectedValueOnce(new Error("index setup failed"))
+    try {
+      await expect(ensureDatabaseIndexes(db)).rejects.toThrow("index setup failed")
+      expect(await db.collection<{ _id: string }>("_schema_versions").findOne({ _id: INDEX_VERSION })).toBeNull()
+      await ensureDatabaseIndexes(db)
+      expect(await db.collection<{ _id: string }>("_schema_versions").findOne({ _id: INDEX_VERSION })).not.toBeNull()
+    } finally {
+      createIndex.mockRestore()
+      await db.dropDatabase()
+    }
+  })
+})
+
 describe("permissions", () => {
   it("rejects another account reading a private study page or reviewing it", async () => {
     identity.id = outsider.toString()
@@ -80,6 +116,11 @@ describe("atomic study saves", () => {
     const body = { rating, requestId: crypto.randomUUID() }
     const first = await review(request("/review", body), params(cardId))
     expect(first.status).toBe(200)
+    const timing = first.headers.get("Server-Timing")!
+    for (const phase of ["auth", "db_init", "read_card", "read_deck", "save_review", "transaction", "total"]) {
+      expect(timing).toMatch(new RegExp(`${phase};dur=\\d+(?:\\.\\d+)?`))
+    }
+    expect(first.headers.get("Cache-Control")).toBe("private, no-store")
     const second = await review(request("/review", body), params(cardId))
     expect(await second.json()).toEqual(await first.json())
     const db = await getDb()

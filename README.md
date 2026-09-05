@@ -64,3 +64,11 @@ Nút **Tập trung học / Hiện đầy đủ** bật hoặc tắt phần đi�
 - Cảnh báo hydration có `bis_skin_checked`, `bis_register` hoặc `__processed_...`: HTML đã bị tiện ích trình duyệt chèn thêm thuộc tính. Tắt quyền chạy của tiện ích đó trên localhost, hoặc thử profile trình duyệt mới/ẩn danh không bật tiện ích, rồi tải lại trang. Không thêm `suppressHydrationWarning` hàng loạt để che lỗi này.
 - Nếu `Cannot read properties of undefined (reading 'M_ID')` chỉ xuất hiện ở trình duyệt có tiện ích: kiểm tra lại trong profile sạch. Nếu vẫn xuất hiện ở profile sạch, cần toàn bộ stack trace (kèm tên file/URL) để xác định nguồn.
 - `MONGODB_URI` vẫn cần cấu hình riêng để đăng nhập tài khoản và sử dụng dữ liệu. Lệnh `setup:local` chỉ tạo khóa xác thực, không thiết lập database.
+
+## Đo độ trễ khi chấm flashcard
+
+API `POST /api/flashcards/:id/review` trả header `Server-Timing`: `auth` (xác thực), `db_init` (kết nối và kiểm tra phiên bản index), `read_card`, `read_deck`, `save_review` (kiểm tra retry, tính lịch, cập nhật thẻ và ghi log), `transaction` (toàn giao dịch, gồm commit/retry), `total` (thời gian trong handler). Các pha con nằm trong `transaction`, không cộng tất cả số đo với nhau. Header chỉ chứa thời lượng, không có thông tin thẻ hoặc tài khoản.
+
+Trong DevTools → Network → request review → Timing/Response Headers, so sánh lần đầu và vài lần sau. `total` không gồm thời gian nền tảng khởi động trước handler hoặc đường truyền. Nếu `transaction` lớn, kiểm tra vùng chạy Vercel Functions và vùng MongoDB Atlas có gần nhau không trước khi đổi hosting; không tự chọn region khi chưa biết vị trí database.
+
+Index được khởi tạo tự động và đánh dấu trong collection `_schema_versions` sau khi tất cả index thành công. Tiến trình server mới chỉ đọc dấu phiên bản thay vì gửi lại toàn bộ lệnh tạo index. Lần đầu sau cập nhật vẫn cần hoàn tất thiết lập. Khi sửa danh sách index, tăng `INDEX_VERSION` trong `lib/database-indexes.ts`; khi khôi phục database phải giữ index hoặc bỏ dấu phiên bản để app tạo lại.

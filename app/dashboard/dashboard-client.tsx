@@ -2,7 +2,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import Link from "next/link"
+import Link from "@/components/navigation-link"
 import { BarChart3, BookOpenCheck, ListChecks, RefreshCw, LifeBuoy } from "lucide-react"
 
 import {
