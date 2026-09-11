@@ -88,3 +88,7 @@ Mở **Tài liệu** trong menu hoặc `/documents`. Bản đầu hỗ trợ upl
 - Trình đọc xử lý PDF trong trình duyệt, chỉ render một trang. Worker, CMap và font được đóng gói cùng ứng dụng; `dev`/`build` tự chuẩn bị `public/pdf-assets`. Không gửi nội dung sang AI. PDF scan đọc được nhưng cần OCR để tìm/chọn chữ; OCR và tóm tắt AI chưa có.
 - Ghi chú tối đa 5.000 ký tự, 200 ghi chú/tài liệu, 500 dấu trang. Dữ liệu học cần mạng; PDF chưa có đồng bộ offline. Backup JSON bộ thẻ giữ thông tin nguồn của thẻ nhưng **chưa sao lưu thư viện PDF, ghi chú và dấu trang**; giữ file PDF gốc.
 - Kiểm thử sử dụng Cloudinary giả lập và PDF mẫu công khai của PDF.js. Đã kiểm tra đọc/tìm/chọn chữ, tạo thẻ, nhớ trang/ghi chú và phân quyền; cần thử upload thật trên môi trường có đủ cấu hình Cloudinary trước khi sử dụng chính thức.
+
+### Ghi chú MCQ
+
+Trong mỗi câu trắc nghiệm, mở **Ghi chú cá nhân**, nhập nội dung và bấm **Lưu ghi chú**. Ghi chú tối đa 5.000 ký tự, dùng được khi làm bài và xem lại. Bản nháp được giữ khi chuyển câu trong phiên; cần lưu trước khi tải lại hoặc rời trang. Xóa nội dung rồi lưu để xóa ghi chú. Ghi chú đã lưu có trong backup bộ thẻ và không được sao chép khi người khác clone bộ đề công khai.

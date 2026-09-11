@@ -6,7 +6,7 @@ const numeric = new Set(["order", "level", "fsrsState", "fsrsStability", "fsrsDi
 const common = "order level createdAt updatedAt dueAt lastReviewedAt fsrsState fsrsStability fsrsDifficulty fsrsElapsedDays fsrsScheduledDays fsrsLearningSteps fsrsReps fsrsLapses reviewRating reviewIntervalMinutes tags"
 const fields = {
   flashcards: `${common} front back frontImage backImage frontAudio backAudio fields note`,
-  questions: `${common} question image explanation choices flashcardId`,
+  questions: `${common} question image explanation choices flashcardId note`,
   reviewLogs: "itemType itemId rating state dueAt nextDueAt stability difficulty elapsedDays scheduledDays learningSteps reps lapses reviewedAt createdAt updatedAt",
   mcqResults: "totalQuestions correctCount percent score10 answers createdAt updatedAt",
 }

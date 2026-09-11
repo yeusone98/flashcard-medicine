@@ -101,6 +101,7 @@ export interface QuestionDoc {
   choices: { text: string; isCorrect: boolean; image?: string }[]
   image?: string
   explanation?: string
+  note?: string
   tags?: string[]
   order?: number
   level: number

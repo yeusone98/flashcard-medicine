@@ -1,0 +1,287 @@
+[
+  {
+    "front": "Kiểm thử có chỉ là chạy test case không?",
+    "back": "Không. Kiểm thử gồm nhiều hoạt động nhằm phát hiện lỗi và đánh giá chất lượng sản phẩm công việc; có thể bao gồm cả kiểm thử tĩnh.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1",
+      "tu-soan",
+      "kien-thuc-nen-1.1"
+    ]
+  },
+  {
+    "front": "Kiểm thử tĩnh và động khác nhau ở đâu?",
+    "back": "Kiểm thử tĩnh không thực thi phần mềm; kiểm thử động có thực thi phần mềm.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1",
+      "tu-soan",
+      "kien-thuc-nen-1.1"
+    ]
+  },
+  {
+    "front": "Xác minh và thẩm định tập trung vào điều gì?",
+    "back": "Xác minh: đáp ứng yêu cầu đã mô tả. Thẩm định: đáp ứng nhu cầu người dùng và các bên liên quan trong môi trường vận hành.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1",
+      "tu-soan",
+      "kien-thuc-nen-1.1"
+    ]
+  },
+  {
+    "front": "Ngoài tìm lỗi, kiểm thử hỗ trợ quyết định như thế nào?",
+    "back": "Cung cấp thông tin về chất lượng và rủi ro để các bên liên quan đưa ra quyết định; tăng niềm tin vào chất lượng, không chứng minh hết lỗi.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1.1. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1.1",
+      "FL-1.1.1",
+      "K1",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Các mục tiêu kiểm thử điển hình gồm những gì?",
+    "back": "Đánh giá sản phẩm công việc; phát hiện sự cố và tìm lỗi; đảm bảo độ bao phủ cần thiết; giảm rủi ro chất lượng; xác minh yêu cầu; xác minh tuân thủ hợp đồng, pháp lý và quy định; cung cấp thông tin ra quyết định; tăng niềm tin; thẩm định tính hoàn chỉnh và hoạt động theo mong đợi của các bên liên quan.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1.1. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1.1",
+      "FL-1.1.1",
+      "K1",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Sau khi kiểm thử động phát hiện sự cố, gỡ lỗi gồm những hoạt động nào?",
+    "back": "Tái hiện sự cố, chẩn đoán nguyên nhân và sửa lỗi. Phân biệt theo hoạt động, không theo chức danh của người thực hiện.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1.2. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1.2",
+      "FL-1.1.2",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Sau bản sửa, kiểm thử xác nhận và hồi quy có mục đích gì?",
+    "back": "Xác nhận: kiểm tra bản sửa đã giải quyết sự cố ban đầu. Hồi quy: kiểm tra thay đổi có gây ảnh hưởng bất lợi hay không, kể cả trong phần vừa sửa hoặc phần liên quan. Học sâu ở mục 2.2.3.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1.2. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1.2",
+      "FL-1.1.2",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Khi kiểm thử tĩnh phát hiện lỗi, gỡ lỗi tập trung vào gì?",
+    "back": "Loại bỏ lỗi đã phát hiện trực tiếp; không cần tái hiện hoặc chẩn đoán một sự cố khi chạy phần mềm.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1.2. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1.2",
+      "FL-1.1.2",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Vì sao kiểm thử gián tiếp góp phần nâng cao chất lượng qua việc tìm lỗi?",
+    "back": "Kiểm thử phát hiện lỗi để lỗi được loại bỏ bằng gỡ lỗi. Việc sửa lỗi không phải bản thân hoạt động kiểm thử.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.1. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.1",
+      "FL-1.2.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Kiểm thử đóng góp gì ngoài việc phát hiện lỗi?",
+    "back": "Đánh giá chất lượng để hỗ trợ quyết định; đại diện gián tiếp cho nhu cầu người dùng; giúp đáp ứng nghĩa vụ hợp đồng, pháp lý hoặc tiêu chuẩn.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.1. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.1",
+      "FL-1.2.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Phân biệt trọng tâm của kiểm thử và QA.",
+    "back": "Kiểm thử hướng sản phẩm, mang tính khắc phục. QA hướng quy trình, mang tính phòng ngừa thông qua triển khai và cải tiến quy trình.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.2. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.2",
+      "FL-1.2.2",
+      "K1",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Kiểm thử có quan hệ thế nào với QC? QA là trách nhiệm của ai?",
+    "back": "Kiểm thử là một hình thức kiểm soát chất lượng (QC), không phải toàn bộ QC. QA là trách nhiệm của tất cả mọi người trong dự án.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.2. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.2",
+      "FL-1.2.2",
+      "K1",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Sai sót, lỗi và sự cố khác nhau thế nào?",
+    "back": "Sai sót (error): hành động sai của con người. Lỗi (defect): khiếm khuyết trong sản phẩm công việc. Sự cố (failure): khi thực thi, hệ thống không làm đúng chức năng cần thiết hoặc làm điều không nên làm.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.3",
+      "FL-1.2.3",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Yêu cầu giới hạn 20 thẻ; mã nguồn dùng 30. Chưa chạy phần mềm, đây là lỗi hay sự cố?",
+    "back": "Lỗi (defect): khiếm khuyết nằm trong mã nguồn. Có thể phát hiện trực tiếp qua kiểm thử tĩnh.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.3",
+      "FL-1.2.3",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Yêu cầu giới hạn 20 thẻ; khi chạy, hệ thống vẫn cho tạo thẻ thứ 21. Biểu hiện này là gì?",
+    "back": "Sự cố (failure): hành vi sai quan sát được khi thực thi. Phân biệt với đoạn mã chứa lỗi gây ra hành vi đó.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.3",
+      "FL-1.2.3",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Nguyên nhân gốc rễ là gì?",
+    "back": "Lý do căn bản dẫn đến vấn đề, được xác định qua phân tích nguyên nhân gốc rễ. Xử lý nó giúp ngăn ngừa hoặc giảm tái diễn lỗi, sự cố tương tự.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.3",
+      "FL-1.2.3",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Mọi lỗi có luôn gây sự cố mỗi lần chạy không?",
+    "back": "Không. Một số lỗi chỉ gây sự cố trong điều kiện cụ thể, một số có thể không bao giờ gây sự cố. Sự cố cũng có thể do điều kiện môi trường.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.3",
+      "FL-1.2.3",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Tất cả test case pass có chứng minh phần mềm hết lỗi không?",
+    "back": "Không. Nguyên tắc: Kiểm thử cho thấy sự tồn tại của lỗi, chứ không phải sự vắng mặt của lỗi.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Kiểm thử vét cạn là không thể dẫn đến cách làm nào?",
+    "back": "Dùng kỹ thuật kiểm thử, ưu tiên hóa test case và kiểm thử dựa vào rủi ro để tập trung công sức. Ngoại lệ là một số trường hợp đơn giản.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Vì sao kiểm thử sớm tiết kiệm thời gian và chi phí?",
+    "back": "Loại bỏ lỗi sớm giúp tránh tạo lỗi tiếp theo trong sản phẩm công việc ở giai đoạn sau. Cả kiểm thử tĩnh và động nên bắt đầu càng sớm càng tốt.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Lỗi có xu hướng tập trung nghĩa là gì?",
+    "back": "Một số ít thành phần thường chứa phần lớn lỗi được phát hiện hoặc gây phần lớn sự cố. Không bắt buộc đúng tỷ lệ 80/20; không bỏ qua phần còn lại.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Test case giảm hiệu quả theo thời gian có nghĩa nên bỏ hết test cũ không?",
+    "back": "Không. Rà soát, sửa đổi dữ liệu và test case, bổ sung test mới khi cần để tìm lỗi mới. Lặp lại test vẫn có thể hữu ích, ví dụ hồi quy tự động.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Kiểm thử phụ thuộc vào ngữ cảnh nghĩa là gì?",
+    "back": "Không có một cách tiếp cận phù hợp mọi trường hợp. Hoạt động kiểm thử cần phù hợp bối cảnh, chẳng hạn sản phẩm, rủi ro và môi trường sử dụng.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "front": "Ngộ nhận về việc không có lỗi khác nguyên tắc về sự vắng mặt của lỗi thế nào?",
+    "back": "Sự vắng mặt: không tìm thấy lỗi không chứng minh hết lỗi. Ngộ nhận: đáp ứng đặc tả và sửa mọi lỗi tìm thấy vẫn có thể không đáp ứng nhu cầu người dùng; cần cả thẩm định.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3. Nội dung diễn giải để ôn tập.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  }
+]

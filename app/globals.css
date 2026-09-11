@@ -291,3 +291,33 @@ body:has(.flashcard-workspace) { background-image: none; }
 .pdf-reader .react-pdf__Page__canvas { display: block; }
 .pdf-reader .react-pdf__Document { width: max-content; min-width: 100%; }
 .pdf-reader .textLayer ::selection { background: #8bbafc80; color: transparent; }
+
+/* Quiz feedback uses semantic colors independent of the primary theme. */
+:root {
+  --mcq-correct-text: #166534;
+  --mcq-correct-bg: #dcfce7;
+  --mcq-correct-border: #4d9e69;
+  --mcq-incorrect-text: #991b1b;
+  --mcq-incorrect-bg: #fee2e2;
+  --mcq-incorrect-border: #d46767;
+}
+.dark {
+  --mcq-correct-text: #bbf7d0;
+  --mcq-correct-bg: #183c29;
+  --mcq-correct-border: #58a775;
+  --mcq-incorrect-text: #fecaca;
+  --mcq-incorrect-bg: #482327;
+  --mcq-incorrect-border: #cc7179;
+}
+.mcq-correct {
+  color: var(--mcq-correct-text);
+  background-color: var(--mcq-correct-bg);
+  border-color: var(--mcq-correct-border);
+}
+.mcq-incorrect {
+  color: var(--mcq-incorrect-text);
+  background-color: var(--mcq-incorrect-bg);
+  border-color: var(--mcq-incorrect-border);
+}
+.mcq-correct-text { color: var(--mcq-correct-text); }
+.mcq-incorrect-text { color: var(--mcq-incorrect-text); }

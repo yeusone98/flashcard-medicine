@@ -105,8 +105,9 @@ export async function POST(
     if (questions.length > 0) {
       await questionsCol.insertMany(
         questions.map((question) => {
-          const { _id, ...rest } = question
+          const { _id, note, ...rest } = question
           void _id
+          void note
 
           return {
             ...rest,

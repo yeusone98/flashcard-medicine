@@ -1,0 +1,600 @@
+[
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 1] Tester báo cáo lỗi còn tồn tại để quản lý cân nhắc phát hành. Mục tiêu trực tiếp nhất là gì? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Sửa mã gây lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Cung cấp thông tin hỗ trợ quyết định",
+        "isCorrect": true
+      },
+      {
+        "text": "Chứng minh hết lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm tra mọi tổ hợp đầu vào",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Sửa mã thuộc gỡ lỗi.\nB. Đúng: Báo cáo là căn cứ để các bên liên quan ra quyết định.\nC. Không đúng: Kiểm thử không chứng minh được hết lỗi.\nD. Không đúng: Tình huống không thể hiện kiểm thử mọi tổ hợp.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1.1 (FL-1.1.1, K1). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1.1",
+      "FL-1.1.1",
+      "K1",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 2] Lập trình viên tái hiện sự cố, tìm nguyên nhân và sửa mã. Đây là hoạt động nào? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Kiểm thử hồi quy",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử xác nhận",
+        "isCorrect": false
+      },
+      {
+        "text": "Gỡ lỗi",
+        "isCorrect": true
+      },
+      {
+        "text": "Thẩm định",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Hồi quy tìm ảnh hưởng bất lợi của thay đổi.\nB. Không đúng: Xác nhận kiểm tra bản sửa giải quyết sự cố ban đầu.\nC. Đúng: Chuỗi tái hiện, chẩn đoán, sửa lỗi thuộc gỡ lỗi.\nD. Không đúng: Thẩm định đánh giá đáp ứng nhu cầu thực tế.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.1.2 (FL-1.1.2, K2). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1.2",
+      "FL-1.1.2",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 3] Vì sao phát hiện lỗi qua kiểm thử góp phần nâng cao chất lượng một cách gián tiếp? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Lỗi tìm thấy có thể được loại bỏ bằng gỡ lỗi",
+        "isCorrect": true
+      },
+      {
+        "text": "Tester luôn trực tiếp sửa mọi lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Không tìm thấy lỗi nghĩa là chất lượng hoàn hảo",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử thay thế nhu cầu tìm hiểu người dùng",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Đúng: Kiểm thử tìm lỗi; loại bỏ lỗi bằng gỡ lỗi giúp cải thiện chất lượng.\nB. Không đúng: Không phân loại hoạt động bằng chức danh; kiểm thử không đồng nghĩa sửa lỗi.\nC. Không đúng: Không tìm thấy lỗi không chứng minh hết lỗi.\nD. Không đúng: Kiểm thử cần xem xét nhu cầu người dùng.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.1 (FL-1.2.1, K2). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.1",
+      "FL-1.2.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 4] Phát biểu nào đúng về QA và kiểm thử? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "QA chỉ là chạy test case",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử hướng quy trình, QA hướng sản phẩm",
+        "isCorrect": false
+      },
+      {
+        "text": "QA là trách nhiệm riêng của tester",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử là một hình thức QC; QA hướng quy trình",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "A. Không đúng: QA tập trung triển khai và cải tiến quy trình.\nB. Không đúng: Hai trọng tâm đã bị đảo.\nC. Không đúng: QA là trách nhiệm của mọi người trong dự án.\nD. Đúng: Đúng quan hệ và trọng tâm trong syllabus.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.2 (FL-1.2.2, K1). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.2",
+      "FL-1.2.2",
+      "K1",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 5] Rà soát mã nguồn phát hiện giới hạn 30 thay vì 20 thẻ; chưa thực thi. Điều được phát hiện là gì? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Sự cố",
+        "isCorrect": false
+      },
+      {
+        "text": "Lỗi",
+        "isCorrect": true
+      },
+      {
+        "text": "Nguyên nhân gốc rễ",
+        "isCorrect": false
+      },
+      {
+        "text": "Hành động sai sót của người dùng",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Chưa có biểu hiện sai khi thực thi.\nB. Đúng: Khiếm khuyết nằm trong mã nguồn là lỗi.\nC. Không đúng: Chưa phân tích lý do căn bản gây vấn đề.\nD. Không đúng: Đề mô tả khiếm khuyết trong mã, không phải hành động người dùng.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.3 (FL-1.2.3, K2). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.3",
+      "FL-1.2.3",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 6] Hệ thống đang chạy chấp nhận mật khẩu 6 ký tự, trái yêu cầu tối thiểu 8. Biểu hiện quan sát này là gì? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Nguyên nhân gốc rễ",
+        "isCorrect": false
+      },
+      {
+        "text": "Sai sót",
+        "isCorrect": false
+      },
+      {
+        "text": "Sự cố",
+        "isCorrect": true
+      },
+      {
+        "text": "Đoạn mã chứa lỗi",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Chưa xác định lý do căn bản.\nB. Không đúng: Sai sót là hành động sai của con người.\nC. Đúng: Hành vi trái yêu cầu khi thực thi là sự cố.\nD. Không đúng: Đề mô tả hành vi khi chạy, chưa chỉ ra mã nguồn.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.3 (FL-1.2.3, K2). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.3",
+      "FL-1.2.3",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 7] Sau phân tích, nhóm xác định thiếu đào tạo nghiệp vụ đã dẫn đến hiểu nhầm và viết mã sai. Sự thiếu đào tạo được xác định là gì? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Nguyên nhân gốc rễ",
+        "isCorrect": true
+      },
+      {
+        "text": "Sự cố khi thực thi",
+        "isCorrect": false
+      },
+      {
+        "text": "Bản sửa mã",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử xác nhận",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Đúng: Đây là lý do căn bản dẫn đến vấn đề, được xác định qua phân tích.\nB. Không đúng: Thiếu đào tạo không phải hành vi phần mềm khi chạy.\nC. Không đúng: Không phải thay đổi mã để loại bỏ lỗi.\nD. Không đúng: Không phải kiểm tra bản sửa.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.2.3 (FL-1.2.3, K2). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.3",
+      "FL-1.2.3",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 8] Không tìm thấy lỗi trong các lần chạy test khiến quản lý kết luận phần mềm chắc chắn hết lỗi. Nguyên tắc nào trực tiếp bác bỏ kết luận? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Kiểm thử phụ thuộc vào ngữ cảnh",
+        "isCorrect": false
+      },
+      {
+        "text": "Lỗi có xu hướng tập trung",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử sớm giúp tiết kiệm thời gian và chi phí",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử cho thấy sự tồn tại của lỗi, chứ không phải sự vắng mặt của lỗi",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "A. Không đúng: Nói về điều chỉnh cách tiếp cận theo bối cảnh.\nB. Không đúng: Nói về phân bố lỗi giữa các thành phần.\nC. Không đúng: Nói về lợi ích loại bỏ lỗi sớm.\nD. Đúng: Không phát hiện lỗi không chứng minh lỗi không tồn tại.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3 (FL-1.3.1, K2). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 9] Ứng dụng đúng đặc tả và đã sửa mọi lỗi được phát hiện, nhưng không giải quyết nhu cầu người dùng. Nguyên tắc trực tiếp nhất? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Kiểm thử vét cạn là không thể",
+        "isCorrect": false
+      },
+      {
+        "text": "Ngộ nhận về việc không có lỗi",
+        "isCorrect": true
+      },
+      {
+        "text": "Lỗi có xu hướng tập trung",
+        "isCorrect": false
+      },
+      {
+        "text": "Test case giảm hiệu quả theo thời gian",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Không bàn về thử hết mọi khả năng.\nB. Đúng: Đúng đặc tả vẫn có thể không đáp ứng nhu cầu; cần thẩm định.\nC. Không đúng: Không có dữ kiện về phân bố lỗi.\nD. Không đúng: Không có dữ kiện về lặp lại bộ test.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3 (FL-1.3.1, K2). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 10] Nhóm cập nhật dữ liệu và bổ sung test case để tìm lỗi mới, giữ những test hồi quy còn giá trị. Nguyên tắc phù hợp nhất? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Lỗi có xu hướng tập trung",
+        "isCorrect": false
+      },
+      {
+        "text": "Ngộ nhận về việc không có lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Test case giảm hiệu quả theo thời gian",
+        "isCorrect": true
+      },
+      {
+        "text": "Kiểm thử sớm giúp tiết kiệm thời gian và chi phí",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Không nói về phần mềm chứa cụm lỗi.\nB. Không đúng: Không nói về chênh lệch nhu cầu và đặc tả.\nC. Đúng: Cập nhật test và dữ liệu giúp phát hiện lỗi mới; test cũ vẫn có thể hữu ích.\nD. Không đúng: Không nói về bắt đầu kiểm thử sớm.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1, bản tiếng Việt do người học cung cấp, mục 1.3 (FL-1.3.1, K2). Không phải câu trích từ đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "FL-1.3.1",
+      "K2",
+      "tu-soan"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 11] Tester đọc tài liệu yêu cầu, phát hiện hai quy tắc mâu thuẫn mà không chạy phần mềm. Nhận định nào đúng? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Đây là kiểm thử tĩnh",
+        "isCorrect": true
+      },
+      {
+        "text": "Đây là kiểm thử động",
+        "isCorrect": false
+      },
+      {
+        "text": "Đây chỉ có thể là gỡ lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Chưa có phần mềm nên không thể kiểm thử",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Đúng: Rà soát tài liệu không thực thi phần mềm là kiểm thử tĩnh.\nB. Không đúng: Kiểm thử động cần thực thi phần mềm.\nC. Không đúng: Phát hiện lỗi trong tài liệu là kiểm thử; loại bỏ lỗi mới thuộc gỡ lỗi.\nD. Không đúng: Tài liệu cũng có thể là đối tượng kiểm thử.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.1. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1",
+      "tu-soan",
+      "kien-thuc-nen-1.1"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 12] Nhóm đánh giá ứng dụng có đáp ứng nhu cầu học nhanh trong giờ nghỉ của người dùng thực tế hay không. Đây là khía cạnh nào? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Xác minh yêu cầu đã mô tả",
+        "isCorrect": false
+      },
+      {
+        "text": "Thẩm định nhu cầu trong môi trường vận hành",
+        "isCorrect": true
+      },
+      {
+        "text": "Sửa mã nguồn",
+        "isCorrect": false
+      },
+      {
+        "text": "Chứng minh không còn lỗi",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Xác minh đối chiếu yêu cầu đã mô tả; đề nhấn mạnh nhu cầu thực tế.\nB. Đúng: Thẩm định xem sản phẩm đáp ứng nhu cầu người dùng trong môi trường vận hành.\nC. Không đúng: Không có hoạt động sửa mã trong tình huống.\nD. Không đúng: Kiểm thử không chứng minh được sự vắng mặt của lỗi.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.1. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1",
+      "tu-soan",
+      "kien-thuc-nen-1.1"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 13] Sau khi sửa lỗi lưu thẻ, một lập trình viên thực hiện lại trường hợp từng thất bại để kiểm tra bản sửa đã giải quyết vấn đề. Đây là gì? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Gỡ lỗi vì người thực hiện là lập trình viên",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử hồi quy vì diễn ra sau sửa mã",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử xác nhận",
+        "isCorrect": true
+      },
+      {
+        "text": "Kiểm thử tĩnh",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Phân biệt theo hoạt động và mục đích, không theo chức danh.\nB. Không đúng: Chạy sau sửa mã chưa đủ để gọi là hồi quy; đề nhấn mạnh xác nhận bản sửa.\nC. Đúng: Mục đích là xác nhận sự cố ban đầu đã được giải quyết.\nD. Không đúng: Có chạy chức năng nên không phải kiểm thử tĩnh.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.1.2. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1.2",
+      "tu-soan",
+      "FL-1.1.2",
+      "K2"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 14] Bản sửa chức năng lưu thẻ có thể ảnh hưởng đến thống kê. Tester kiểm tra thống kê để tìm ảnh hưởng bất lợi của thay đổi. Mục đích trực tiếp là gì? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Tái hiện sự cố ban đầu để tìm nguyên nhân",
+        "isCorrect": false
+      },
+      {
+        "text": "Sửa lỗi thống kê",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử xác nhận bản sửa lỗi lưu thẻ",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử hồi quy",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "A. Không đúng: Đề nói tìm ảnh hưởng bất lợi, không chẩn đoán nguyên nhân sự cố ban đầu.\nB. Không đúng: Kiểm tra không đồng nghĩa sửa lỗi.\nC. Không đúng: Trọng tâm không phải kiểm tra sự cố lưu thẻ ban đầu đã hết.\nD. Đúng: Hồi quy kiểm tra thay đổi có gây ảnh hưởng bất lợi không.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.1.2. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.1.2",
+      "tu-soan",
+      "FL-1.1.2",
+      "K2"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 15] Mã nguồn chứa điều kiện sai chỉ được đi qua khi tài khoản hết hạn. Mọi lần kiểm thử đều dùng tài khoản còn hạn và không thấy sự cố. Kết luận phù hợp nhất? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Lỗi có thể tồn tại mà chưa gây sự cố trong các điều kiện đã thử",
+        "isCorrect": true
+      },
+      {
+        "text": "Không có sự cố nên chắc chắn không có lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Mọi lỗi phải gây sự cố ở mọi lần chạy",
+        "isCorrect": false
+      },
+      {
+        "text": "Lỗi chỉ có thể nằm trong dữ liệu tài khoản",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Đúng: Một số lỗi chỉ gây sự cố trong những điều kiện cụ thể.\nB. Không đúng: Không quan sát sự cố không chứng minh không có lỗi.\nC. Không đúng: Không phải lỗi nào cũng gây sự cố mỗi lần chạy.\nD. Không đúng: Đề đã nêu khiếm khuyết trong mã nguồn.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.2.3. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.3",
+      "tu-soan",
+      "FL-1.2.3",
+      "K2"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 16] Nhóm không thể kiểm tra mọi tổ hợp thiết bị, trình duyệt và dữ liệu nên dùng kỹ thuật kiểm thử cùng ưu tiên theo rủi ro. Nguyên tắc trực tiếp nhất? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Ngộ nhận về việc không có lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử vét cạn là không thể",
+        "isCorrect": true
+      },
+      {
+        "text": "Lỗi có xu hướng tập trung",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử sớm giúp tiết kiệm thời gian và chi phí",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Đề không nói về sản phẩm đúng đặc tả nhưng sai nhu cầu.\nB. Đúng: Không thể thử mọi tổ hợp nên cần lựa chọn và ưu tiên có cơ sở.\nC. Không đúng: Không có dữ kiện phần lớn lỗi nằm ở ít thành phần.\nD. Không đúng: Đề không nhấn mạnh thời điểm phát hiện lỗi.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.3. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "tu-soan",
+      "FL-1.3.1",
+      "K2"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 17] Rà soát yêu cầu trước khi lập trình giúp phát hiện công thức tính phí sai, tránh đưa lỗi vào mã và test case. Nguyên tắc phù hợp nhất? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Kiểm thử phụ thuộc vào ngữ cảnh",
+        "isCorrect": false
+      },
+      {
+        "text": "Test case giảm hiệu quả theo thời gian",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử sớm giúp tiết kiệm thời gian và chi phí",
+        "isCorrect": true
+      },
+      {
+        "text": "Lỗi có xu hướng tập trung",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Không so sánh cách tiếp cận giữa các bối cảnh.\nB. Không đúng: Không nói về lặp lại bộ test.\nC. Đúng: Loại bỏ lỗi sớm giúp tránh lỗi tiếp theo trong sản phẩm công việc.\nD. Không đúng: Không nói về phân bố lỗi.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.3. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "tu-soan",
+      "FL-1.3.1",
+      "K2"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 18] Sau nhiều đợt kiểm thử, hai thành phần chứa phần lớn lỗi của hệ thống. Thông tin này được dùng khi phân bổ công sức kiểm thử. Nguyên tắc nào phù hợp nhất? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Kiểm thử vét cạn là không thể",
+        "isCorrect": false
+      },
+      {
+        "text": "Ngộ nhận về việc không có lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Test case giảm hiệu quả theo thời gian",
+        "isCorrect": false
+      },
+      {
+        "text": "Lỗi có xu hướng tập trung",
+        "isCorrect": true
+      }
+    ],
+    "explanation": "A. Không đúng: Đề nhấn mạnh phân bố lỗi, không phải số tổ hợp.\nB. Không đúng: Không mô tả nhu cầu người dùng chưa được đáp ứng.\nC. Không đúng: Không có dữ kiện test lặp lại kém hiệu quả.\nD. Đúng: Một số ít thành phần thường chứa phần lớn lỗi; có thể dùng làm đầu vào kiểm thử dựa vào rủi ro.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.3. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "tu-soan",
+      "FL-1.3.1",
+      "K2"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 19] Nhóm điều chỉnh cách tiếp cận khi chuyển từ ứng dụng giải trí sang hệ thống có rủi ro an toàn cao. Nguyên tắc trực tiếp nhất? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Kiểm thử phụ thuộc vào ngữ cảnh",
+        "isCorrect": true
+      },
+      {
+        "text": "Lỗi có xu hướng tập trung",
+        "isCorrect": false
+      },
+      {
+        "text": "Kiểm thử cho thấy sự tồn tại của lỗi, chứ không phải sự vắng mặt của lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Test case giảm hiệu quả theo thời gian",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Đúng: Cách tiếp cận cần phù hợp bối cảnh và rủi ro của sản phẩm.\nB. Không đúng: Không nói về các cụm lỗi.\nC. Không đúng: Không bàn về kết luận hết lỗi từ kết quả kiểm thử.\nD. Không đúng: Không bàn về việc cập nhật bộ test lặp lại.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.3. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.3",
+      "tu-soan",
+      "FL-1.3.1",
+      "K2"
+    ]
+  },
+  {
+    "question": "[Tự soạn • Ôn 1.1–1.3 • Câu 20] Nhóm dùng kết quả lỗi qua nhiều dự án để cải tiến quy trình viết yêu cầu, nhằm phòng ngừa vấn đề tương tự. Hoạt động cải tiến này thuộc gì? Chọn MỘT đáp án.",
+    "choices": [
+      {
+        "text": "Kiểm thử xác nhận",
+        "isCorrect": false
+      },
+      {
+        "text": "Đảm bảo chất lượng (QA)",
+        "isCorrect": true
+      },
+      {
+        "text": "Gỡ lỗi",
+        "isCorrect": false
+      },
+      {
+        "text": "Thực thi kiểm thử động",
+        "isCorrect": false
+      }
+    ],
+    "explanation": "A. Không đúng: Không kiểm tra một bản sửa cụ thể.\nB. Đúng: QA hướng quy trình và mang tính phòng ngừa; kết quả kiểm thử có thể làm đầu vào.\nC. Không đúng: Không sửa một lỗi cụ thể trong sản phẩm.\nD. Không đúng: Không có thực thi phần mềm trong hành động cải tiến quy trình.\n\nNguồn kiến thức: ISTQB® CTFL Syllabus v4.0.1 tiếng Việt, mục 1.2.2. Câu tự soạn, không trích đề mẫu A.",
+    "tags": [
+      "ISTQB-CTFL-4.0.1",
+      "Chuong-1",
+      "Muc-1.2.2",
+      "tu-soan",
+      "FL-1.2.2",
+      "K1"
+    ]
+  }
+]

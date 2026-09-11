@@ -32,7 +32,9 @@ import {
 import { StudyDisclosure, StudyFocusToggle, useStudyFocus } from "@/components/study-layout"
 import RichContent from "@/components/rich-content"
 import { cn } from "@/lib/utils"
-import { ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } from "lucide-react"
+import { ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut, CheckCircle2, XCircle } from "lucide-react"
+
+import { QuestionNote } from "@/components/question-note"
 
 interface Choice {
   text: string
@@ -46,6 +48,7 @@ interface Question {
   choices: Choice[]
   image?: string
   explanation?: string
+  note?: string
 }
 
 interface AnswerState {
@@ -560,7 +563,8 @@ export default function MCQPage() {
       // Bỏ qua nếu đang gõ vào input
       if (
         event.target instanceof HTMLInputElement ||
-        event.target instanceof HTMLTextAreaElement
+        event.target instanceof HTMLTextAreaElement ||
+        (event.target instanceof HTMLElement && event.target.closest("button, a, summary, select, [contenteditable=true]"))
       ) {
         return
       }
@@ -782,7 +786,7 @@ export default function MCQPage() {
       {hasQuestions && current && (
         <div className={cn("study-columns grid gap-4", !focused && "md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]")}>
           {/* Cột trái: Câu hỏi + đáp án */}
-          <Card className="flex h-full flex-col">
+          <Card className="flex h-full min-w-0 flex-col">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
                 Câu {index + 1} / {total}
@@ -830,7 +834,7 @@ export default function MCQPage() {
                   const isCorrectChoice = choice.isCorrect
 
                   let choiceClasses =
-                    "flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-sm text-left transition-all"
+                    "flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-sm text-left transition-colors"
 
                   if (!isSubmitted) {
                     choiceClasses = cn(
@@ -843,12 +847,12 @@ export default function MCQPage() {
                     if (isCorrectChoice) {
                       choiceClasses = cn(
                         choiceClasses,
-                        "border-green-500/50 bg-green-500/10 text-green-600 dark:border-green-400/50 dark:text-green-400",
+                        "mcq-correct",
                       )
                     } else if (isSelected && !isCorrectChoice) {
                       choiceClasses = cn(
                         choiceClasses,
-                        "border-red-500/50 bg-red-500/10 text-red-600 dark:border-red-400/50 dark:text-red-400",
+                        "mcq-incorrect",
                       )
                     } else {
                       choiceClasses = cn(
@@ -868,11 +872,11 @@ export default function MCQPage() {
                     >
                       <div
                         className={cn(
-                          "flex gap-3",
+                          "flex min-w-0 flex-1 gap-3",
                           choice.image ? "items-start" : "items-center",
                         )}
                       >
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">
                           {String.fromCharCode(65 + i)}
                         </span>
                         <div
@@ -905,13 +909,10 @@ export default function MCQPage() {
                         </div>
                       </div>
 
-                      {isSubmitted && (
-                        <span className="text-xs font-medium whitespace-nowrap">
-                          {isCorrectChoice
-                            ? "Đáp án đúng"
-                            : isSelected
-                              ? "Bạn chọn"
-                              : ""}
+                      {isSubmitted && (isCorrectChoice || isSelected) && (
+                        <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold">
+                          {isCorrectChoice ? <CheckCircle2 aria-hidden className="h-4 w-4" /> : <XCircle aria-hidden className="h-4 w-4" />}
+                          {isCorrectChoice ? (isSelected ? "Bạn chọn đúng" : "Đáp án đúng") : "Bạn chọn sai"}
                         </span>
                       )}
                     </button>
@@ -923,7 +924,7 @@ export default function MCQPage() {
               {isSubmitted && (
                 <div className="mt-3 rounded-xl border bg-muted/40 px-4 py-3 text-sm">
                   <div className="mb-2 flex flex-wrap items-center gap-1">
-                    <span className="font-semibold text-primary">
+                    <span className="font-semibold mcq-correct-text">
                       Đáp án đúng:
                     </span>
                     <RichContent
@@ -932,7 +933,7 @@ export default function MCQPage() {
                         current.choices.find(c => c.isCorrect)?.text ??
                         "Chưa đánh dấu isCorrect trong dữ liệu"
                       }
-                      className="text-primary"
+                      className="mcq-correct-text"
                     />
                   </div>
                   {current.explanation && (
@@ -948,8 +949,12 @@ export default function MCQPage() {
               )}
             </CardContent>
 
+            {current && <div className="px-4 pb-4 sm:px-6">
+              <QuestionNote questionId={current._id} initialNote={current.note ?? ""} />
+            </div>}
+
             {/* Điều hướng câu hỏi */}
-            <CardFooter className="mt-auto flex items-center justify-between gap-3 border-t pt-3">
+            <CardFooter className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t px-4 pt-3 sm:px-6">
               <Button
                 variant="outline"
                 size="sm"
@@ -1004,11 +1009,11 @@ export default function MCQPage() {
                     </p>
                     <p>
                       Đúng:{" "}
-                      <span className="font-semibold text-primary">
+                      <span className="font-semibold mcq-correct-text">
                         {correctForDisplay}
                       </span>{" "}
                       – Sai:{" "}
-                      <span className="font-semibold text-destructive">
+                      <span className="font-semibold mcq-incorrect-text">
                         {answeredForDisplay - correctForDisplay}
                       </span>
                     </p>
@@ -1101,12 +1106,12 @@ export default function MCQPage() {
                           if (state?.isCorrect === true) {
                             classes = cn(
                               classes,
-                              "bg-primary text-primary-foreground border-primary/70",
+                              "mcq-correct",
                             )
                           } else if (state?.isCorrect === false) {
                             classes = cn(
                               classes,
-                              "bg-destructive text-destructive-foreground border-destructive",
+                              "mcq-incorrect",
                             )
                           } else {
                             classes = cn(
@@ -1152,11 +1157,11 @@ export default function MCQPage() {
                     ) : (
                       <>
                         <span className="inline-flex items-center gap-1">
-                          <span className="inline-block h-3 w-3 rounded-full bg-primary" />
+                          <span className="inline-block h-3 w-3 rounded-full border mcq-correct" />
                           Đúng
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <span className="inline-block h-3 w-3 rounded-full bg-destructive" />
+                          <span className="inline-block h-3 w-3 rounded-full border mcq-incorrect" />
                           Sai
                         </span>
                       </>

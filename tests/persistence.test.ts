@@ -20,6 +20,8 @@ vi.mock("@/lib/cloudinary", () => ({ default: {
 } }))
 vi.mock("@/app/decks/[deckId]/flashcards/FlashcardStudyClient", () => ({ default: () => null }))
 
+import { POST as saveQuestionNote } from "@/app/api/questions/[id]/note/route"
+import { POST as cloneDeck } from "@/app/api/decks/[id]/clone/route"
 import { POST as review } from "@/app/api/flashcards/[id]/review/route"
 import { POST as submit } from "@/app/api/mcq-results/route"
 import { GET as exportDeck } from "@/app/api/decks/[id]/export/route"
@@ -247,5 +249,46 @@ describe("private PDF documents", () => {
     expect(cards).toHaveLength(1); expect(cards[0].fields.source).toBe("Anatomy PDF · Trang 4")
     await db.collection("decks").updateOne({ _id: deckId }, { $set: { userId: outsider } })
     expect((await documentCard(request("/card", { ...body, requestId: crypto.randomUUID() }), params(documentId))).status).toBe(404)
+  })
+})
+
+
+describe("MCQ personal notes", () => {
+  it("saves and clears a note without changing another question", async () => {
+    expect((await saveQuestionNote(request("/note", { note: "Nhớ cơ chế này" }), params(q1))).status).toBe(200)
+    const db = await getDb()
+    expect((await db.collection("questions").findOne({ _id: q1 }))?.note).toBe("Nhớ cơ chế này")
+    expect((await db.collection("questions").findOne({ _id: q2 }))?.note).toBeUndefined()
+    expect((await saveQuestionNote(request("/note", { note: "" }), params(q1))).status).toBe(200)
+    expect((await db.collection("questions").findOne({ _id: q1 }))?.note).toBe("")
+  })
+  it("rejects other accounts, deleted decks and missing questions", async () => {
+    identity.id = outsider.toString()
+    expect((await saveQuestionNote(request("/note", { note: "private" }), params(q1))).status).toBe(404)
+    identity.id = owner.toString()
+    expect((await saveQuestionNote(request("/note", { note: "private" }), params(new ObjectId()))).status).toBe(404)
+    const db = await getDb()
+    await db.collection("decks").updateOne({ _id: deckId }, { $set: { deletedAt: new Date() } })
+    expect((await saveQuestionNote(request("/note", { note: "private" }), params(q1))).status).toBe(404)
+    expect((await db.collection("questions").findOne({ _id: q1 }))?.note).toBeUndefined()
+  })
+  it.each([null, 42, "a".repeat(5001)])("rejects invalid note content", async note => {
+    expect((await saveQuestionNote(request("/note", { note }), params(q1))).status).toBe(400)
+  })
+  it("preserves notes in backups but excludes them from public clones", async () => {
+    await saveQuestionNote(request("/note", { note: "Riêng tư" }), params(q1))
+    const backup = await (await exportDeck(request("/export"), params(deckId))).json()
+    const restored = await restore(request("/restore", backup))
+    expect(restored.status).toBe(200)
+    const restoredId = new ObjectId((await restored.json()).deckId)
+    const db = await getDb()
+    expect(await db.collection("questions").countDocuments({ deckId: restoredId, note: "Riêng tư" })).toBe(1)
+    await db.collection("decks").updateOne({ _id: deckId }, { $set: { isPublic: true } })
+    identity.id = outsider.toString()
+    const cloned = await cloneDeck(request("/clone"), params(deckId))
+    expect(cloned.status).toBe(200)
+    const clonedId = new ObjectId((await cloned.json()).newDeckId)
+    expect(await db.collection("questions").countDocuments({ deckId: clonedId })).toBe(2)
+    expect(await db.collection("questions").countDocuments({ deckId: clonedId, note: { $exists: true } })).toBe(0)
   })
 })
