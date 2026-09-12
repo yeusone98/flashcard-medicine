@@ -1,22 +1,43 @@
 {
   "name": "Flashcard Medicine",
-  "short_name": "FC Medicine",
-  "description": "Ứng dụng học Flashcard Y Khoa",
-  "start_url": "/",
+  "short_name": "Flashcard Med",
+  "description": "Học flashcard, làm MCQ và đọc tài liệu Y khoa",
+  "id": "/",
+  "lang": "vi",
+  "start_url": "/dashboard?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#f7f6f2",
   "theme_color": "#a4462e",
-  "orientation": "portrait-primary",
+  "orientation": "any",
+  "categories": ["education", "medical", "productivity"],
   "icons": [
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Học flashcard",
+      "short_name": "Flashcard",
+      "url": "/decks",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Đọc tài liệu",
+      "short_name": "Tài liệu",
+      "url": "/documents",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     }
   ]
 }

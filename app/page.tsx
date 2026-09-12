@@ -1,6 +1,6 @@
 // app/page.tsx
 import Link from "next/link"
-import { ArrowRight, Layers, Upload, LifeBuoy } from "lucide-react"
+import { ArrowRight, Layers, Upload, LifeBuoy, Smartphone } from "lucide-react"
 import {
     Card,
     CardHeader,
@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { requireSession } from "@/lib/require-user"
+import { PwaInstallButton } from "@/components/pwa-controls"
 
 export default async function HomePage() {
     await requireSession()
@@ -136,6 +137,25 @@ export default async function HomePage() {
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
                         </Button>
+                    </CardFooter>
+                </Card>
+            </section>
+
+            <section>
+                <Card className="border-primary/25 bg-primary/5">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                <Smartphone className="h-4 w-4" />
+                            </span>
+                            Cài Flashcard Medicine như một ứng dụng
+                        </CardTitle>
+                        <CardDescription className="max-w-2xl leading-relaxed">
+                            Mở nhanh từ màn hình chính và học toàn màn hình. Lịch ôn, kết quả MCQ và ghi chú vẫn đồng bộ bằng tài khoản của bạn.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardFooter>
+                        <PwaInstallButton />
                     </CardFooter>
                 </Card>
             </section>

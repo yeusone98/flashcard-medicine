@@ -92,3 +92,7 @@ Mở **Tài liệu** trong menu hoặc `/documents`. Bản đầu hỗ trợ upl
 ### Ghi chú MCQ
 
 Trong mỗi câu trắc nghiệm, mở **Ghi chú cá nhân**, nhập nội dung và bấm **Lưu ghi chú**. Ghi chú tối đa 5.000 ký tự, dùng được khi làm bài và xem lại. Bản nháp được giữ khi chuyển câu trong phiên; cần lưu trước khi tải lại hoặc rời trang. Xóa nội dung rồi lưu để xóa ghi chú. Ghi chú đã lưu có trong backup bộ thẻ và không được sao chép khi người khác clone bộ đề công khai.
+
+## Cài ứng dụng PWA
+
+Trang chủ có nút **Cài ứng dụng**. Chrome/Edge mở hộp cài trực tiếp; trên iPhone/iPad, mở web bằng Safari rồi chọn **Chia sẻ → Thêm vào Màn hình chính**. App dùng chung tài khoản và database với website. Khi mất mạng, giao diện báo rõ dữ liệu mới chưa thể đồng bộ; thư viện PDF và thao tác học vẫn cần mạng. Khi service worker đã tải bản mới, nút **Cập nhật** sẽ kích hoạt phiên bản đó và tải lại trang.

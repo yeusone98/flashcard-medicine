@@ -6,6 +6,7 @@ import { AuthSessionProvider } from "@/components/auth-session-provider"
 import { MainNav } from "@/components/main-nav"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { PwaAppStatus } from "@/components/pwa-controls"
 
 import "./globals.css"
 
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
       { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icon-192x192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     shortcut: "/icon-192x192.png",
   },
   appleWebApp: {
@@ -75,6 +76,7 @@ export default async function RootLayout({
             <div className="flex min-h-screen flex-col">
               <MainNav />
               <main className="flex-1 page-shell">{children}</main>
+              <PwaAppStatus />
               <Toaster />
             </div>
           </ThemeProvider>
