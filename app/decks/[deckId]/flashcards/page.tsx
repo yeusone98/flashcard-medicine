@@ -8,7 +8,7 @@ import {
     getReviewLogsCollection,
     ObjectId,
 } from "@/lib/mongodb"
-import { mapStateToQueue, normalizeDeckOptions } from "@/lib/fsrs"
+import { mapStateToQueue, normalizeDeckOptions, previewReviewIntervals } from "@/lib/fsrs"
 import FlashcardStudyClient from "./FlashcardStudyClient"
 
 function shuffle<T>(items: T[]): T[] {
@@ -72,6 +72,7 @@ export default async function DeckFlashcardsPage(
     }
 
     const now = new Date()
+    const deckOptions = normalizeDeckOptions(deck.options ?? null)
 
     const query =
         mode === "due"
@@ -103,7 +104,6 @@ export default async function DeckFlashcardsPage(
         | null = null
 
     if (mode === "due") {
-        const deckOptions = normalizeDeckOptions(deck.options ?? null)
         const dueBeforeLimit = flashcards.length
         const reviewLogsCol = await getReviewLogsCollection()
         const startOfDay = startOfStudyDay(now)
@@ -175,6 +175,7 @@ export default async function DeckFlashcardsPage(
         fields: normalizeFields(c.fields),
         dueAt: c.dueAt ? new Date(c.dueAt).toISOString() : null,
         reviewRating: typeof c.reviewRating === "string" ? c.reviewRating : null,
+        reviewIntervals: previewReviewIntervals(c, now, deckOptions),
         note: typeof c.note === "string" ? c.note : "",
     }))
 

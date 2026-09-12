@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest"
 import { studyDateKey, startOfStudyDay, studyStreak, reviewIntervalLabel } from "@/lib/study-time"
-import { normalizeSteps } from "@/lib/fsrs"
+import {
+  buildFsrsCard,
+  mapReviewRating,
+  normalizeDeckOptions,
+  normalizeSteps,
+  previewReviewIntervals,
+  scheduleFsrsReview,
+} from "@/lib/fsrs"
 import { restoreBackupData } from "@/lib/backup"
 
 describe("Vietnam study day", () => {
@@ -26,4 +33,45 @@ describe("Vietnam study day", () => {
 
 it("accepts learning steps separated by real newlines", () => {
   expect(normalizeSteps("1m\n10m", [])).toEqual(["1m", "10m"])
+})
+
+describe("rating interval previews", () => {
+  it("uses the deck's learning steps instead of fixed labels", () => {
+    const now = new Date("2026-09-12T10:00:00Z")
+    const preview = previewReviewIntervals(
+      {},
+      now,
+      normalizeDeckOptions({ learningSteps: ["2m", "20m"] }),
+    )
+
+    expect(preview.again).toBe(2)
+    expect(preview.good).toBe(20)
+  })
+
+  it.each([0, 1, 2, 3])("matches the saved FSRS schedule for state %s", state => {
+    const now = new Date("2026-09-12T10:00:00Z")
+    const input = {
+      fsrsState: state,
+      fsrsStability: 4,
+      fsrsDifficulty: 5,
+      fsrsReps: 3,
+      lastReviewedAt: new Date("2026-09-10T10:00:00Z"),
+    }
+    const options = normalizeDeckOptions()
+    const preview = previewReviewIntervals(input, now, options)
+
+    for (const rating of ["again", "hard", "good", "easy"] as const) {
+      const saved = scheduleFsrsReview(
+        buildFsrsCard(input, now),
+        mapReviewRating(rating),
+        now,
+        options,
+      )
+      const expected = Math.max(
+        1,
+        Math.round((saved.card.due.getTime() - now.getTime()) / 60_000),
+      )
+      expect(preview[rating]).toBe(expected)
+    }
+  })
 })

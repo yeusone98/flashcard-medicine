@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import type { ReviewIntervals } from "@/lib/fsrs"
 import { reviewIntervalLabel } from "@/lib/study-time"
 import { StudyDisclosure, StudyFocusToggle, useStudyFocus } from "@/components/study-layout"
 import RichContent from "@/components/rich-content"
@@ -46,6 +47,7 @@ export interface FlashcardStudyItem {
   backAudio?: string | null
   fields?: Record<string, string> | null
   dueAt?: string | null
+  reviewIntervals?: ReviewIntervals
   reviewRating?: string | null
   note?: string | null
 }
@@ -65,6 +67,7 @@ interface FlashcardStudyClientProps {
 }
 
 interface CardState {
+  reviewIntervals?: ReviewIntervals
   nextAvailableAt: number
 }
 
@@ -144,7 +147,7 @@ export default function FlashcardStudyClient({
       Object.fromEntries(
         cards.map((c) => [
           c._id,
-          { nextAvailableAt: c.dueAt ? new Date(c.dueAt).getTime() : 0 },
+          { nextAvailableAt: c.dueAt ? new Date(c.dueAt).getTime() : 0, reviewIntervals: c.reviewIntervals },
         ]),
       ),
     [cards],
@@ -426,6 +429,7 @@ export default function FlashcardStudyClient({
           ...prev,
           [current._id]: {
             nextAvailableAt: dueAtMs,
+            reviewIntervals: data.next.reviewIntervals,
           },
         }))
 
@@ -965,45 +969,39 @@ export default function FlashcardStudyClient({
           {/* Rating + phím tắt */}
           <div className="study-ratings flex flex-col gap-2 rounded-2xl border border-border bg-background p-3">
             <span role="status" className="flex min-h-4 items-center gap-2 text-xs text-muted-foreground">
-              {isReviewing ? <><Loader2 aria-hidden="true" className="h-3 w-3 animate-spin motion-reduce:animate-none" />Đang lưu đánh giá…</> : "Đánh giá thẻ:"}
+              {isReviewing ? <><Loader2 aria-hidden="true" className="h-3 w-3 animate-spin motion-reduce:animate-none" />Đang đồng bộ lịch ôn…</> : "Đánh giá thẻ · Lịch ôn được lưu vào tài khoản:"}
             </span>
             <div className="grid grid-cols-4 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isReviewing || !current}
-                className="rating-button rating-again"
-                onClick={() => void handleRating("again")}
-              >
-                <span>Lại</span><kbd className="hidden text-xs font-normal opacity-80 sm:inline">1</kbd>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isReviewing || !current}
-                className="rating-button rating-hard"
-                onClick={() => void handleRating("hard")}
-              >
-                <span>Khó</span><kbd className="hidden text-xs font-normal opacity-80 sm:inline">2</kbd>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isReviewing || !current}
-                className="rating-button rating-good"
-                onClick={() => void handleRating("good")}
-              >
-                <span>Tốt</span><kbd className="hidden text-xs font-normal opacity-80 sm:inline">3</kbd>
-              </Button>
-              <Button
-                size="sm"
-                disabled={isReviewing || !current}
-                className="rating-button rating-easy"
-                onClick={() => void handleRating("easy")}
-              >
-                <span>Dễ</span><kbd className="hidden text-xs font-normal opacity-80 sm:inline">4</kbd>
-              </Button>
+              {([['again', 'Lại'], ['hard', 'Khó'], ['good', 'Tốt'], ['easy', 'Dễ']] as const).map(([rating, label], i) => {
+                const minutes = current ? cardStates[current._id]?.reviewIntervals?.[rating] : undefined
+                return <Button
+                  key={rating}
+                  variant="outline"
+                  size="sm"
+                  disabled={isReviewing || !current}
+                  className={`rating-button rating-${rating} flex-col !gap-1`}
+                  onClick={() => void handleRating(rating)}
+                >
+                  <span className="flex items-center gap-2">{label}<kbd className="hidden text-xs font-normal opacity-80 sm:inline">{i + 1}</kbd></span>
+                  <span className="whitespace-normal text-center text-[11px] font-normal leading-tight">
+                    {minutes === undefined ? "—" : reviewIntervalLabel(minutes)}
+                  </span>
+                </Button>
+              })}
             </div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Thời gian dự kiến theo lịch ôn của thẻ; lịch chính xác được lưu khi bạn chấm.
+            </p>
+            {current && sessionRatings[current._id] && (
+              <p role="status" className="text-xs font-medium text-foreground">
+                Lần ôn tiếp theo: {cardStates[current._id].nextAvailableAt <= nowMs
+                  ? "Đã đến giờ ôn"
+                  : `còn ${reviewIntervalLabel(Math.ceil((cardStates[current._id].nextAvailableAt - nowMs) / 60000)).replace("sau ", "")}`}.
+              </p>
+            )}
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {mode === "due" ? "Hôm nay: thẻ đến giờ ôn sẽ được chọn khi bạn bấm Tiếp." : "Tất cả / Tổng ôn: bạn có thể xem thẻ trước giờ ôn đã hẹn."}
+            </p>
           </div>
           <p className="hidden text-xs text-muted-foreground sm:block">
             Phím tắt: Space = lật thẻ · 1 = Lại · 2 = Khó · 3 = Tốt · 4 = Dễ · ← / → = lùi / tiến.

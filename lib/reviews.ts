@@ -1,6 +1,6 @@
 import type { ClientSession } from "mongodb"
 import { getDb, ObjectId, type FlashcardDoc, type QuestionDoc, type ReviewLogDoc } from "@/lib/mongodb"
-import { buildFsrsCard, mapReviewRating, mapRatingToLabel, mapStateToLabel, scheduleFsrsReview, type DeckOptions } from "@/lib/fsrs"
+import { buildFsrsCard, mapReviewRating, mapRatingToLabel, mapStateToLabel, previewReviewIntervals, scheduleFsrsReview, type DeckOptions } from "@/lib/fsrs"
 
 export type ReviewRating = "again" | "hard" | "good" | "easy"
 export const ratings: ReviewRating[] = ["again", "hard", "good", "easy"]
@@ -17,7 +17,13 @@ export async function saveReview(input: {
   const db = await getDb()
   const logs = db.collection<ReviewLogDoc & { requestId?: string; nextIntervalDays?: number }>("review_logs")
   const prior = await logs.findOne({ itemId: item._id, requestId }, { session })
-  if (prior) return { rating: prior.rating, dueAt: prior.nextDueAt, intervalMinutes: Math.max(1, Math.round((prior.nextDueAt!.getTime() - prior.reviewedAt.getTime()) / 60000)), intervalDays: prior.nextIntervalDays ?? prior.scheduledDays }
+  if (prior) return {
+    rating: prior.rating,
+    dueAt: prior.nextDueAt,
+    intervalMinutes: Math.max(1, Math.round((prior.nextDueAt!.getTime() - prior.reviewedAt.getTime()) / 60000)),
+    intervalDays: prior.nextIntervalDays ?? prior.scheduledDays,
+    reviewIntervals: previewReviewIntervals(item, new Date(), options),
+  }
   const now = new Date()
   const result = scheduleFsrsReview(buildFsrsCard(item, now), mapReviewRating(rating), now, options)
   const c = result.card
@@ -36,5 +42,22 @@ export async function saveReview(input: {
     elapsedDays: log.elapsed_days, scheduledDays: log.scheduled_days, learningSteps: log.learning_steps,
     reps: c.reps, lapses: c.lapses, reviewedAt: log.review, createdAt: now, updatedAt: now,
   }, { session })
-  return { rating, dueAt: c.due, intervalMinutes, intervalDays: c.scheduled_days }
+  return {
+    rating,
+    dueAt: c.due,
+    intervalMinutes,
+    intervalDays: c.scheduled_days,
+    reviewIntervals: previewReviewIntervals({
+      fsrsState: c.state,
+      fsrsStability: c.stability,
+      fsrsDifficulty: c.difficulty,
+      fsrsElapsedDays: c.elapsed_days,
+      fsrsScheduledDays: c.scheduled_days,
+      fsrsLearningSteps: c.learning_steps,
+      fsrsReps: c.reps,
+      fsrsLapses: c.lapses,
+      dueAt: c.due,
+      lastReviewedAt: now,
+    }, new Date(), options),
+  }
 }

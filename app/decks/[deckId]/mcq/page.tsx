@@ -740,7 +740,7 @@ export default function MCQPage() {
           </Badge>
           <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/80" />
-            {isSubmitted ? "Đã nộp bài · Đang xem lại" : "Đang làm bài"}
+            {isSubmitted ? "Đã nộp · Đã đồng bộ vào tài khoản" : "Đang làm bài · Chưa lưu cho đến khi nộp"}
           </span>
         </div>
       </div>
@@ -749,7 +749,7 @@ export default function MCQPage() {
         <p>{saveError} Bài làm chưa được xác nhận lưu.</p>
         <Button onClick={() => void confirmSubmit()} disabled={isSavingResult} className="mt-2">Thử lưu lại</Button>
       </div>}
-      {isSavingResult && <p role="status">Đang lưu bài làm và lịch ôn…</p>}
+      {isSavingResult && <p role="status">Đang đồng bộ bài làm và lịch ôn vào tài khoản…</p>}
       {/* Progress */}
       {hasQuestions && (
         <Card className="border-dashed">
@@ -1286,4 +1286,3 @@ export default function MCQPage() {
     </div>
   )
 }
-

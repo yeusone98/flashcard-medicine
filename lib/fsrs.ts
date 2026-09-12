@@ -231,3 +231,12 @@ export const scheduleFsrsReview = (
   const scheduler = fsrs(createFsrsParams(options))
   return scheduler.next(card, now, rating)
 }
+
+export type ReviewIntervals = Record<"again" | "hard" | "good" | "easy", number>
+
+export function previewReviewIntervals(input: FsrsCardInput, now: Date, options: DeckOptions): ReviewIntervals {
+  const scheduler = fsrs(createFsrsParams(options))
+  const card = buildFsrsCard(input, now)
+  const minutes = (rating: Grade) => Math.max(1, Math.round((scheduler.next(card, now, rating).card.due.getTime() - now.getTime()) / 60000))
+  return { again: minutes(Rating.Again), hard: minutes(Rating.Hard), good: minutes(Rating.Good), easy: minutes(Rating.Easy) }
+}

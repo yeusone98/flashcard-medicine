@@ -25,7 +25,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const decks = await getDecksCollection()
       const deck = await timing.measure("read_deck", () => decks.findOne(getOwnedActiveDeckFilter(auth.userId, { _id: item.deckId }), { session, projection: { options: 1 } }))
       if (!deck) return null
-      return timing.measure("save_review", () => saveReview({ itemType: "flashcard", item, rating, requestId: body.requestId, options: normalizeDeckOptions(deck.options), session }))
+      const options = normalizeDeckOptions(deck.options)
+      return timing.measure("save_review", () => saveReview({ itemType: "flashcard", item, rating, requestId: body.requestId, options, session }))
     }))
     if (!next) return timing.finish(NextResponse.json({ error: "Không tìm thấy thẻ" }, { status: 404 }))
     return timing.finish(NextResponse.json({ success: true, next }))
