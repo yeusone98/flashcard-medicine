@@ -43,6 +43,7 @@ next-env.d.ts
 # Generated PWA assets
 /public/sw.js
 /public/workbox-*.js
+/public/worker-*.js
 /.playwright-cli/
 /output/playwright/
 

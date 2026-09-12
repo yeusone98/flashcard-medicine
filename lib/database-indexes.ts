@@ -2,7 +2,7 @@ import type { Db } from "mongodb"
 
 // Increment the version whenever this index definition changes. Each version
 // gets its own marker so overlapping deployments cannot overwrite one another.
-export const INDEX_VERSION = "study-indexes-v2"
+export const INDEX_VERSION = "study-indexes-v3"
 
 export async function ensureDatabaseIndexes(db: Db): Promise<void> {
   const versions = db.collection<{ _id: string; completedAt: Date }>("_schema_versions")
@@ -20,6 +20,8 @@ export async function ensureDatabaseIndexes(db: Db): Promise<void> {
     db.collection("mcq_results").createIndex({ userId: 1, deckId: 1, attemptId: 1 }, { unique: true, partialFilterExpression: { attemptId: { $type: "string" } } }),
     db.collection("media").createIndex({ ownerId: 1, createdAt: -1 }),
     db.collection("ai_usage").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    db.collection("push_subscriptions").createIndex({ endpoint: 1 }, { unique: true }),
+    db.collection("push_subscriptions").createIndex({ userId: 1, enabled: 1 }),
   ])
   const failed = results.find(result => result.status === "rejected")
   if (failed?.status === "rejected") throw failed.reason

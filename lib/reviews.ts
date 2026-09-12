@@ -1,6 +1,6 @@
 import type { ClientSession } from "mongodb"
 import { getDb, ObjectId, type FlashcardDoc, type QuestionDoc, type ReviewLogDoc } from "@/lib/mongodb"
-import { buildFsrsCard, mapReviewRating, mapRatingToLabel, mapStateToLabel, previewReviewIntervals, scheduleFsrsReview, type DeckOptions } from "@/lib/fsrs"
+import { buildFsrsCard, mapReviewRating, mapRatingToLabel, mapStateToLabel, previewReviewIntervals, scheduleFsrsReview, type DeckOptions, type ReviewIntervals } from "@/lib/fsrs"
 
 export type ReviewRating = "again" | "hard" | "good" | "easy"
 export const ratings: ReviewRating[] = ["again", "hard", "good", "easy"]
@@ -15,20 +15,32 @@ export async function saveReview(input: {
 }) {
   const { itemType, item, rating, requestId, options, session } = input
   const db = await getDb()
-  const logs = db.collection<ReviewLogDoc & { requestId?: string; nextIntervalDays?: number }>("review_logs")
+  const logs = db.collection<ReviewLogDoc & { requestId?: string; nextIntervalDays?: number; reviewIntervals?: ReviewIntervals }>("review_logs")
   const prior = await logs.findOne({ itemId: item._id, requestId }, { session })
   if (prior) return {
     rating: prior.rating,
     dueAt: prior.nextDueAt,
     intervalMinutes: Math.max(1, Math.round((prior.nextDueAt!.getTime() - prior.reviewedAt.getTime()) / 60000)),
     intervalDays: prior.nextIntervalDays ?? prior.scheduledDays,
-    reviewIntervals: previewReviewIntervals(item, new Date(), options),
+    reviewIntervals: prior.reviewIntervals ?? previewReviewIntervals(item, prior.reviewedAt, options),
   }
   const now = new Date()
   const result = scheduleFsrsReview(buildFsrsCard(item, now), mapReviewRating(rating), now, options)
   const c = result.card
   const log = result.log
   const intervalMinutes = Math.max(1, Math.round((c.due.getTime() - now.getTime()) / 60000))
+  const reviewIntervals = previewReviewIntervals({
+    fsrsState: c.state,
+    fsrsStability: c.stability,
+    fsrsDifficulty: c.difficulty,
+    fsrsElapsedDays: c.elapsed_days,
+    fsrsScheduledDays: c.scheduled_days,
+    fsrsLearningSteps: c.learning_steps,
+    fsrsReps: c.reps,
+    fsrsLapses: c.lapses,
+    dueAt: c.due,
+    lastReviewedAt: now,
+  }, now, options)
   await db.collection(itemType === "flashcard" ? "flashcards" : "questions").updateOne({ _id: item._id }, { $set: {
     lastReviewedAt: now, dueAt: c.due, fsrsState: c.state, fsrsStability: c.stability,
     fsrsDifficulty: c.difficulty, fsrsElapsedDays: c.elapsed_days, fsrsScheduledDays: c.scheduled_days,
@@ -40,24 +52,13 @@ export async function saveReview(input: {
     rating: mapRatingToLabel(mapReviewRating(rating)), state: mapStateToLabel(log.state),
     dueAt: log.due, nextDueAt: c.due, stability: log.stability, difficulty: log.difficulty,
     elapsedDays: log.elapsed_days, scheduledDays: log.scheduled_days, learningSteps: log.learning_steps,
-    reps: c.reps, lapses: c.lapses, reviewedAt: log.review, createdAt: now, updatedAt: now,
+    reps: c.reps, lapses: c.lapses, reviewIntervals, reviewedAt: log.review, createdAt: now, updatedAt: now,
   }, { session })
   return {
     rating,
     dueAt: c.due,
     intervalMinutes,
     intervalDays: c.scheduled_days,
-    reviewIntervals: previewReviewIntervals({
-      fsrsState: c.state,
-      fsrsStability: c.stability,
-      fsrsDifficulty: c.difficulty,
-      fsrsElapsedDays: c.elapsed_days,
-      fsrsScheduledDays: c.scheduled_days,
-      fsrsLearningSteps: c.learning_steps,
-      fsrsReps: c.reps,
-      fsrsLapses: c.lapses,
-      dueAt: c.due,
-      lastReviewedAt: now,
-    }, new Date(), options),
+    reviewIntervals,
   }
 }

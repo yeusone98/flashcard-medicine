@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { requireSession } from "@/lib/require-user"
 import { PwaInstallButton } from "@/components/pwa-controls"
+import { StudyReminderControl } from "@/components/study-reminder-control"
 
 export default async function HomePage() {
     await requireSession()
@@ -154,8 +155,9 @@ export default async function HomePage() {
                             Mở nhanh từ màn hình chính và học toàn màn hình. Lịch ôn, kết quả MCQ và ghi chú vẫn đồng bộ bằng tài khoản của bạn.
                         </CardDescription>
                     </CardHeader>
-                    <CardFooter>
+                    <CardFooter className="flex flex-wrap items-start gap-3">
                         <PwaInstallButton />
+                        <StudyReminderControl />
                     </CardFooter>
                 </Card>
             </section>

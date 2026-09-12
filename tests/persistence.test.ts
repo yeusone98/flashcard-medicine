@@ -6,6 +6,7 @@ import { ensureDatabaseIndexes, INDEX_VERSION } from "@/lib/database-indexes"
 import { getDb, ObjectId } from "@/lib/mongodb"
 
 const identity = vi.hoisted(() => ({ id: "000000000000000000000001" }))
+vi.mock("server-only", () => ({}))
 vi.mock("@/lib/auth-helpers", () => ({
   requireAuth: async () => ({ userId: identity.id, session: { user: { id: identity.id } } }),
   getUserIdFromSession: () => identity.id,
@@ -17,6 +18,10 @@ vi.mock("@/lib/cloudinary", () => ({ default: {
   utils: { api_sign_request: () => "test-signature", private_download_url: () => "https://pdf-storage.example.test/file" },
   api: { resource: vi.fn().mockResolvedValue({ bytes: 8 }) },
   uploader: { destroy: vi.fn().mockResolvedValue({ result: "ok" }) },
+} }))
+vi.mock("web-push", () => ({ default: {
+  setVapidDetails: vi.fn(),
+  sendNotification: vi.fn().mockResolvedValue({}),
 } }))
 vi.mock("@/app/decks/[deckId]/flashcards/FlashcardStudyClient", () => ({ default: () => null }))
 
@@ -34,6 +39,9 @@ import { GET as readDocument, PATCH as patchDocument, DELETE as deleteDocument }
 import { GET as readPdfFile } from "@/app/api/documents/[id]/file/route"
 import { POST as documentCard } from "@/app/api/documents/[id]/flashcards/route"
 import { reserveAiQuota } from "@/lib/ai-quota"
+import webPush from "web-push"
+import { POST as enableNotifications, DELETE as disableNotifications } from "@/app/api/notifications/route"
+import { GET as sendStudyReminders } from "@/app/api/cron/study-reminders/route"
 
 let mongo: MongoMemoryReplSet
 const owner = new ObjectId("000000000000000000000001")
@@ -46,6 +54,9 @@ const params = (id: ObjectId) => ({ params: Promise.resolve({ id: id.toString() 
 const request = (path: string, body?: unknown) => new NextRequest(`http://localhost${path}`, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : undefined)
 
 beforeAll(async () => {
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = "test-public-key"
+  process.env.VAPID_PRIVATE_KEY = "test-private-key"
+  process.env.CRON_SECRET = "test-cron-secret-at-least-16"
   mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 }, binary: { version: "7.0.14", downloadDir: "/tmp/flashcard-mongo-binaries" } })
   process.env.MONGODB_URI = mongo.getUri()
   await getDb()
@@ -57,7 +68,7 @@ afterAll(async () => {
 beforeEach(async () => {
   identity.id = owner.toString()
   const db = await getDb()
-  for (const name of ["decks", "flashcards", "questions", "review_logs", "mcq_results", "media", "ai_usage", "documents", "document_limits"]) await db.collection(name).deleteMany({})
+  for (const name of ["decks", "flashcards", "questions", "review_logs", "mcq_results", "media", "ai_usage", "documents", "document_limits", "push_subscriptions"]) await db.collection(name).deleteMany({})
   const dates = { createdAt: new Date(), updatedAt: new Date() }
   await db.collection("decks").insertOne({ _id: deckId, userId: owner, name: "Anatomy", ...dates })
   await db.collection("flashcards").insertOne({ _id: cardId, deckId, front: "Q", back: "A", fsrsState: 0, level: 0, ...dates })
@@ -71,7 +82,7 @@ describe("database index bootstrap", () => {
     const createIndex = vi.spyOn(Collection.prototype, "createIndex")
     try {
       await ensureDatabaseIndexes(db)
-      expect(createIndex).toHaveBeenCalledTimes(11)
+      expect(createIndex).toHaveBeenCalledTimes(13)
       createIndex.mockClear()
       await ensureDatabaseIndexes(db)
       expect(createIndex).not.toHaveBeenCalled()
@@ -290,5 +301,54 @@ describe("MCQ personal notes", () => {
     const clonedId = new ObjectId((await cloned.json()).newDeckId)
     expect(await db.collection("questions").countDocuments({ deckId: clonedId })).toBe(2)
     expect(await db.collection("questions").countDocuments({ deckId: clonedId, note: { $exists: true } })).toBe(0)
+  })
+})
+
+describe("study reminder push notifications", () => {
+  const endpoint = "https://push.example.test/device-one"
+  const subscription = { endpoint, keys: { p256dh: "public-device-key", auth: "device-auth" } }
+
+  it("stores a device under the signed-in account and prevents another account from removing it", async () => {
+    const enabled = await enableNotifications(request("/api/notifications", { subscription }))
+    expect(enabled.status).toBe(200)
+    const db = await getDb()
+    expect((await db.collection("push_subscriptions").findOne({ endpoint }))?.userId).toEqual(owner)
+
+    identity.id = outsider.toString()
+    const disableRequest = new NextRequest("http://localhost/api/notifications", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint }),
+    })
+    expect((await disableNotifications(disableRequest)).status).toBe(200)
+    expect(await db.collection("push_subscriptions").countDocuments({ endpoint })).toBe(1)
+  })
+
+  it("sends once only for due flashcards marked Again or Hard", async () => {
+    await enableNotifications(request("/api/notifications", { subscription }))
+    const db = await getDb()
+    await db.collection("flashcards").updateOne({ _id: cardId }, {
+      $set: { reviewRating: "hard", dueAt: new Date(Date.now() - 60_000) },
+    })
+    await db.collection("flashcards").insertMany([
+      { deckId, front: "Good", back: "No reminder", level: 0, reviewRating: "good", dueAt: new Date(Date.now() - 60_000), createdAt: new Date(), updatedAt: new Date() },
+      { deckId, front: "Future", back: "Not due", level: 0, reviewRating: "again", dueAt: new Date(Date.now() + 86_400_000), createdAt: new Date(), updatedAt: new Date() },
+    ])
+    const cronRequest = new NextRequest("http://localhost/api/cron/study-reminders", {
+      headers: { authorization: `Bearer ${process.env.CRON_SECRET}` },
+    })
+    const first = await sendStudyReminders(cronRequest)
+    expect(first.status).toBe(200)
+    expect((await first.json()).sent).toBe(1)
+    expect(webPush.sendNotification).toHaveBeenCalledTimes(1)
+    expect(String(vi.mocked(webPush.sendNotification).mock.calls[0][1])).toContain("1 thẻ Lại hoặc Khó")
+
+    const second = await sendStudyReminders(cronRequest)
+    expect((await second.json()).sent).toBe(0)
+    expect(webPush.sendNotification).toHaveBeenCalledTimes(1)
+  })
+
+  it("rejects cron requests without the deployment secret", async () => {
+    expect((await sendStudyReminders(new NextRequest("http://localhost/api/cron/study-reminders"))).status).toBe(401)
   })
 })

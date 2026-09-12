@@ -96,3 +96,9 @@ Trong mỗi câu trắc nghiệm, mở **Ghi chú cá nhân**, nhập nội dung
 ## Cài ứng dụng PWA
 
 Trang chủ có nút **Cài ứng dụng**. Chrome/Edge mở hộp cài trực tiếp; trên iPhone/iPad, mở web bằng Safari rồi chọn **Chia sẻ → Thêm vào Màn hình chính**. App dùng chung tài khoản và database với website. Khi mất mạng, giao diện báo rõ dữ liệu mới chưa thể đồng bộ; thư viện PDF và thao tác học vẫn cần mạng. Khi service worker đã tải bản mới, nút **Cập nhật** sẽ kích hoạt phiên bản đó và tải lại trang.
+
+### Nhắc học flashcard
+
+Chạy `npm run setup:push` một lần để tạo `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` và `CRON_SECRET` trong `.env.local`. Sao chép đủ bốn biến sang Vercel Environment Variables rồi redeploy. Không commit khóa private hoặc cron secret.
+
+Sau khi cấu hình, trang chủ có nút **Bật nhắc thẻ Lại / Khó**. Quyền thông báo chỉ được hỏi khi người dùng bấm nút. Mỗi thiết bị đăng ký riêng; nút **Gửi thử** kiểm tra thiết bị hiện tại. Cron `/api/cron/study-reminders` chạy mỗi ngày lúc 13:00 UTC, tương ứng khoảng 20:00–20:59 tại Việt Nam trên Vercel Hobby. Thông báo chỉ gửi nếu flashcard đã được chấm **Lại** hoặc **Khó** và `dueAt` đã tới; mỗi thiết bị nhận tối đa một lần mỗi ngày. Thiết bị có subscription hết hạn sẽ tự được dọn khỏi database.

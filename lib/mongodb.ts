@@ -172,6 +172,17 @@ export interface UserDoc {
   updatedAt: Date
 }
 
+export interface PushSubscriptionDoc {
+  _id?: ObjectId
+  userId: ObjectId
+  endpoint: string
+  keys: { p256dh: string; auth: string }
+  enabled: boolean
+  lastSentDate?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface DeckParentDoc {
   _id?: ObjectId
   userId: ObjectId
@@ -225,6 +236,11 @@ export async function getReviewLogsCollection(): Promise<Collection<ReviewLogDoc
 export async function getUsersCollection(): Promise<Collection<UserDoc>> {
   const db = await getDb()
   return db.collection<UserDoc>("users")
+}
+
+export async function getPushSubscriptionsCollection(): Promise<Collection<PushSubscriptionDoc>> {
+  const db = await getDb()
+  return db.collection<PushSubscriptionDoc>("push_subscriptions")
 }
 
 export async function getDeckParentsCollection(): Promise<Collection<DeckParentDoc>> {
