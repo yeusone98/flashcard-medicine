@@ -8,11 +8,9 @@ function NavigationPending() {
   const { pending } = useLinkStatus()
   if (!pending) return null
 
-  return (
-    <span role="status" className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary animate-pulse motion-reduce:animate-none">
-      <span className="sr-only">Đang chuyển trang…</span>
-    </span>
-  )
+  // Route-level loading UI handles the visual response. Keeping this status
+  // screen-reader-only avoids drawing an underline outside rounded buttons.
+  return <span role="status" className="sr-only">Đang chuyển trang…</span>
 }
 
 // Keep Next's navigation semantics (including modified clicks and cancellation).
