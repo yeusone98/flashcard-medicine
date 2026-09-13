@@ -20,7 +20,12 @@ function validSubscription(value: unknown): value is {
 export async function GET() {
   const auth = await requireAuth()
   if (auth instanceof NextResponse) return auth
+  const devices = await (await getPushSubscriptionsCollection()).find(
+    { userId: new ObjectId(auth.userId), enabled: true },
+    { projection: { endpoint: 1 } },
+  ).toArray()
   return NextResponse.json({
+    enabledEndpoints: devices.map(device => device.endpoint),
     configured: Boolean(publicVapidKey()),
     publicKey: publicVapidKey(),
     schedule: "every-minute",
@@ -71,9 +76,9 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Thiếu thiết bị cần tắt" }, { status: 400 })
   }
   const subscriptions = await getPushSubscriptionsCollection()
-  await subscriptions.deleteOne({
+  await subscriptions.updateOne({
     userId: new ObjectId(auth.userId),
     endpoint: body.endpoint,
-  })
+  }, { $set: { enabled: false, updatedAt: new Date() } })
   return NextResponse.json({ enabled: false })
 }

@@ -101,7 +101,7 @@ Trang chủ có nút **Cài ứng dụng**. Chrome/Edge mở hộp cài trực t
 
 Chạy `npm run setup:push` một lần để tạo `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` và `CRON_SECRET` trong `.env.local`. Sao chép đủ bốn biến sang Vercel Environment Variables rồi redeploy. Không commit khóa private hoặc cron secret.
 
-Sau khi cấu hình, trang chủ có nút **Bật nhắc thẻ Lại / Khó**. Quyền thông báo chỉ được hỏi khi người dùng bấm nút. Mỗi thiết bị đăng ký riêng; nút **Gửi thử** kiểm tra thiết bị hiện tại.
+Trong **Hồ sơ → Cài đặt thông báo học tập**, bật **Nhắc ôn flashcard** để nhắc cả bốn mức Lại, Khó, Tốt và Dễ. Trang chủ cũng có công tắc này. Quyền thông báo chỉ được hỏi khi bật. Mỗi thiết bị đăng ký riêng; nút **Gửi thử** kiểm tra thiết bị hiện tại. Tắt nhắc vẫn giữ lịch sử đã gửi để bật lại không nhắc trùng.
 
 #### Lịch mỗi phút bằng cron-job.org (Vercel Hobby)
 
@@ -116,6 +116,6 @@ Deploy bản mới trước khi bật lịch bên ngoài. `vercel.json` không c
 
 Dùng **Test run**, kiểm tra HTTP 200, rồi xem History có lần chạy mỗi phút. `sent: 0` là bình thường nếu chưa có thiết bị đăng ký hoặc chưa có thẻ cần nhắc. HTTP 401 nghĩa là secret không khớp; 503 nghĩa là thiếu Web Push hoặc nhà cung cấp push lỗi. Không gửi khóa VAPID private cho cron-job.org.
 
-Thông báo chỉ gửi cho thẻ đã chấm **Lại / Khó** và `dueAt` đã tới. Gộp các thẻ cần nhắc thành một thông báo mỗi thiết bị. Database lưu lịch đã gửi theo thẻ/thiết bị; chấm lại tạo hạn mới thì được nhắc tiếp, không giới hạn một lần/ngày. Job có khóa chống chạy đồng thời và luân phiên kiểm tra thiết bị khi hết thời gian xử lý. Push lỗi được thử lại ở lần chạy sau; thiết bị hết hạn được xóa. Nếu máy chủ dừng sau khi gửi nhưng trước khi ghi nhận vào database, lần thử lại vẫn có thể lặp thông báo.
+Thông báo gửi cho thẻ đã chấm **Lại / Khó / Tốt / Dễ** và `dueAt` đã tới. Gộp các thẻ cần nhắc thành một thông báo mỗi thiết bị. Database lưu lịch đã gửi theo thẻ/thiết bị; chấm lại tạo hạn mới thì được nhắc tiếp, không giới hạn một lần/ngày. Job có khóa chống chạy đồng thời và luân phiên kiểm tra thiết bị khi hết thời gian xử lý. Push lỗi được thử lại ở lần chạy sau; thiết bị hết hạn được xóa. Nếu máy chủ dừng sau khi gửi nhưng trước khi ghi nhận vào database, lần thử lại vẫn có thể lặp thông báo.
 
 Mục tiêu là gửi ở lần kiểm tra kế tiếp sau khi đến hạn (thường trong khoảng một phút), không bảo đảm đúng giây hoặc tất cả thiết bị khi tải lớn. Điện thoại cần mạng và quyền thông báo; hệ điều hành có thể trì hoãn hiển thị. Push hết hạn sau 5 phút để hạn chế thông báo cũ khi thiết bị mất mạng lâu.

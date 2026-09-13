@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Bell, BellOff, Loader2, Send } from "lucide-react"
+import { Loader2, Send } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
@@ -37,7 +37,8 @@ export function StudyReminderControl() {
         return
       }
       const registration = await navigator.serviceWorker.ready
-      setState(await registration.pushManager.getSubscription() ? "enabled" : "disabled")
+      const subscription = await registration.pushManager.getSubscription()
+      setState(subscription && config.enabledEndpoints?.includes(subscription.endpoint) ? "enabled" : "disabled")
     }
     void load().catch(() => setState("disabled"))
   }, [])
@@ -65,7 +66,7 @@ export function StudyReminderControl() {
       const result = await response.json().catch(() => null)
       if (!response.ok) throw new Error(result?.error || "Chưa bật được thông báo")
       setState("enabled")
-      setMessage("Đã bật nhắc thẻ Lại / Khó khi đến hạn. Lịch máy chủ cần được cấu hình mỗi phút; thông báo có thể đến trễ do mạng hoặc thiết bị.")
+      setMessage("Đã bật. Mọi flashcard bạn chấm Lại, Khó, Tốt hoặc Dễ sẽ được nhắc khi đến hạn.")
     } catch {
       setMessage("Chưa bật được thông báo. Hãy kiểm tra quyền thông báo của trình duyệt rồi thử lại.")
     } finally {
@@ -86,7 +87,7 @@ export function StudyReminderControl() {
           body: JSON.stringify({ endpoint: subscription.endpoint }),
         })
         if (!response.ok) throw new Error("Chưa tắt được thông báo")
-        await subscription.unsubscribe()
+        // Keep the browser subscription so re-enabling preserves delivery history.
       }
       setState("disabled")
       setMessage("Đã tắt nhắc học trên thiết bị này.")
@@ -119,21 +120,25 @@ export function StudyReminderControl() {
   }
 
   if (state === "loading") return <span className="inline-flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Đang kiểm tra thông báo…</span>
-  if (state === "unsupported") return <p className="text-sm text-muted-foreground">Trình duyệt này chưa hỗ trợ thông báo PWA.</p>
+  if (state === "unsupported") return <p className="text-sm text-muted-foreground">Thiết bị chưa hỗ trợ thông báo ở cửa sổ này. Trên iPhone/iPad, thêm app vào Màn hình chính rồi mở app từ biểu tượng đó để bật thông báo.</p>
   if (state === "unconfigured") return <p className="text-sm text-muted-foreground">Cần cấu hình khóa Web Push trên Vercel trước khi bật nhắc học.</p>
   if (state === "denied") return <p className="text-sm text-destructive">Thông báo đang bị chặn. Hãy cho phép trong cài đặt trình duyệt của thiết bị.</p>
 
   return <div className="space-y-2">
     <div className="flex flex-wrap gap-2">
-      {state === "enabled" ? <>
-        <Button type="button" variant="outline" onClick={() => void sendTest()} disabled={busy} className="gap-2"><Send className="h-4 w-4" />Gửi thử</Button>
-        <Button type="button" variant="ghost" onClick={() => void disable()} disabled={busy} className="gap-2"><BellOff className="h-4 w-4" />Tắt nhắc học</Button>
-      </> : (
-        <Button type="button" variant="outline" onClick={() => void enable()} disabled={busy || !publicKey} className="gap-2"><Bell className="h-4 w-4" />Bật nhắc thẻ Lại / Khó</Button>
-      )}
+      <Button type="button" role="switch" aria-checked={state === "enabled"}
+        aria-label="Nhắc ôn flashcard" variant={state === "enabled" ? "default" : "outline"}
+        onClick={() => void (state === "enabled" ? disable() : enable())}
+        disabled={busy || !publicKey} className="gap-3">
+        <span aria-hidden="true" className={`inline-flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 ${state === "enabled" ? "bg-primary-foreground/25" : "bg-muted-foreground/25"}`}>
+          <span className={`h-4 w-4 rounded-full bg-current transition-transform motion-reduce:transition-none ${state === "enabled" ? "translate-x-4" : "translate-x-0"}`} />
+        </span>
+        Nhắc ôn flashcard · {state === "enabled" ? "Bật" : "Tắt"}
+      </Button>
+      {state === "enabled" && <Button type="button" variant="outline" onClick={() => void sendTest()} disabled={busy} className="gap-2"><Send className="h-4 w-4" />Gửi thử</Button>}
     </div>
     <p role="status" className="text-xs leading-relaxed text-muted-foreground">
-      {busy ? "Đang xử lý…" : message || (state === "enabled" ? "Đang bật trên thiết bị này · nhắc thẻ Lại / Khó đến hạn, kiểm tra mỗi phút khi lịch máy chủ đã được cấu hình." : "Chỉ hỏi quyền thông báo sau khi bạn bấm bật.")}
+      {busy ? "Đang xử lý…" : message || (state === "enabled" ? "Đang bật trên thiết bị này · áp dụng cho cả Lại, Khó, Tốt và Dễ." : "Bật để nhận lời nhắc theo lịch ôn của thẻ. App sẽ hỏi quyền thông báo khi bạn bật.")}
     </p>
   </div>
 }

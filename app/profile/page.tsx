@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
 import { Separator } from "@/components/ui/separator"
+import { StudyReminderControl } from "@/components/study-reminder-control"
 
 export default function ProfilePage() {
     const { data: session, status, update } = useSession()
@@ -208,6 +209,23 @@ export default function ProfilePage() {
     return (
         <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col gap-6 px-4 py-6 stagger">
             {/* Thông tin cá nhân */}
+            <Card id="notifications">
+                <CardHeader>
+                    <CardTitle>Cài đặt thông báo học tập</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                        Bật một lần trên thiết bị này để nhận lời nhắc cho mọi flashcard
+                        bạn chấm Lại, Khó, Tốt hoặc Dễ, theo thời gian hiển thị trên nút đánh giá.
+                    </p>
+                    <StudyReminderControl />
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                        Chấm lại thẻ sẽ cập nhật lịch nhắc. Các thẻ đến hạn cùng lúc được gộp
+                        thành một thông báo. Kiểm tra mỗi phút nên có thể trễ khoảng một phút,
+                        hoặc lâu hơn tùy mạng và điện thoại. Mỗi thiết bị cần bật riêng.
+                    </p>
+                </CardContent>
+            </Card>
             <Card>
                 <CardHeader>
                     <CardTitle>Hồ sơ cá nhân</CardTitle>

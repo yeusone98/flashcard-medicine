@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   try {
     await push.sendNotification(
       { endpoint: subscription.endpoint, keys: subscription.keys },
-      JSON.stringify({ title: "Nhắc học đã sẵn sàng", body: "Bạn sẽ được nhắc khi thẻ Lại hoặc Khó đến giờ ôn.", url: "/decks", tag: "study-reminder-test" }),
+      JSON.stringify({ title: "Nhắc học đã sẵn sàng", body: "Bạn sẽ được nhắc khi flashcard đã đánh giá đến giờ ôn.", url: "/decks", tag: "study-reminder-test" }),
     )
     return NextResponse.json({ sent: true })
   } catch (error) {

@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       if (!decks.length) continue
       const cards = await db.collection<DueCard>("flashcards").find({
         deckId: { $in: decks.map(deck => deck._id) },
-        reviewRating: { $in: ["again", "hard"] },
+        reviewRating: { $in: ["again", "hard", "good", "easy"] },
         dueAt: { $lte: new Date() },
       }, { projection: { _id: 1, deckId: 1, dueAt: 1 } }).toArray()
       if (!cards.length) continue
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
           { endpoint: subscription.endpoint, keys: subscription.keys },
           JSON.stringify({
             title: "Đến giờ ôn flashcard",
-            body: `Bạn có ${pending.length} thẻ Lại hoặc Khó đang chờ ôn.`,
+            body: `Bạn có ${pending.length} flashcard đã đánh giá đến giờ ôn.`,
             url: "/decks",
             tag: "study-reminder",
           }),

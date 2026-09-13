@@ -325,14 +325,15 @@ describe("study reminder push notifications", () => {
     expect(await db.collection("push_subscriptions").countDocuments({ endpoint })).toBe(1)
   })
 
-  it("sends once only for due flashcards marked Again or Hard", async () => {
+  it("groups all four ratings when due and excludes ungraded or future cards", async () => {
     await enableNotifications(request("/api/notifications", { subscription }))
     const db = await getDb()
     await db.collection("flashcards").updateOne({ _id: cardId }, {
       $set: { reviewRating: "hard", dueAt: new Date(Date.now() - 60_000) },
     })
     await db.collection("flashcards").insertMany([
-      { deckId, front: "Good", back: "No reminder", level: 0, reviewRating: "good", dueAt: new Date(Date.now() - 60_000), createdAt: new Date(), updatedAt: new Date() },
+      ...["again", "good", "easy"].map(reviewRating => ({ deckId, front: reviewRating, back: "Due", level: 0, reviewRating, dueAt: new Date(Date.now() - 60_000), createdAt: new Date(), updatedAt: new Date() })),
+      { deckId, front: "Ungraded", back: "No reminder", dueAt: new Date(0) },
       { deckId, front: "Future", back: "Not due", level: 0, reviewRating: "again", dueAt: new Date(Date.now() + 86_400_000), createdAt: new Date(), updatedAt: new Date() },
     ])
     const cronRequest = new NextRequest("http://localhost/api/cron/study-reminders", {
@@ -342,7 +343,7 @@ describe("study reminder push notifications", () => {
     expect(first.status).toBe(200)
     expect((await first.json()).sent).toBe(1)
     expect(webPush.sendNotification).toHaveBeenCalledTimes(1)
-    expect(String(vi.mocked(webPush.sendNotification).mock.calls[0][1])).toContain("1 thẻ Lại hoặc Khó")
+    expect(String(vi.mocked(webPush.sendNotification).mock.calls[0][1])).toContain("4 flashcard đã đánh giá")
 
     const second = await sendStudyReminders(cronRequest)
     expect((await second.json()).sent).toBe(0)
@@ -356,6 +357,19 @@ describe("study reminder push notifications", () => {
   const tick = () => sendStudyReminders(new NextRequest("http://localhost/api/cron/study-reminders", {
     headers: { authorization: `Bearer ${process.env.CRON_SECRET}` },
   }))
+
+  it("turns reminders off and preserves sent history when enabled again", async () => {
+    await enableNotifications(request("/api/notifications", { subscription }))
+    const db = await getDb()
+    await db.collection("flashcards").updateOne({ _id: cardId }, { $set: { reviewRating: "easy", dueAt: new Date(0) } })
+    expect((await (await tick()).json()).sent).toBe(1)
+    await disableNotifications(new NextRequest("http://localhost/api/notifications", {
+      method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint }),
+    }))
+    expect((await (await tick()).json()).checked).toBe(0)
+    await enableNotifications(request("/api/notifications", { subscription }))
+    expect((await (await tick()).json()).sent).toBe(0)
+  })
 
   it("notifies a newly due schedule on the same day, but not a rescheduled future card", async () => {
     await enableNotifications(request("/api/notifications", { subscription }))
