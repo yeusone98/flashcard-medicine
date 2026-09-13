@@ -120,6 +120,7 @@ export default function MCQPage() {
 
   const [savedResult, setSavedResult] = useState<McqResult | null>(null)
   const [isSavingResult, setIsSavingResult] = useState(false)
+  const [submitProgress, setSubmitProgress] = useState<number | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const savingRef = useRef(false)
   const attemptRef = useRef<string | null>(null)
@@ -131,6 +132,18 @@ export default function MCQPage() {
   const lastPointerRef = useRef({ x: 0, y: 0 })
   const isPanningRef = useRef(false)
 
+  useEffect(() => {
+    if (!isSavingResult) return
+    // The API returns one response, so this is an estimate, not server progress.
+    const timer = window.setInterval(() => {
+      setSubmitProgress(previous => {
+        if (previous === null || previous >= 95) return previous
+        return Math.min(95, previous + Math.max(1, Math.round((95 - previous) / 8)))
+      })
+    }, 500)
+    return () => window.clearInterval(timer)
+  }, [isSavingResult])
+
   // Lấy deck name + câu hỏi MCQ + kết quả (nếu có)
   useEffect(() => {
     if (!deckId) return
@@ -139,6 +152,7 @@ export default function MCQPage() {
       try {
         setLoading(true)
         setSaveError(null)
+        setSubmitProgress(null)
         attemptRef.current = null
         pendingAnswersRef.current = null
 
@@ -434,7 +448,7 @@ export default function MCQPage() {
   }
 
   const handleMainButton = () => {
-    if (!hasQuestions) return
+    if (!hasQuestions || savingRef.current) return
     if (index < total - 1) {
       setIndex(prev => Math.min(prev + 1, total - 1))
     } else {
@@ -445,6 +459,7 @@ export default function MCQPage() {
   const confirmSubmit = async () => {
     if (!hasQuestions || savingRef.current) return
     savingRef.current = true
+    setSubmitProgress(5)
     setIsSavingResult(true)
     setSaveError(null)
     setShowSubmitModal(false)
@@ -459,11 +474,13 @@ export default function MCQPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Chưa lưu được bài làm")
       setSavedResult(data.result)
+      setSubmitProgress(100)
       setAnswers(data.result.answers)
       setIsSubmitted(true)
       setReviewMode("all")
       pendingAnswersRef.current = null
     } catch (error) {
+      setSubmitProgress(null)
       setSaveError(error instanceof Error ? error.message : "Mất kết nối. Vui lòng thử lại.")
     } finally {
       savingRef.current = false
@@ -475,6 +492,7 @@ export default function MCQPage() {
     if (!hasQuestions || savingRef.current || pendingAnswersRef.current) return
     attemptRef.current = null
     setSaveError(null)
+    setSubmitProgress(null)
 
     setAnswers(
       questions.map(() => ({
@@ -515,7 +533,9 @@ export default function MCQPage() {
     }
   }
 
-  const mainButtonLabel = isSubmitted
+  const mainButtonLabel = isSavingResult
+    ? `Đang nộp · ${submitProgress ?? 5}%`
+    : isSubmitted
     ? "Câu tiếp theo"
     : isLastQuestionBeforeSubmit
       ? "Nộp bài"
@@ -749,7 +769,31 @@ export default function MCQPage() {
         <p>{saveError} Bài làm chưa được xác nhận lưu.</p>
         <Button onClick={() => void confirmSubmit()} disabled={isSavingResult} className="mt-2">Thử lưu lại</Button>
       </div>}
-      {isSavingResult && <p role="status">Đang đồng bộ bài làm và lịch ôn vào tài khoản…</p>}
+      {submitProgress !== null && !saveError && (
+        <div className={cn(
+          "rounded-xl border border-primary/25 bg-background p-4 shadow-sm",
+          isSavingResult && "fixed inset-x-4 bottom-4 z-50 mx-auto max-w-lg shadow-lg",
+        )}>
+          <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+            <p role="status" className="font-medium">
+              {isSavingResult ? "Đang nộp bài…" : "Đã lưu kết quả vào tài khoản"}
+            </p>
+            <span className="shrink-0 font-semibold tabular-nums">{submitProgress}%</span>
+          </div>
+          <Progress
+            value={submitProgress}
+            aria-label="Tiến trình nộp bài"
+            aria-valuetext={isSavingResult ? `Ước tính ${submitProgress}%` : "Đã lưu thành công"}
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            {isSavingResult
+              ? submitProgress >= 90
+                ? "Máy chủ đang phản hồi chậm. Bạn giữ trang mở để chờ xác nhận lưu nhé. Tiến trình là ước tính."
+                : "Tiến trình ước tính · Đang chờ máy chủ lưu bài làm và lịch ôn."
+              : "Hoàn tất 100% · Bạn có thể xem kết quả bên dưới."}
+          </p>
+        </div>
+      )}
       {/* Progress */}
       {hasQuestions && (
         <Card className="border-dashed">
