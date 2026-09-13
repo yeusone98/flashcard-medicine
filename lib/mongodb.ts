@@ -179,6 +179,7 @@ export interface PushSubscriptionDoc {
   keys: { p256dh: string; auth: string }
   enabled: boolean
   lastSentDate?: string
+  lastCheckedAt?: Date
   createdAt: Date
   updatedAt: Date
 }

@@ -65,7 +65,7 @@ export function StudyReminderControl() {
       const result = await response.json().catch(() => null)
       if (!response.ok) throw new Error(result?.error || "Chưa bật được thông báo")
       setState("enabled")
-      setMessage("Đã bật. App sẽ nhắc khoảng 20:00 khi thẻ Lại hoặc Khó đến hạn.")
+      setMessage("Đã bật nhắc thẻ Lại / Khó khi đến hạn. Lịch máy chủ cần được cấu hình mỗi phút; thông báo có thể đến trễ do mạng hoặc thiết bị.")
     } catch {
       setMessage("Chưa bật được thông báo. Hãy kiểm tra quyền thông báo của trình duyệt rồi thử lại.")
     } finally {
@@ -133,7 +133,7 @@ export function StudyReminderControl() {
       )}
     </div>
     <p role="status" className="text-xs leading-relaxed text-muted-foreground">
-      {busy ? "Đang xử lý…" : message || (state === "enabled" ? "Đang bật trên thiết bị này · nhắc mỗi tối khi có thẻ đến hạn." : "Chỉ hỏi quyền thông báo sau khi bạn bấm bật.")}
+      {busy ? "Đang xử lý…" : message || (state === "enabled" ? "Đang bật trên thiết bị này · nhắc thẻ Lại / Khó đến hạn, kiểm tra mỗi phút khi lịch máy chủ đã được cấu hình." : "Chỉ hỏi quyền thông báo sau khi bạn bấm bật.")}
     </p>
   </div>
 }

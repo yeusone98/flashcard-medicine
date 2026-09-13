@@ -1,11 +1,15 @@
+import { randomUUID } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 
 import { getDb, getPushSubscriptionsCollection, ObjectId } from "@/lib/mongodb"
-import { studyDateKey } from "@/lib/study-time"
 import { configureWebPush } from "@/lib/web-push"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
+export const dynamic = "force-dynamic"
+
+type Delivery = { _id: string; dueAt: Date; sentAt: Date }
+type DueCard = { _id: ObjectId; deckId: ObjectId; dueAt: Date; reviewRating: string }
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET
@@ -15,62 +19,86 @@ export async function GET(req: NextRequest) {
   const push = configureWebPush()
   if (!push) return NextResponse.json({ error: "Web Push chưa được cấu hình" }, { status: 503 })
 
-  const subscriptions = await getPushSubscriptionsCollection()
-  const today = studyDateKey()
-  const active = await subscriptions.find({ enabled: true, lastSentDate: { $ne: today } }).limit(500).toArray()
-  if (!active.length) return NextResponse.json({ checked: 0, sent: 0 })
-
-  const userIds = Array.from(new Map(active.map(item => [item.userId.toString(), item.userId])).values())
   const db = await getDb()
-  const decks = await db.collection("decks").find(
-    { userId: { $in: userIds }, deletedAt: { $exists: false } },
-    { projection: { _id: 1, userId: 1 } },
-  ).toArray()
-  const ownerByDeck = new Map(decks.map(deck => [deck._id.toString(), deck.userId.toString()]))
-  const dueByUser = new Map<string, number>()
-  if (decks.length) {
-    const dueFilter = {
-      deckId: { $in: decks.map(deck => deck._id) },
-      reviewRating: { $in: ["again", "hard"] },
-      dueAt: { $lte: new Date() },
+  const locks = db.collection<{ _id: string; token: string; expiresAt: Date }>("reminder_locks")
+  const token = randomUUID()
+  const started = Date.now()
+  // A lease longer than maxDuration prevents overlapping scheduler calls.
+  try {
+    const lock = await locks.findOneAndUpdate(
+      { _id: "study-reminders", expiresAt: { $lte: new Date() } },
+      { $set: { token, expiresAt: new Date(started + 120_000) } },
+      { upsert: true, returnDocument: "after" },
+    )
+    if (!lock) return NextResponse.json({ skipped: "already-running" })
+  } catch (error) {
+    if (typeof error === "object" && error && "code" in error && error.code === 11000) {
+      return NextResponse.json({ skipped: "already-running" })
     }
-    const flashcards = await db.collection("flashcards").aggregate<{ _id: ObjectId; count: number }>([
-      { $match: dueFilter }, { $group: { _id: "$deckId", count: { $sum: 1 } } },
-    ]).toArray()
-    for (const row of flashcards) {
-      const owner = ownerByDeck.get(row._id.toString())
-      if (owner) dueByUser.set(owner, (dueByUser.get(owner) ?? 0) + row.count)
-    }
+    throw error
   }
 
-  let sent = 0
-  let removed = 0
-  for (let offset = 0; offset < active.length; offset += 20) {
-    const batch = active.slice(offset, offset + 20)
-    await Promise.all(batch.map(async subscription => {
-      const due = dueByUser.get(subscription.userId.toString()) ?? 0
-      if (!due) return
+  try {
+    const subscriptions = await getPushSubscriptionsCollection()
+    // Rotate through devices rather than starving those after the limit.
+    const active = await subscriptions.find({ enabled: true })
+      .sort({ lastCheckedAt: 1, _id: 1 }).limit(100).toArray()
+    const deliveries = db.collection<Delivery>("reminder_deliveries")
+    let checked = 0
+    let sent = 0
+    let removed = 0
+    let failed = 0
+    for (const subscription of active) {
+      // Leave time for the current push before the scheduler's 30s timeout.
+      if (Date.now() - started > 18_000) break
+      checked += 1
+      await subscriptions.updateOne({ _id: subscription._id }, { $set: { lastCheckedAt: new Date() } })
+      const decks = await db.collection("decks").find(
+        { userId: subscription.userId, deletedAt: { $exists: false } },
+        { projection: { _id: 1 } },
+      ).toArray()
+      if (!decks.length) continue
+      const cards = await db.collection<DueCard>("flashcards").find({
+        deckId: { $in: decks.map(deck => deck._id) },
+        reviewRating: { $in: ["again", "hard"] },
+        dueAt: { $lte: new Date() },
+      }, { projection: { _id: 1, deckId: 1, dueAt: 1 } }).toArray()
+      if (!cards.length) continue
+      const deliveryId = (card: DueCard) => `${subscription._id}:${card._id}`
+      const previous = await deliveries.find({ _id: { $in: cards.map(deliveryId) } }).toArray()
+      const sentDates = new Map(previous.map(item => [item._id, item.dueAt.getTime()]))
+      const pending = cards.filter(card => sentDates.get(deliveryId(card)) !== card.dueAt.getTime())
+      if (!pending.length) continue
       try {
         await push.sendNotification(
           { endpoint: subscription.endpoint, keys: subscription.keys },
           JSON.stringify({
             title: "Đến giờ ôn flashcard",
-            body: `Bạn có ${due} thẻ Lại hoặc Khó đang chờ ôn.`,
+            body: `Bạn có ${pending.length} thẻ Lại hoặc Khó đang chờ ôn.`,
             url: "/decks",
-            tag: `study-reminder-${today}`,
+            tag: "study-reminder",
           }),
+          { TTL: 300, urgency: "high", timeout: 8_000 },
         )
+        // One record per card/device; a new dueAt becomes eligible again.
+        await deliveries.bulkWrite(pending.map(card => ({ updateOne: {
+          filter: { _id: deliveryId(card) },
+          update: { $set: { dueAt: card.dueAt, sentAt: new Date() } },
+          upsert: true,
+        } })))
         sent += 1
-        await subscriptions.updateOne({ _id: subscription._id }, { $set: { lastSentDate: today, updatedAt: new Date() } })
       } catch (error) {
         const statusCode = typeof error === "object" && error && "statusCode" in error ? Number(error.statusCode) : 0
         if (statusCode === 404 || statusCode === 410) {
           await subscriptions.deleteOne({ _id: subscription._id })
           removed += 1
+        } else {
+          failed += 1
         }
       }
-    }))
+    }
+    return NextResponse.json({ checked, sent, removed, failed }, { status: failed ? 503 : 200 })
+  } finally {
+    await locks.deleteOne({ _id: "study-reminders", token })
   }
-
-  return NextResponse.json({ checked: active.length, dueUsers: dueByUser.size, sent, removed })
 }

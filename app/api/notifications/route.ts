@@ -23,7 +23,7 @@ export async function GET() {
   return NextResponse.json({
     configured: Boolean(publicVapidKey()),
     publicKey: publicVapidKey(),
-    schedule: "20:00–20:59",
+    schedule: "every-minute",
     timeZone: "Asia/Ho_Chi_Minh",
   })
 }

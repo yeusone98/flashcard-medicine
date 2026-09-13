@@ -66,9 +66,10 @@ afterAll(async () => {
   await mongo?.stop()
 })
 beforeEach(async () => {
+  vi.mocked(webPush.sendNotification).mockClear()
   identity.id = owner.toString()
   const db = await getDb()
-  for (const name of ["decks", "flashcards", "questions", "review_logs", "mcq_results", "media", "ai_usage", "documents", "document_limits", "push_subscriptions"]) await db.collection(name).deleteMany({})
+  for (const name of ["decks", "flashcards", "questions", "review_logs", "mcq_results", "media", "ai_usage", "documents", "document_limits", "push_subscriptions", "reminder_deliveries", "reminder_locks"]) await db.collection(name).deleteMany({})
   const dates = { createdAt: new Date(), updatedAt: new Date() }
   await db.collection("decks").insertOne({ _id: deckId, userId: owner, name: "Anatomy", ...dates })
   await db.collection("flashcards").insertOne({ _id: cardId, deckId, front: "Q", back: "A", fsrsState: 0, level: 0, ...dates })
@@ -350,5 +351,60 @@ describe("study reminder push notifications", () => {
 
   it("rejects cron requests without the deployment secret", async () => {
     expect((await sendStudyReminders(new NextRequest("http://localhost/api/cron/study-reminders"))).status).toBe(401)
+  })
+
+  const tick = () => sendStudyReminders(new NextRequest("http://localhost/api/cron/study-reminders", {
+    headers: { authorization: `Bearer ${process.env.CRON_SECRET}` },
+  }))
+
+  it("notifies a newly due schedule on the same day, but not a rescheduled future card", async () => {
+    await enableNotifications(request("/api/notifications", { subscription }))
+    const cards = (await getDb()).collection("flashcards")
+    await cards.updateOne({ _id: cardId }, { $set: { reviewRating: "again", dueAt: new Date(Date.now() - 60_000) } })
+    expect((await (await tick()).json()).sent).toBe(1)
+    await cards.updateOne({ _id: cardId }, { $set: { dueAt: new Date(Date.now() + 60_000) } })
+    expect((await (await tick()).json()).sent).toBe(0)
+    await cards.updateOne({ _id: cardId }, { $set: { dueAt: new Date(Date.now() - 1_000) } })
+    expect((await (await tick()).json()).sent).toBe(1)
+    expect((await (await tick()).json()).sent).toBe(0)
+  })
+
+  it("prevents overlapping cron calls from sending the same schedule twice", async () => {
+    await enableNotifications(request("/api/notifications", { subscription }))
+    await (await getDb()).collection("flashcards").updateOne({ _id: cardId }, {
+      $set: { reviewRating: "hard", dueAt: new Date(Date.now() - 60_000) },
+    })
+    const results = await Promise.all([tick(), tick(), tick()])
+    const bodies = await Promise.all(results.map(result => result.json()))
+    expect(bodies.reduce((sum, result) => sum + (result.sent ?? 0), 0)).toBe(1)
+    expect(webPush.sendNotification).toHaveBeenCalledTimes(1)
+  })
+
+  it("retries a failed push and removes an expired device", async () => {
+    await enableNotifications(request("/api/notifications", { subscription }))
+    const db = await getDb()
+    await db.collection("flashcards").updateOne({ _id: cardId }, {
+      $set: { reviewRating: "hard", dueAt: new Date(Date.now() - 60_000) },
+    })
+    vi.mocked(webPush.sendNotification).mockRejectedValueOnce({ statusCode: 503 })
+    expect((await tick()).status).toBe(503)
+    expect(await db.collection("reminder_deliveries").countDocuments()).toBe(0)
+    expect((await (await tick()).json()).sent).toBe(1)
+    await db.collection("flashcards").updateOne({ _id: cardId }, { $set: { dueAt: new Date(Date.now() - 1_000) } })
+    vi.mocked(webPush.sendNotification).mockRejectedValueOnce({ statusCode: 410 })
+    expect((await (await tick()).json()).removed).toBe(1)
+    expect(await db.collection("push_subscriptions").countDocuments()).toBe(0)
+  })
+
+  it("ignores deleted decks and other users' cards", async () => {
+    await enableNotifications(request("/api/notifications", { subscription }))
+    const db = await getDb()
+    const otherDeck = new ObjectId()
+    await db.collection("decks").insertOne({ _id: otherDeck, userId: outsider })
+    await db.collection("flashcards").insertOne({ deckId: otherDeck, reviewRating: "hard", dueAt: new Date(0) })
+    await db.collection("flashcards").updateOne({ _id: cardId }, { $set: { reviewRating: "hard", dueAt: new Date(0) } })
+    await db.collection("decks").updateOne({ _id: deckId }, { $set: { deletedAt: new Date() } })
+    expect((await (await tick()).json()).sent).toBe(0)
+    expect(webPush.sendNotification).not.toHaveBeenCalled()
   })
 })
